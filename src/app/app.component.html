@@ -1,8 +1,8 @@
 <div class="container">
   <mat-toolbar
     color="primary"
-    [class.mat-elevation-z4]="!navbar.opened"
-    [class.mat-elevation-z8]="navbar.opened"
+    [class.mat-elevation-z4]="!navbar.opened || !(isHandset | async)"
+    [class.mat-elevation-z8]="navbar.opened && (isHandset | async)"
   >
     <button mat-icon-button aria-label="切换导航栏" (click)="navbar.toggle()">
       <mat-icon fontIcon="menu"></mat-icon>

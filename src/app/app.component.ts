@@ -28,6 +28,7 @@ type AppRoute = {
   standalone: true,
   imports: [
     CommonModule,
+    RouterLinkActive,
     RouterModule,
     RouterOutlet,
     MatButtonModule,
@@ -35,7 +36,6 @@ type AppRoute = {
     MatListModule,
     MatSidenavModule,
     MatToolbarModule,
-    RouterLinkActive,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.less',
