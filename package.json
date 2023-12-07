@@ -1,0 +1,46 @@
+{
+  "name": "with-work",
+  "displayName": "一点微小的工作",
+  "version": "0.0.1",
+  "description": "很惭愧，只是做了一点微小的工作。",
+  "author": {
+    "name": "Liang Fengning",
+    "email": "liangfengning@foxmail.com"
+  },
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "scripts": {
+    "build": "ng build",
+    "dev": "ng serve",
+    "watch": "ng build --watch --configuration development"
+  },
+  "dependencies": {
+    "@angular/animations": "^17.0.5",
+    "@angular/cdk": "17.0.2",
+    "@angular/common": "^17.0.5",
+    "@angular/compiler": "^17.0.5",
+    "@angular/core": "^17.0.5",
+    "@angular/forms": "^17.0.5",
+    "@angular/material": "17.0.2",
+    "@angular/platform-browser": "^17.0.5",
+    "@angular/platform-browser-dynamic": "^17.0.5",
+    "@angular/router": "^17.0.5",
+    "@angular/service-worker": "^17.0.5",
+    "rxjs": "~7.8.1",
+    "tslib": "^2.6.2",
+    "zone.js": "~0.14.2"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^17.0.5",
+    "@angular/cli": "^17.0.5",
+    "@angular/compiler-cli": "^17.0.5",
+    "@types/jasmine": "~5.1.4",
+    "jasmine-core": "~5.1.1",
+    "karma": "~6.4.2",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.1",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~5.2.2"
+  }
+}

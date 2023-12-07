@@ -1,0 +1,27 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.spacer {
+  flex: 1;
+}
+
+mat-toolbar {
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+mat-sidenav-container {
+  flex: 1;
+  height: 100%;
+
+  mat-sidenav {
+    min-width: 16rem;
+
+    mat-icon {
+      margin: 0 1rem 0 1.75rem;
+    }
+  }
+}
