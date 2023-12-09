@@ -18,6 +18,7 @@ export class ClockComponent {
   };
   timer = 0;
   isFullScreen = false;
+  private lock: WakeLockSentinel | null = null;
 
   ngOnInit() {
     this.getTime();
@@ -43,10 +44,16 @@ export class ClockComponent {
     };
   };
 
-  toggleFullScreen = () => {
-    this.isFullScreen = !this.isFullScreen;
-    if (!document.fullscreenElement)
+  toggleFullScreen = async () => {
+    if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
-    else if (document.exitFullscreen) document.exitFullscreen();
+      this.isFullScreen = true;
+      if ('wakeLock' in navigator)
+        navigator.wakeLock.request('screen').then((lock) => (this.lock = lock));
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+      this.isFullScreen = false;
+      if ('wakeLock' in navigator && this.lock) this.lock.release();
+    }
   };
 }
