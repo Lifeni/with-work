@@ -1,0 +1,21 @@
+<main>
+  <ul
+    [style.columns]="
+      (media.isXSmall | async)
+        ? 1
+        : (media.isMedium | async) || (media.isSmall | async)
+        ? 2
+        : 3
+    "
+  >
+    <li>
+      <component-section name="标点"></component-section>
+    </li>
+    <li>
+      <component-section name="链接"></component-section>
+    </li>
+    <li>
+      <component-section name="标点"></component-section>
+    </li>
+  </ul>
+</main>

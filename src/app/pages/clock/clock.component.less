@@ -1,0 +1,55 @@
+:host {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #eeeeee;
+  background-color: #212121;
+}
+
+a,
+button {
+  position: fixed;
+  color: #424242;
+  transition: color 0.2s;
+
+  &.back {
+    top: 0.5rem;
+    right: 1rem;
+  }
+
+  &.fullscreen {
+    bottom: 0.5rem;
+    right: 1rem;
+  }
+
+  &:hover {
+    color: #eeeeee;
+  }
+}
+
+time {
+  display: flex;
+  align-items: center;
+  font-size: min(40vw, 50vh);
+  user-select: none;
+  font-family: "Bebas Neue", sans-serif;
+  font-variant-numeric: tabular-nums;
+
+  .colon {
+    margin: 0 0.1em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2em;
+
+    .dot {
+      width: 0.1em;
+      height: 0.1em;
+      background-color: #eeeeee;
+    }
+  }
+}
