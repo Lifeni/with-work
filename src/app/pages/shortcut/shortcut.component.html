@@ -9,13 +9,32 @@
     "
   >
     <li>
-      <component-section name="标点"></component-section>
-    </li>
-    <li>
-      <component-section name="链接"></component-section>
-    </li>
-    <li>
-      <component-section name="标点"></component-section>
+      <component-section name="标点">
+        <mat-list role="list">
+          @for (mark of marks; track $index) {
+          <mat-list-item
+            role="listitem"
+            [class.less-padding]="media.isMobile | async"
+          >
+            <h6>{{ mark.name }}</h6>
+            <section>
+              <button mat-stroked-button (click)="copy(mark.mark[0])">
+                {{ mark.mark[0] }}
+              </button>
+              <button mat-stroked-button (click)="copy(mark.mark[1])">
+                {{ mark.mark[1] }}
+              </button>
+              <button
+                mat-stroked-button
+                (click)="copy(mark.mark[0] + mark.mark[1])"
+              >
+                {{ mark.mark[0] }} {{ mark.mark[1] }}
+              </button>
+            </section>
+          </mat-list-item>
+          }
+        </mat-list>
+      </component-section>
     </li>
   </ul>
 </main>

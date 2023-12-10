@@ -25,6 +25,13 @@ export class MediaService {
       map((result) => result.matches),
       shareReplay()
     );
+  isMobile: Observable<boolean> = this.breakpointObserver
+    .observe([Breakpoints.XSmall, Breakpoints.Small])
+    .pipe(
+      map((result) => result.matches),
+      shareReplay()
+    );
+
   isMedium: Observable<boolean> = this.breakpointObserver
     .observe(Breakpoints.Medium)
     .pipe(
