@@ -1,44 +1,26 @@
-main {
-  width: 100%;
-  padding: 1rem;
+mat-list {
+  padding: 0;
 
-  ul {
-    width: 100%;
-    column-gap: 1rem;
+  mat-list-item {
+    height: auto;
+    margin: 0.5rem 0;
 
-    li {
-      margin-bottom: 1rem;
-      list-style: none;
-      display: flex;
-      break-inside: avoid;
-      page-break-inside: avoid;
+    &.less-padding {
+      padding: 0 0.5rem;
+    }
 
-      mat-list {
-        padding: 0;
+    h6 {
+      margin: 0;
+      margin-right: 0.75rem;
+      display: inline;
+      font-size: 0.875rem;
+    }
 
-        mat-list-item {
-          height: auto;
-          margin: 0.5rem 0;
-
-          &.less-padding {
-            padding: 0 0.5rem;
-          }
-
-          h6 {
-            margin: 0;
-            margin-right: 0.75rem;
-            display: inline;
-            font-size: 0.875rem;
-          }
-
-          section {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-          }
-        }
-      }
+    section {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
     }
   }
 }

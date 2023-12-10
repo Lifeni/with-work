@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatGridListModule } from '@angular/material/grid-list';
-import { SectionComponent } from '../../components/section/section.component';
-import { MediaService } from '../../services/media.service';
 import { MatListModule } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatButtonModule } from '@angular/material/button';
+import { CardComponent } from '../../components/card/card.component';
+import { ColumnLayoutComponent } from '../../components/column-layout/column-layout.component';
+import { MediaService } from '../../services/media.service';
 
 @Component({
   selector: 'app-shortcut',
@@ -19,7 +20,8 @@ import { MatButtonModule } from '@angular/material/button';
     MatCardModule,
     MatGridListModule,
     MatListModule,
-    SectionComponent,
+    CardComponent,
+    ColumnLayoutComponent,
   ],
 })
 export class ShortcutComponent {
