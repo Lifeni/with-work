@@ -1,0 +1,79 @@
+.app {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  .mat-toolbar {
+    background-color: transparent;
+    height: auto;
+    padding: 1rem 1.5rem;
+
+    &.pinned {
+      z-index: 100;
+    }
+
+    .spacer {
+      flex: 1;
+    }
+
+    h1 {
+      margin: 0 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+  }
+
+  .mat-drawer-container {
+    height: 100%;
+    flex: 1;
+    display: flex;
+    background-color: transparent;
+
+    .mat-drawer {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 16rem;
+      padding: 0.5rem;
+
+      .mdc-list-item:focus::before {
+        background-color: transparent;
+      }
+
+      .mat-mdc-nav-list .mat-icon {
+        margin: 0 1.25rem 0 1.5rem;
+      }
+    }
+
+    .drawer-title-bar {
+      display: flex;
+      padding: 0.5rem 1rem;
+
+      &.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+    }
+
+    .mat-drawer-content {
+      width: 100%;
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      padding: 0 1.5rem 1.5rem 1.5rem;
+
+      .page-content {
+        width: 100%;
+        height: auto;
+        max-width: 96rem;
+        margin: 0 auto;
+      }
+    }
+  }
+
+  .mat-drawer-container > div {
+    position: fixed;
+  }
+}

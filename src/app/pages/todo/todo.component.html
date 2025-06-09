@@ -1,0 +1,26 @@
+<mat-grid-list [cols]="(isMobile | async) ? 1 : 2" gutterSize="1.5rem">
+  <mat-grid-tile><app-panel name="待办"></app-panel></mat-grid-tile>
+  <mat-grid-tile>
+    <app-panel>
+      <mat-tab-group mat-align-tabs="end">
+        @for (item of [1,2,3,4]; track $index) {
+        <mat-tab
+          [label]="`笔记 #${item} ${(noteContent[item - 1].length > 0) ? `(${noteContent[item - 1].length})` : ''}`"
+        >
+          <form class="note-form" [name]="`note-form-${item}`">
+            <mat-form-field class="note-field">
+              <textarea
+                matInput
+                [name]="`note-textarea-${item}`"
+                [placeholder]="`#${item}`"
+                [(ngModel)]="noteContent[item - 1]"
+                (input)="saveNote(item)"
+              ></textarea>
+            </mat-form-field>
+          </form>
+        </mat-tab>
+        }
+      </mat-tab-group>
+    </app-panel>
+  </mat-grid-tile>
+</mat-grid-list>

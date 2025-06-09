@@ -1,0 +1,21 @@
+@use "@angular/material" as mat;
+@import "material-symbols";
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  color-scheme: light dark;
+  @include mat.theme(
+    (
+      color: mat.$violet-palette,
+    )
+  );
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Roboto, "Helvetica Neue", MiSans, sans-serif;
+}

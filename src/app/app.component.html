@@ -1,0 +1,48 @@
+<div class="app">
+  <mat-toolbar [class.pinned]="!(isMobile | async)">
+    <button mat-icon-button aria-label="菜单" (click)="navbar.toggle()">
+      <mat-icon class="material-symbols-outlined">menu</mat-icon>
+    </button>
+    <h1>一点微小的工作</h1>
+    <span class="spacer"></span>
+    <button mat-icon-button aria-label="时间" (click)="openInfoDialog()">
+      <mat-icon class="material-symbols-outlined">info</mat-icon>
+    </button>
+  </mat-toolbar>
+
+  <mat-sidenav-container>
+    <mat-sidenav
+      #navbar
+      [attr.role]="(isMobile | async) ? 'dialog' : 'navigation'"
+      [mode]="(isMobile | async) ? 'over' : 'side'"
+      [opened]="(isMobile | async) === false"
+    >
+      <div class="drawer-title-bar" [class.hidden]="!(isMobile | async)">
+        <button mat-icon-button aria-label="菜单" (click)="navbar.toggle()">
+          <mat-icon class="material-symbols-outlined">close</mat-icon>
+        </button>
+      </div>
+
+      <mat-nav-list>
+        @for (nav of navLinks; track $index) {
+        <a
+          mat-list-item
+          [routerLink]="nav.path"
+          [activated]="location.isCurrentPathEqualTo(nav.encode)"
+        >
+          <mat-icon class="material-symbols-outlined" matListItemIcon>
+            {{ nav.icon }}
+          </mat-icon>
+          <span matListItemTitle>{{ nav.name }}</span>
+        </a>
+        }
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <div class="page-content">
+        <router-outlet></router-outlet>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>
