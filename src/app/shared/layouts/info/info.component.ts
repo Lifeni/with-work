@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogContent } from '@angular/material/dialog';
-import { version } from '../../../../package.json';
+import { version } from '../../../../../package.json';
 
 @Component({
   selector: 'app-info',

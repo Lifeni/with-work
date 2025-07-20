@@ -1,15 +1,4 @@
 <div class="app">
-  <mat-toolbar [class.pinned]="!(isMobile | async)">
-    <button mat-icon-button aria-label="菜单" (click)="navbar.toggle()">
-      <mat-icon class="material-symbols-outlined">menu</mat-icon>
-    </button>
-    <h1>一点微小的工作</h1>
-    <span class="spacer"></span>
-    <button mat-icon-button aria-label="时间" (click)="openInfoDialog()">
-      <mat-icon class="material-symbols-outlined">info</mat-icon>
-    </button>
-  </mat-toolbar>
-
   <mat-sidenav-container>
     <mat-sidenav
       #navbar
@@ -17,10 +6,8 @@
       [mode]="(isMobile | async) ? 'over' : 'side'"
       [opened]="(isMobile | async) === false"
     >
-      <div class="drawer-title-bar" [class.hidden]="!(isMobile | async)">
-        <button mat-icon-button aria-label="菜单" (click)="navbar.toggle()">
-          <mat-icon class="material-symbols-outlined">close</mat-icon>
-        </button>
+      <div class="drawer-title-bar">
+        <h1>一点微小的工作</h1>
       </div>
 
       <mat-nav-list>
@@ -40,6 +27,16 @@
     </mat-sidenav>
 
     <mat-sidenav-content>
+      <mat-toolbar>
+        <button mat-icon-button aria-label="菜单" (click)="navbar.toggle()">
+          <mat-icon class="material-symbols-outlined">menu</mat-icon>
+        </button>
+
+        <span class="spacer"></span>
+        <button mat-icon-button aria-label="时间" (click)="openInfoDialog()">
+          <mat-icon class="material-symbols-outlined">info</mat-icon>
+        </button>
+      </mat-toolbar>
       <div class="page-content">
         <router-outlet></router-outlet>
       </div>

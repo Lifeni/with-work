@@ -7,20 +7,10 @@
   .mat-toolbar {
     background-color: transparent;
     height: auto;
-    padding: 1rem 1.5rem;
-
-    &.pinned {
-      z-index: 100;
-    }
+    padding: 1rem 0;
 
     .spacer {
       flex: 1;
-    }
-
-    h1 {
-      margin: 0 0.5rem;
-      font-size: 1.25rem;
-      font-weight: 500;
     }
   }
 
@@ -48,12 +38,12 @@
 
     .drawer-title-bar {
       display: flex;
-      padding: 0.5rem 1rem;
+      padding: 1rem 1rem;
 
-      &.hidden {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
+      h1 {
+        margin: 0 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 500;
       }
     }
 

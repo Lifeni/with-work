@@ -1,13 +1,5 @@
-import { Location, CommonModule } from '@angular/common';
-import {
-  Component,
-  computed,
-  effect,
-  inject,
-  Signal,
-  signal,
-  ViewEncapsulation,
-} from '@angular/core';
+import { CommonModule, Location } from '@angular/common';
+import { Component, inject, ViewEncapsulation } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,14 +9,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { type Observable } from 'rxjs';
 import { routes } from './app.routes';
-import { MediaQueryService } from './services/media-query.service';
-import { InfoComponent } from './pages/info/info.component';
-
-type Links = {
-  path: string;
-  name: string;
-  icon: string;
-}[];
+import { InfoComponent } from './shared/layouts/info/info.component';
+import { MediaQueryService } from './shared/services/media-query.service';
 
 @Component({
   selector: 'app-root',
