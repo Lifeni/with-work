@@ -6,9 +6,7 @@ import {
 } from '@angular/cdk/layout';
 import { Observable, map } from 'rxjs';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class MediaQueryService {
   constructor(private breakpointObserver: BreakpointObserver) {}
 

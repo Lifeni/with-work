@@ -27,16 +27,7 @@
     </mat-sidenav>
 
     <mat-sidenav-content>
-      <mat-toolbar>
-        <button mat-icon-button aria-label="菜单" (click)="navbar.toggle()">
-          <mat-icon class="material-symbols-outlined">menu</mat-icon>
-        </button>
-
-        <span class="spacer"></span>
-        <button mat-icon-button aria-label="时间" (click)="openInfoDialog()">
-          <mat-icon class="material-symbols-outlined">info</mat-icon>
-        </button>
-      </mat-toolbar>
+      <app-toolbar></app-toolbar>
       <div class="page-content">
         <router-outlet></router-outlet>
       </div>

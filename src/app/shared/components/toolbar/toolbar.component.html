@@ -1,0 +1,24 @@
+<mat-toolbar>
+  <button mat-icon-button aria-label="菜单" (click)="this.toggleSidenav()">
+    <mat-icon class="material-symbols-outlined">menu</mat-icon>
+  </button>
+
+  @if (isMobile | async) {
+  <span class="spacer"></span>
+  }
+
+  <h1>{{ this.getAppName() }}</h1>
+
+  <span class="spacer"></span>
+  <button
+    mat-icon-button
+    aria-label="切换夜间模式"
+    (click)="this.toggleTheme()"
+  >
+    @if (this.getTheme() === 'light' ) {
+    <mat-icon class="material-symbols-outlined">light_mode</mat-icon>
+    } @else {
+    <mat-icon class="material-symbols-outlined">dark_mode</mat-icon>
+    }
+  </button>
+</mat-toolbar>

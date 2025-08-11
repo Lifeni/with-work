@@ -1,20 +1,20 @@
 import { CommonModule, Location } from '@angular/common';
-import { Component, inject, ViewEncapsulation } from '@angular/core';
+import { Component, inject, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterOutlet } from '@angular/router';
-import { type Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { routes } from './app.routes';
-import { InfoComponent } from './shared/layouts/info/info.component';
+import { ToolbarComponent } from './shared/components/toolbar/toolbar.component';
 import { MediaQueryService } from './shared/services/media-query.service';
+import { LayoutService } from './shared/services/layout.service';
 
 @Component({
   selector: 'app-root',
-  providers: [MediaQueryService, Location],
+  providers: [],
   imports: [
     CommonModule,
     RouterOutlet,
@@ -24,15 +24,16 @@ import { MediaQueryService } from './shared/services/media-query.service';
     MatListModule,
     MatSidenavModule,
     MatToolbarModule,
+    ToolbarComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   encapsulation: ViewEncapsulation.None,
 })
 export class AppComponent {
-  isMobile: Observable<boolean>;
-  location: Location;
-
+  readonly mediaQueryService = inject(MediaQueryService);
+  readonly layoutService = inject(LayoutService);
+  readonly location = inject(Location);
   readonly navLinks = routes
     .filter((route) => route.data?.['side'])
     .map((route) => ({
@@ -42,14 +43,13 @@ export class AppComponent {
       icon: route.data?.['icon'],
     }));
 
-  readonly dialog = inject(MatDialog);
-  constructor(mediaQueryService: MediaQueryService, location: Location) {
-    this.isMobile = mediaQueryService.isMobile();
-    this.location = location;
+  @ViewChild('navbar') navbar!: MatSidenav;
+  isMobile: Observable<boolean>;
+  constructor() {
+    this.isMobile = this.mediaQueryService.isMobile();
   }
 
-  openInfoDialog() {
-    const dialogRef = this.dialog.open(InfoComponent);
-    dialogRef.afterClosed().subscribe(() => {});
+  ngAfterViewInit(): void {
+    this.layoutService.setSidenav(this.navbar);
   }
 }
