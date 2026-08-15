@@ -15,6 +15,9 @@ interface WorkspaceState {
   setContent: (id: string, content: string) => void;
   setLanguage: (id: string, language: string) => void;
   setEditorMode: (id: string, editorMode: EditorMode) => void;
+  setLeft: (id: string, left: string) => void;
+  setRight: (id: string, right: string) => void;
+  swapSides: (id: string) => void;
   setView: (id: string, view: ViewId) => void;
   replaceAll: (workspaces: Workspace[]) => void;
 }
@@ -33,6 +36,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           content: "",
           language: "auto",
           editorMode: "single",
+          left: "",
+          right: "",
           view: "editor",
         };
         set((s) => ({ workspaces: [...s.workspaces, ws], activeId: id }));
@@ -71,6 +76,23 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setEditorMode: (id, editorMode) =>
         set((s) => ({
           workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, editorMode } : w)),
+        })),
+
+      setLeft: (id, left) =>
+        set((s) => ({
+          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, left } : w)),
+        })),
+
+      setRight: (id, right) =>
+        set((s) => ({
+          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, right } : w)),
+        })),
+
+      swapSides: (id) =>
+        set((s) => ({
+          workspaces: s.workspaces.map((w) =>
+            w.id === id ? { ...w, left: w.right ?? "", right: w.left ?? "" } : w,
+          ),
         })),
 
       setView: (id, view) =>

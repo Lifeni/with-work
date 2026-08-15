@@ -24,13 +24,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import { cn, formatTime } from "@/lib/utils";
+import { formatTime } from "@/lib/utils";
 import { getToolInput } from "@/lib/applyTool";
 import { getActiveEditor } from "@/lib/editorBridge";
 import { splitLines } from "@/lib/split";
 import { sortByReference } from "@/lib/sort";
 import { importText, type ImportTarget } from "@/lib/transfer";
 import { useStagingStore } from "@/stores/staging";
+import { useSettingsStore } from "@/stores/settings";
 import { useTemplatesStore } from "@/stores/templates";
 import { useToastStore } from "@/stores/toast";
 import { useUiStore } from "@/stores/ui";
@@ -51,6 +52,9 @@ export function StagingPanel() {
   const open = useUiStore((s) => s.stagingOpen);
   const setOpen = useUiStore((s) => s.setStagingOpen);
   const toast = useToastStore((s) => s.push);
+  // 宽度可拖动调节（记忆在设置中）
+  const stagingWidth = useSettingsStore((s) => s.stagingWidth ?? 320);
+  const setStagingWidth = useSettingsStore((s) => s.setStagingWidth);
 
   const [draft, setDraft] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
@@ -59,6 +63,21 @@ export function StagingPanel() {
   // 自定义模板区
   const templates = useTemplatesStore((s) => s.templates);
   const removeTemplate = useTemplatesStore((s) => s.removeTemplate);
+
+  /** 拖动调节面板宽度 */
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => {
+      const w = window.innerWidth - ev.clientX;
+      setStagingWidth(Math.min(560, Math.max(240, w)));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   /** 按模板对编辑器内容（选区优先）排序并应用 */
   const applyTemplate = (t: SortTemplate) => {
@@ -93,14 +112,18 @@ export function StagingPanel() {
   };
 
   return (
-    // 停靠式面板：占据布局空间而非悬浮覆盖，切换时平滑收起
+    // 停靠式面板：占据布局空间而非悬浮覆盖，宽度可拖动调节
     <div
-      className={cn(
-        "shrink-0 overflow-hidden border-l border-border bg-card transition-[width] duration-200",
-        open ? "w-80" : "w-0",
-      )}
+      className="relative shrink-0 overflow-hidden border-l border-border bg-card"
+      style={{ width: open ? stagingWidth : 0 }}
     >
-      <div className="flex h-full w-80 flex-col">
+      {/* 左边缘拖拽手柄 */}
+      <div
+        className="absolute inset-y-0 -left-2 z-10 w-4 cursor-ew-resize"
+        title="拖动调节面板宽度"
+        onMouseDown={startResize}
+      />
+      <div className="flex h-full flex-col" style={{ width: stagingWidth }}>
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
           <h2 className="text-sm font-semibold">全局暂存区</h2>
           <Badge variant="secondary">{items.length}</Badge>

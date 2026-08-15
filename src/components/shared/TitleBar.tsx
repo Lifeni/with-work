@@ -164,7 +164,7 @@ export function TitleBar() {
       </div>
 
       {/* 工作区标签页（VS Code 风格：满高矩形，激活标签顶部高亮、底部与内容区相连） */}
-      <div className="no-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto">
+      <div className="no-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto border-b border-border">
         {workspaces.map((w) =>
           renamingId === w.id ? (
             <input
@@ -195,8 +195,8 @@ export function TitleBar() {
               className={cn(
                 "group relative flex min-w-24 max-w-52 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-border/60 px-3 text-xs transition-colors",
                 w.id === activeId
-                  ? "bg-background font-medium"
-                  : "border-b border-border text-muted-foreground hover:bg-accent/60",
+                  ? "border-b-2 border-b-background bg-background font-medium"
+                  : "text-muted-foreground hover:bg-accent/60",
               )}
             >
               {w.id === activeId && <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />}
@@ -228,7 +228,9 @@ export function TitleBar() {
           onClick={toggleSettings}
           className={cn(
             "group relative flex shrink-0 cursor-pointer select-none items-center gap-1.5 border-l border-border/60 px-3 text-xs transition-colors",
-            settingsOpen ? "bg-background font-medium" : "text-muted-foreground hover:bg-accent/60",
+            settingsOpen
+              ? "border-b-2 border-b-background bg-background font-medium"
+              : "text-muted-foreground hover:bg-accent/60",
           )}
         >
           {settingsOpen && <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />}
@@ -238,15 +240,6 @@ export function TitleBar() {
       </div>
 
       <div className="flex shrink-0 items-center gap-1 border-l border-border px-2">
-        <Button
-          variant={settingsOpen ? "secondary" : "ghost"}
-          size="icon-sm"
-          title="设置"
-          onClick={toggleSettings}
-        >
-          <Settings />
-        </Button>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-sm" title="数据（导入 / 导出 / 备份）">

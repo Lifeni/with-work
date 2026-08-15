@@ -4,21 +4,21 @@ import * as monaco from "monaco-editor";
 import { ArrowLeftRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FindReplacePanel, type FindReplaceHandle } from "@/views/editor/FindReplacePanel";
+import { ListPanel } from "@/views/editor/ListPanel";
 import { detectLanguage } from "@/lib/detect";
 import { setActiveEditor } from "@/lib/editorBridge";
 import { cn } from "@/lib/utils";
-import { useDiffStore } from "@/stores/diff";
 import { useSettingsStore } from "@/stores/settings";
 import { useStatusStore } from "@/stores/status";
+import { useWorkspaceStore } from "@/stores/workspace";
 
 type Side = "left" | "right";
 
 export default function EditorView() {
-  const left = useDiffStore((s) => s.left);
-  const right = useDiffStore((s) => s.right);
-  const setLeft = useDiffStore((s) => s.setLeft);
-  const setRight = useDiffStore((s) => s.setRight);
-  const swap = useDiffStore((s) => s.swap);
+  const ws = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId));
+  const setLeft = useWorkspaceStore((s) => s.setLeft);
+  const setRight = useWorkspaceStore((s) => s.setRight);
+  const swapSides = useWorkspaceStore((s) => s.swapSides);
   const settings = useSettingsStore();
   const setCursor = useStatusStore((s) => s.setCursor);
 
@@ -26,6 +26,7 @@ export default function EditorView() {
   const [rightEditor, setRightEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [focused, setFocused] = useState<Side>("left");
   const panelRef = useRef<FindReplaceHandle>(null);
+  const editorAreaRef = useRef<HTMLDivElement>(null);
 
   const theme =
     settings.theme === "dark"
@@ -61,35 +62,64 @@ export default function EditorView() {
       setActiveEditor(ed);
     });
     ed.onDidChangeCursorPosition((e) => setCursor(e.position.lineNumber, e.position.column));
-    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () =>
-      panelRef.current?.open("main"),
-    );
-    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () =>
-      panelRef.current?.open("main"),
-    );
+    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => panelRef.current?.open());
+    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => panelRef.current?.open());
   };
 
   // 卸载时注销全局编辑器引用（全局工具会回退到直接读写工作区内容）
   useEffect(() => () => setActiveEditor(null), []);
 
+  if (!ws) return null;
+
+  const left = ws.left ?? "";
+  const right = ws.right ?? "";
   // 查找替换与列表工具的目标：当前聚焦的编辑器（边框高亮者）
   const focusedEditor = focused === "left" ? leftEditor : rightEditor;
   const otherEditor = focused === "left" ? rightEditor : leftEditor;
 
-  const copyLeftToRight = () => setRight(left);
-  const copyRightToLeft = () => setLeft(right);
+  const copyLeftToRight = () => setRight(ws.id, left);
+  const copyRightToLeft = () => setLeft(ws.id, right);
+
+  // 左右宽度比例（可拖动，记忆在设置中）
+  const split = settings.editorSplit ?? 0.5;
+  const startSplitResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => {
+      const rect = editorAreaRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const ratio = (ev.clientX - rect.left) / rect.width;
+      settings.setEditorSplit(Math.min(0.75, Math.max(0.25, ratio)));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   return (
     <div className="flex h-full flex-col">
-      <FindReplacePanel ref={panelRef} focusedEditor={focusedEditor} otherEditor={otherEditor} />
+      {/* 顶部面板区：查找替换 + 列表（独立） */}
+      <div className="flex shrink-0 gap-1.5 border-b border-border px-1.5 pt-1.5">
+        <div className="min-w-0 flex-1">
+          <FindReplacePanel
+            ref={panelRef}
+            focusedEditor={focusedEditor}
+            otherEditor={otherEditor}
+          />
+        </div>
+        <ListPanel focusedEditor={focusedEditor} otherEditor={otherEditor} />
+      </div>
 
-      <div className="flex min-h-0 flex-1 gap-1.5 p-1.5">
-        {/* 左侧编辑器 */}
+      {/* 双编辑器区 */}
+      <div ref={editorAreaRef} className="flex min-h-0 flex-1 gap-1.5 p-1.5">
         <div
           className={cn(
-            "min-w-0 flex-1 overflow-hidden rounded-md transition-shadow",
+            "min-w-0 overflow-hidden rounded-md transition-shadow",
             focused === "left" ? "ring-2 ring-primary/70" : "ring-1 ring-border",
           )}
+          style={{ width: `calc(${split * 100}% - 18px)` }}
         >
           <Editor
             height="100%"
@@ -97,14 +127,29 @@ export default function EditorView() {
             language={detectLanguage(left)}
             theme={theme}
             onMount={(ed) => mountEditor(ed, "left")}
-            onChange={(v) => setLeft(v ?? "")}
+            onChange={(v) => setLeft(ws.id, v ?? "")}
             options={editorOptions}
           />
         </div>
 
-        {/* 中间操作区：交换 / 左右互传 */}
-        <div className="flex w-9 shrink-0 flex-col items-center justify-center gap-2">
-          <Button variant="outline" size="icon-sm" title="交换左右内容" onClick={swap}>
+        {/* 中间操作区：交换 / 左右互传 / 拖动调节宽度 */}
+        <div className="relative flex w-9 shrink-0 flex-col items-center justify-center gap-2">
+          <div
+            className="absolute inset-y-0 -left-2 w-4 cursor-ew-resize"
+            title="拖动调节左右宽度"
+            onMouseDown={startSplitResize}
+          />
+          <div
+            className="absolute inset-y-0 -right-2 w-4 cursor-ew-resize"
+            title="拖动调节左右宽度"
+            onMouseDown={startSplitResize}
+          />
+          <Button
+            variant="outline"
+            size="icon-sm"
+            title="交换左右内容"
+            onClick={() => swapSides(ws.id)}
+          >
             <ArrowLeftRight />
           </Button>
           <Button
@@ -125,7 +170,6 @@ export default function EditorView() {
           </Button>
         </div>
 
-        {/* 右侧编辑器 */}
         <div
           className={cn(
             "min-w-0 flex-1 overflow-hidden rounded-md transition-shadow",
@@ -138,7 +182,7 @@ export default function EditorView() {
             language={detectLanguage(right)}
             theme={theme}
             onMount={(ed) => mountEditor(ed, "right")}
-            onChange={(v) => setRight(v ?? "")}
+            onChange={(v) => setRight(ws.id, v ?? "")}
             options={editorOptions}
           />
         </div>

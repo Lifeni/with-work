@@ -1,5 +1,4 @@
 import { useWorkspaceStore } from "@/stores/workspace";
-import { useDiffStore } from "@/stores/diff";
 import { useListStore } from "@/stores/list";
 import { useToastStore } from "@/stores/toast";
 
@@ -13,20 +12,12 @@ export function importText(target: ImportTarget, text: string) {
 
   switch (target) {
     case "diff-left":
-      useDiffStore.getState().setLeft(text);
-      if (activeId) {
-        ws.setEditorMode(activeId, "dual");
-        ws.setView(activeId, "editor");
-      }
-      toast("已导入到对比左侧（双编辑器模式）");
+      if (activeId) ws.setLeft(activeId, text);
+      toast("已导入到对比左侧");
       break;
     case "diff-right":
-      useDiffStore.getState().setRight(text);
-      if (activeId) {
-        ws.setEditorMode(activeId, "dual");
-        ws.setView(activeId, "editor");
-      }
-      toast("已导入到对比右侧（双编辑器模式）");
+      if (activeId) ws.setRight(activeId, text);
+      toast("已导入到对比右侧");
       break;
     case "list-reference":
       useListStore.getState().setReference(text);

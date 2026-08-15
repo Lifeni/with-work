@@ -11,7 +11,6 @@ import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
 import { useStatusStore } from "@/stores/status";
 import { useStagingStore } from "@/stores/staging";
-import { useDiffStore } from "@/stores/diff";
 import { useUiStore } from "@/stores/ui";
 import type { ThemeMode } from "@/types";
 
@@ -30,8 +29,8 @@ export function StatusBar() {
   const settingsOpen = useUiStore((s) => s.settingsOpen);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
-  const left = useDiffStore((s) => s.left);
-  const right = useDiffStore((s) => s.right);
+  const left = ws?.left ?? "";
+  const right = ws?.right ?? "";
 
   // 内容变化即视为“已自动保存”时刻
   const savedAt = useMemo(() => new Date(), [left, right]);

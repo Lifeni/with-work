@@ -4,7 +4,6 @@ import { useStagingStore } from "@/stores/staging";
 import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
 import { useSettingsStore } from "@/stores/settings";
-import { useDiffStore } from "@/stores/diff";
 import { useListStore } from "@/stores/list";
 import { downloadText } from "./utils";
 import { applyTheme } from "./theme";
@@ -20,11 +19,13 @@ export const STORAGE_KEYS = [
 ];
 
 export function collectBackup(): BackupData {
+  const wsState = useWorkspaceStore.getState();
+  const activeWs = wsState.workspaces.find((w) => w.id === wsState.activeId);
   return {
     app: "with-work",
     version: 2,
     exportedAt: new Date().toISOString(),
-    workspaces: useWorkspaceStore.getState().workspaces,
+    workspaces: wsState.workspaces,
     staging: useStagingStore.getState().items,
     rules: useRulesStore.getState().rules,
     templates: useTemplatesStore.getState().templates,
@@ -33,8 +34,10 @@ export function collectBackup(): BackupData {
       fontSize: useSettingsStore.getState().fontSize,
       wordWrap: useSettingsStore.getState().wordWrap,
       editorFontFamily: useSettingsStore.getState().editorFontFamily,
+      stagingWidth: useSettingsStore.getState().stagingWidth,
+      editorSplit: useSettingsStore.getState().editorSplit,
     },
-    diff: { left: useDiffStore.getState().left, right: useDiffStore.getState().right },
+    diff: { left: activeWs?.left ?? "", right: activeWs?.right ?? "" },
     list: {
       source: useListStore.getState().source,
       reference: useListStore.getState().reference,
@@ -84,8 +87,13 @@ export function applyBackup(d: BackupData) {
   useRulesStore.getState().replaceAll(d.rules);
   useTemplatesStore.getState().replaceAll(d.templates);
   useSettingsStore.getState().replaceAll(d.settings);
-  useDiffStore.getState().replaceAll(d.diff);
   useListStore.getState().replaceAll(d.list);
+  // 旧版备份的工作区没有 left/right，把备份的 diff 合并到当前工作区
+  const wsState = useWorkspaceStore.getState();
+  if (wsState.activeId && (d.diff.left || d.diff.right)) {
+    wsState.setLeft(wsState.activeId, d.diff.left);
+    wsState.setRight(wsState.activeId, d.diff.right);
+  }
   applyTheme(d.settings.theme);
 }
 

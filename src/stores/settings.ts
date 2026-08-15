@@ -8,6 +8,8 @@ interface SettingsState extends AppSettings {
   setFontSize: (fontSize: number) => void;
   setWordWrap: (wordWrap: boolean) => void;
   setEditorFontFamily: (editorFontFamily: string) => void;
+  setStagingWidth: (stagingWidth: number) => void;
+  setEditorSplit: (editorSplit: number) => void;
   replaceAll: (partial: AppSettings) => void;
 }
 
@@ -31,6 +33,10 @@ export const useSettingsStore = create<SettingsState>()(
       setWordWrap: (wordWrap) => set({ wordWrap }),
 
       setEditorFontFamily: (editorFontFamily) => set({ editorFontFamily }),
+
+      setStagingWidth: (stagingWidth) => set({ stagingWidth }),
+
+      setEditorSplit: (editorSplit) => set({ editorSplit }),
 
       replaceAll: (partial) => set((s) => ({ ...s, ...partial })),
     }),

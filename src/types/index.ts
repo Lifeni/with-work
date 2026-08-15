@@ -10,6 +10,9 @@ export interface Workspace {
   view: ViewId;
   /** 编辑器模式：单编辑器 / 双编辑器（对比）。旧数据可能缺失，读取时用 ?? "single" */
   editorMode?: EditorMode;
+  /** 双栏编辑器内容（旧数据可能缺失，读取时用 ?? ""） */
+  left?: string;
+  right?: string;
 }
 
 export interface StagingItem {
@@ -41,6 +44,10 @@ export interface AppSettings {
   fontSize: number;
   wordWrap: boolean;
   editorFontFamily: string;
+  /** 暂存区面板宽度（px），可拖动调节 */
+  stagingWidth?: number;
+  /** 左编辑器宽度占比（0.25 ~ 0.75），可拖动调节 */
+  editorSplit?: number;
 }
 
 export interface BackupData {
