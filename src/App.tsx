@@ -40,10 +40,10 @@ export default function App() {
     <TooltipProvider delayDuration={300}>
       <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
         <div className="flex min-h-0 flex-1">
+          <ToolsRail />
           <div className="flex min-w-0 flex-1 flex-col">
             <TitleBar />
             <div className="flex min-h-0 flex-1">
-              <ToolsRail />
               <main className="min-w-0 flex-1 overflow-hidden">
                 <View key={activeId} />
               </main>

@@ -33,10 +33,13 @@ import {
   exportBackup,
   exportCurrentWorkspace,
   exportRules,
+  exportTemplates,
   parseBackup,
   parseRules,
+  parseTemplates,
 } from "@/lib/backup";
 import { useRulesStore } from "@/stores/rules";
+import { useTemplatesStore } from "@/stores/templates";
 import type { BackupData, ThemeMode } from "@/types";
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
@@ -66,6 +69,7 @@ export function TitleBar() {
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const backupRef = useRef<HTMLInputElement>(null);
   const rulesRef = useRef<HTMLInputElement>(null);
+  const templatesRef = useRef<HTMLInputElement>(null);
 
   const commitRename = (id: string, fallback: string) => {
     renameWorkspace(id, renameValue.trim() || fallback);
@@ -105,6 +109,21 @@ export function TitleBar() {
       }
       useRulesStore.getState().replaceAll(res.rules);
       toast(`已导入 ${res.rules.length} 条替换规则`);
+    });
+  };
+
+  const onTemplatesFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    void file.text().then((raw) => {
+      const res = parseTemplates(raw);
+      if (!res.ok) {
+        toast(res.error);
+        return;
+      }
+      useTemplatesStore.getState().replaceAll(res.templates);
+      toast(`已导入 ${res.templates.length} 个排序模板`);
     });
   };
 
@@ -198,6 +217,13 @@ export function TitleBar() {
               <FolderOpen /> 导入替换规则
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={exportTemplates}>
+              <FileCode2 /> 导出排序模板
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => templatesRef.current?.click()}>
+              <FolderOpen /> 导入排序模板
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={exportCurrentWorkspace}>
               <FileText /> 导出当前工作区
             </DropdownMenuItem>
@@ -241,6 +267,13 @@ export function TitleBar() {
         accept=".json,application/json"
         className="hidden"
         onChange={onRulesFile}
+      />
+      <input
+        ref={templatesRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={onTemplatesFile}
       />
 
       <ConfirmDialog

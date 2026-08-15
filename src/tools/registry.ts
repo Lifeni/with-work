@@ -31,6 +31,8 @@ export interface GlobalTool {
   icon: LucideIcon;
   /** 需要配置参数时置为 true，点击后弹出配置对话框 */
   needsConfig?: boolean;
+  /** 不在左侧工具栏显示（功能已融入查找替换面板等位置） */
+  hideFromRail?: boolean;
   run: (input: string, config?: ToolConfig) => string;
 }
 
@@ -107,6 +109,7 @@ export const tools: GlobalTool[] = [
     description: "按分隔符把文本拆成一行一条的列表",
     icon: List,
     needsConfig: true,
+    hideFromRail: true,
     run: (i, cfg) => {
       const r = splitText(i, {
         delimiter: cfg?.delimiter ?? "newline",
@@ -124,6 +127,7 @@ export const tools: GlobalTool[] = [
     description: "把一条替换规则应用到当前文本（选区优先）",
     icon: Replace,
     needsConfig: true,
+    hideFromRail: true,
     run: (i, cfg) => {
       const rule = useRulesStore.getState().rules.find((r) => r.id === cfg?.ruleId);
       if (!rule) return i;

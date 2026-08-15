@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { RulesDialog } from "@/components/shared/RulesDialog";
+import { TemplatesDialog } from "@/components/shared/TemplatesDialog";
 import { cn } from "@/lib/utils";
 import { applyReplacements, computeReplacement } from "@/lib/replace";
 import { compareLists, type ListDiffResult } from "@/lib/listDiff";
@@ -29,11 +30,12 @@ import { sortAlphabetical, sortByReference, type SortResult } from "@/lib/sort";
 import { splitLines, splitText, type SplitDelimiter } from "@/lib/split";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRulesStore } from "@/stores/rules";
+import { useTemplatesStore } from "@/stores/templates";
 import { useListStore } from "@/stores/list";
 import { useSettingsStore } from "@/stores/settings";
 import { useToastStore } from "@/stores/toast";
 import { useWorkspaceStore } from "@/stores/workspace";
-import type { ReplaceRule } from "@/types";
+import type { ReplaceRule, SortTemplate } from "@/types";
 
 interface MatchInfo {
   line: number;
@@ -284,6 +286,8 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
     setListResult(r.items);
     setSortResult(null);
     setCompareResult(null);
+    // 自动应用：单模式应用到当前编辑器，双模式应用到右侧编辑器（另一侧）
+    applyLines(r.items);
   };
 
   const runSort = () => {
@@ -292,19 +296,23 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
       toast("请先分割文本");
       return;
     }
+    let result: SortResult;
     if (sortMode === "reference") {
       const ref = splitLines(referenceText);
       if (ref.length === 0) {
         toast("请先输入参考列表（每行一条）");
         return;
       }
-      setSortResult(sortByReference(items, ref));
+      result = sortByReference(items, ref);
     } else {
-      setSortResult({
+      result = {
         sorted: sortAlphabetical(items, sortMode === "alpha-asc" ? "asc" : "desc"),
         unmatched: [],
-      });
+      };
     }
+    setSortResult(result);
+    // 自动应用：单模式应用到当前编辑器，双模式应用到右侧编辑器（另一侧）
+    applyLines(result.sorted);
   };
 
   const runCompare = () => {
@@ -315,6 +323,22 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
       return;
     }
     setCompareResult(compareLists(items, other));
+  };
+
+  // 自定义排序模板：按模板顺序排列分割结果并自动应用
+  const templates = useTemplatesStore((s) => s.templates);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
+  const applyTemplate = (t: SortTemplate) => {
+    const items = listResult;
+    if (!items || items.length === 0) {
+      toast("请先分割文本");
+      return;
+    }
+    const r = sortByReference(items, t.items);
+    setSortResult(r);
+    applyLines(r.sorted);
+    toast(`已按模板「${t.name}」排序并应用`);
   };
 
   const copyLines = (lines: string[]) => {
@@ -567,6 +591,40 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
             </div>
           )}
 
+          {/* 自定义排序模板（与替换规则类似：chips 一键调用 + 管理对话框） */}
+          {listResult && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="shrink-0 text-xs text-muted-foreground">模板</span>
+              {templates.length === 0 ? (
+                <span className="min-w-0 flex-1 text-[11px] text-muted-foreground/60">
+                  暂无模板，点击「管理模板」创建（用于按自定义顺序排序）
+                </span>
+              ) : (
+                <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+                  {templates.map((t) => (
+                    <button
+                      key={t.id}
+                      title={t.items.join("、")}
+                      onClick={() => applyTemplate(t)}
+                      className="shrink-0 rounded-full border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 shrink-0 px-2 text-xs"
+                onClick={() => setTemplatesOpen(true)}
+              >
+                <Settings2 className="size-3" />
+                管理模板
+              </Button>
+            </div>
+          )}
+
           {sortResult && (
             <div className="rounded-md border border-border bg-card p-1.5">
               <div className="flex items-center gap-2 text-xs">
@@ -814,6 +872,8 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
         onOpenChange={setRulesOpen}
         initialDraft={ruleDraft}
       />
+
+      <TemplatesDialog open={templatesOpen} onOpenChange={setTemplatesOpen} />
     </div>
   );
 });

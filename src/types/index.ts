@@ -27,6 +27,13 @@ export interface ReplaceRule {
   matchCase: boolean;
 }
 
+/** 自定义排序模板：用户提供的顺序列表，待排序文本按此顺序排列 */
+export interface SortTemplate {
+  id: string;
+  name: string;
+  items: string[];
+}
+
 export interface AppSettings {
   theme: ThemeMode;
   fontSize: number;
@@ -36,11 +43,12 @@ export interface AppSettings {
 
 export interface BackupData {
   app: "with-work";
-  version: 1;
+  version: 2;
   exportedAt: string;
   workspaces: Workspace[];
   staging: StagingItem[];
   rules: ReplaceRule[];
+  templates: SortTemplate[];
   settings: AppSettings;
   diff: { left: string; right: string };
   list: { source: string; reference: string; compare: string };

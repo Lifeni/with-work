@@ -7,12 +7,14 @@ import {
   Import,
   ListOrdered,
   Plus,
+  Settings2,
   Trash2,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { TemplatesDialog } from "@/components/shared/TemplatesDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,10 +25,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatTime } from "@/lib/utils";
+import { getToolInput } from "@/lib/applyTool";
+import { getActiveEditor } from "@/lib/editorBridge";
+import { splitLines } from "@/lib/split";
+import { sortByReference } from "@/lib/sort";
 import { importText, type ImportTarget } from "@/lib/transfer";
 import { useStagingStore } from "@/stores/staging";
+import { useTemplatesStore } from "@/stores/templates";
 import { useToastStore } from "@/stores/toast";
 import { useUiStore } from "@/stores/ui";
+import { useWorkspaceStore } from "@/stores/workspace";
+import type { SortTemplate } from "@/types";
 
 const IMPORT_TARGETS: { value: ImportTarget; label: string; icon: typeof FileText }[] = [
   { value: "editor", label: "编辑器（当前工作区）", icon: FileText },
@@ -48,6 +57,38 @@ export function StagingPanel() {
 
   const [draft, setDraft] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
+  // 自定义模板区
+  const templates = useTemplatesStore((s) => s.templates);
+  const removeTemplate = useTemplatesStore((s) => s.removeTemplate);
+
+  /** 按模板对编辑器内容（选区优先）排序并应用 */
+  const applyTemplate = (t: SortTemplate) => {
+    const input = getToolInput();
+    if (!input.trim()) {
+      toast("编辑器没有可排序的内容");
+      return;
+    }
+    const lines = splitLines(input);
+    const r = sortByReference(lines, t.items);
+    const text = r.sorted.join("\n");
+    const editor = getActiveEditor();
+    const model = editor?.getModel();
+    const sel = editor?.getSelection();
+    if (editor && model && sel && !sel.isEmpty()) {
+      editor.executeEdits("ww-template", [{ range: sel, text }]);
+    } else if (editor && model) {
+      editor.executeEdits("ww-template", [{ range: model.getFullModelRange(), text }]);
+    } else {
+      const ws = useWorkspaceStore.getState();
+      if (ws.activeId) ws.setContent(ws.activeId, text);
+    }
+    toast(
+      `已按模板「${t.name}」排序` +
+        (r.unmatched.length > 0 ? `，${r.unmatched.length} 项未匹配` : ""),
+    );
+  };
 
   const copyItem = (text: string) => {
     void navigator.clipboard.writeText(text);
@@ -164,6 +205,65 @@ export function StagingPanel() {
           <ArrowRightLeft className="size-3" />
           暂存区为全局共用，所有工作区共享
         </div>
+
+        {/* 下半部：自定义模板区（排序模板） */}
+        <div className="shrink-0 border-t border-border">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <h3 className="text-xs font-semibold">自定义模板</h3>
+            <Badge variant="secondary">{templates.length}</Badge>
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="管理模板"
+              onClick={() => setTemplatesOpen(true)}
+            >
+              <Settings2 />
+            </Button>
+          </div>
+          <div className="max-h-44 space-y-1.5 overflow-y-auto px-3 pb-3">
+            {templates.length === 0 ? (
+              <p className="rounded-md border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
+                暂无模板，点击右上角管理按钮创建
+                <br />
+                （提供顺序列表，用于自定义排序）
+              </p>
+            ) : (
+              templates.map((t) => (
+                <div key={t.id} className="rounded-md border border-border bg-background p-2">
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="min-w-0 flex-1 truncate font-medium" title={t.name}>
+                      {t.name}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {t.items.length} 条
+                    </span>
+                    <button
+                      title="按此模板排序编辑器文本"
+                      onClick={() => applyTemplate(t)}
+                      className="shrink-0 rounded p-0.5 hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <ListOrdered className="size-3" />
+                    </button>
+                    <button
+                      title="删除模板"
+                      onClick={() => removeTemplate(t.id)}
+                      className="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
+                  </div>
+                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                    {t.items.slice(0, 3).join("、")}
+                    {t.items.length > 3 ? "…" : ""}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <TemplatesDialog open={templatesOpen} onOpenChange={setTemplatesOpen} />
 
         <ConfirmDialog
           open={confirmClear}
