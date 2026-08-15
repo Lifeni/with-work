@@ -37,6 +37,7 @@ with-work/
 │   │   └── shared/           # 业务共享组件（TitleBar、StagingPanel 等）
 │   ├── views/                # 四个功能视图（编辑器 / 对比 / 列表工具 / 设置）
 │   ├── stores/               # Zustand stores（全部自动持久化到 localStorage）
+│   ├── tools/                # 全局工具注册表（文本处理工具，新增工具只需追加一条）
 │   ├── hooks/                # 自定义 Hooks
 │   ├── lib/                  # 工具函数（split/sort/listDiff/backup/transfer 等）
 │   ├── types/                # 全局类型定义
@@ -54,7 +55,7 @@ with-work/
 - **图标**：界面图标用 lucide-react；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联）。
 - **路径别名**：`@/` 指向 `src/`。
 - **主题**：CSS 变量（oklch）+ `.dark` 类切换，Monaco 主题跟随。
-- **数据备份**：`src/lib/backup.ts` 提供全量备份/规则导入导出的 JSON 格式（`app: "with-work"`、`version: 1`），修改结构时需同步升级版本号。
+- **全局工具**：`src/tools/registry.ts` 注册表 + 左侧栏魔法棒入口；工具是纯函数（输入文本 → 输出文本），作用于当前工作区（选区优先），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。
 
 ## 代码约定
 

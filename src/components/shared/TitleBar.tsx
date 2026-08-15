@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import favicon from "@/assets/favicon.svg";
 import {
   Check,
   Database,
@@ -101,15 +100,7 @@ export function TitleBar() {
   };
 
   return (
-    <header className="flex h-12 shrink-0 items-stretch bg-card">
-      <div className="flex shrink-0 items-center gap-2.5 border-r border-border px-3">
-        <img src={favicon} alt="With Work" className="h-7 w-7 rounded-full" />
-        <div className="leading-tight">
-          <div className="text-sm font-semibold leading-none">一点微小的工作</div>
-          <div className="mt-0.5 text-[10px] text-muted-foreground">With Work</div>
-        </div>
-      </div>
-
+    <header className="flex h-9 shrink-0 items-stretch bg-card">
       {/* 工作区标签页（VS Code 风格：满高矩形，激活标签顶部高亮、底部与内容区相连） */}
       <div className="flex min-w-0 flex-1 items-stretch overflow-x-auto border-b border-border">
         {workspaces.map((w) =>

@@ -43,10 +43,15 @@ export default function App() {
       <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
         <TitleBar />
         <div className="flex min-h-0 flex-1">
-          <ActivityBar />
-          <main className="min-w-0 flex-1 overflow-hidden">
-            <View key={activeId} />
-          </main>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <TitleBar />
+            <div className="flex min-h-0 flex-1">
+              <ActivityBar />
+              <main className="min-w-0 flex-1 overflow-hidden">
+                <View key={activeId} />
+              </main>
+            </div>
+          </div>
           <StagingPanel />
         </div>
         <StatusBar />

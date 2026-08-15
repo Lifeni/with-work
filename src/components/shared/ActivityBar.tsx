@@ -1,4 +1,6 @@
 import { FileDiff, FileText, ListOrdered, Settings, type LucideIcon } from "lucide-react";
+import favicon from "@/assets/favicon.svg";
+import { ToolMenu } from "@/components/shared/ToolMenu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/workspace";
@@ -19,26 +21,42 @@ export function ActivityBar() {
   const setView = useWorkspaceStore((s) => s.setView);
 
   return (
-    <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-border bg-card py-2">
-      {VIEWS.map((v) => (
-        <Tooltip key={v.id}>
-          <TooltipTrigger asChild>
-            <button
-              title={v.label}
-              onClick={() => activeId && setView(activeId, v.id)}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-md transition-colors",
-                view === v.id
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground",
-              )}
-            >
-              <v.icon className="size-5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">{v.label}</TooltipContent>
-        </Tooltip>
-      ))}
+    <aside className="flex w-12 shrink-0 flex-col items-center gap-1.5 border-r border-border bg-card py-2.5">
+      {/* 品牌区：Logo + 竖排中文标题 */}
+      <img src={favicon} alt="With Work" className="h-6 w-6 rounded-full" />
+      <span
+        className="text-[9px] font-semibold leading-none tracking-widest"
+        style={{ writingMode: "vertical-rl" }}
+      >
+        一点微小的工作
+      </span>
+      <span className="text-[8px] leading-none text-muted-foreground">With Work</span>
+
+      {/* 视图切换 */}
+      <div className="mt-2 flex flex-col items-center gap-1">
+        {VIEWS.map((v) => (
+          <Tooltip key={v.id}>
+            <TooltipTrigger asChild>
+              <button
+                title={v.label}
+                onClick={() => activeId && setView(activeId, v.id)}
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-md transition-colors",
+                  view === v.id
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground",
+                )}
+              >
+                <v.icon className="size-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{v.label}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+
+      <div className="flex-1" />
+      <ToolMenu />
     </aside>
   );
 }

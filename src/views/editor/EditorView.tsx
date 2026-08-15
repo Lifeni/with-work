@@ -1,62 +1,38 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
-import { Redo2, Search, Trash2, Undo2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { detectLanguage } from "@/lib/detect";
 import { FindReplacePanel, type FindReplaceHandle } from "@/views/editor/FindReplacePanel";
+import { detectLanguage } from "@/lib/detect";
+import { setActiveEditor } from "@/lib/editorBridge";
 import { useSettingsStore } from "@/stores/settings";
 import { useStatusStore } from "@/stores/status";
-import { useToastStore } from "@/stores/toast";
 import { useWorkspaceStore } from "@/stores/workspace";
-
-const LANGUAGES = [
-  { value: "auto", label: "自动检测" },
-  { value: "plaintext", label: "纯文本" },
-  { value: "markdown", label: "Markdown" },
-  { value: "json", label: "JSON" },
-  { value: "javascript", label: "JavaScript" },
-  { value: "typescript", label: "TypeScript" },
-  { value: "html", label: "HTML" },
-  { value: "css", label: "CSS" },
-  { value: "yaml", label: "YAML" },
-  { value: "xml", label: "XML" },
-  { value: "python", label: "Python" },
-  { value: "sql", label: "SQL" },
-  { value: "shell", label: "Shell" },
-];
 
 export default function EditorView() {
   const ws = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId));
   const setContent = useWorkspaceStore((s) => s.setContent);
-  const setLanguage = useWorkspaceStore((s) => s.setLanguage);
   const settings = useSettingsStore();
   const setCursor = useStatusStore((s) => s.setCursor);
-  const toast = useToastStore((s) => s.push);
 
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [confirmClear, setConfirmClear] = useState(false);
   const panelRef = useRef<FindReplaceHandle>(null);
 
   const handleMount: OnMount = (ed) => {
     setEditor(ed);
+    setActiveEditor(ed);
     ed.onDidChangeCursorPosition((e) => setCursor(e.position.lineNumber, e.position.column));
-    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => {
-      setPanelOpen(true);
-      panelRef.current?.open("find");
-    });
-    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => {
-      setPanelOpen(true);
-      panelRef.current?.open("replace");
-    });
+    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () =>
+      panelRef.current?.open("find"),
+    );
+    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () =>
+      panelRef.current?.open("replace"),
+    );
   };
 
-  if (!ws) return null;
+  // 卸载时注销全局编辑器引用（全局工具会回退到直接读写工作区内容）
+  useEffect(() => () => setActiveEditor(null), []);
 
-  // “自动检测”时根据内容实时判断语言，用户可手动指定覆盖
-  const effectiveLanguage = ws.language === "auto" ? detectLanguage(ws.content) : ws.language;
+  if (!ws) return null;
 
   const theme =
     settings.theme === "dark"
@@ -69,63 +45,12 @@ export default function EditorView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1.5 border-b border-border px-2 py-1.5">
-        <Button
-          variant={panelOpen ? "secondary" : "ghost"}
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setPanelOpen(!panelOpen)}
-        >
-          <Search className="size-3.5" />
-          查找替换
-        </Button>
-        <select
-          value={ws.language}
-          onChange={(e) => setLanguage(ws.id, e.target.value)}
-          title="语言（自动检测时根据内容实时判断）"
-          className="h-7 rounded-md border border-border bg-transparent px-2 text-xs outline-none transition-colors hover:bg-accent"
-        >
-          {LANGUAGES.map((l) => (
-            <option key={l.value} value={l.value}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-        <div className="flex-1" />
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="撤销 (Ctrl+Z)"
-          onClick={() => editor?.trigger("toolbar", "undo", null)}
-        >
-          <Undo2 />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="重做"
-          onClick={() => editor?.trigger("toolbar", "redo", null)}
-        >
-          <Redo2 />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          title="清空内容"
-          className="text-destructive hover:text-destructive"
-          onClick={() => setConfirmClear(true)}
-        >
-          <Trash2 />
-        </Button>
-      </div>
-
-      {panelOpen && <FindReplacePanel ref={panelRef} editor={editor} initialMode="find" />}
-
+      <FindReplacePanel ref={panelRef} editor={editor} />
       <div className="min-h-0 flex-1">
         <Editor
           height="100%"
           value={ws.content}
-          language={effectiveLanguage}
+          language={detectLanguage(ws.content)}
           theme={theme}
           onMount={handleMount}
           onChange={(v) => setContent(ws.id, v ?? "")}
@@ -146,20 +71,6 @@ export default function EditorView() {
           }}
         />
       </div>
-
-      <ConfirmDialog
-        open={confirmClear}
-        title="清空当前工作区"
-        description={`确定要清空「${ws.name}」的全部内容吗？此操作不可撤销。`}
-        confirmText="清空"
-        destructive
-        onConfirm={() => {
-          setContent(ws.id, "");
-          setConfirmClear(false);
-          toast("已清空");
-        }}
-        onCancel={() => setConfirmClear(false)}
-      />
     </div>
   );
 }

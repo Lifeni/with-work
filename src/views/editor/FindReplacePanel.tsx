@@ -9,14 +9,18 @@ import {
   Eye,
   Highlighter,
   List,
+  Redo2,
   Regex,
   Settings2,
+  Trash2,
+  Undo2,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { RulesDialog } from "@/components/shared/RulesDialog";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -117,6 +121,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
     isRegex: boolean;
     matchCase: boolean;
   } | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const findInputRef = useRef<HTMLInputElement>(null);
   const decorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
@@ -306,6 +311,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
         />
         <Badge
           variant={findError ? "destructive" : "secondary"}
+          title="匹配数（当前 / 总数）"
           className="min-w-11 shrink-0 justify-center font-mono"
         >
           {findError
@@ -355,6 +361,32 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
           onClick={() => setShowPositions(!showPositions)}
         >
           <List />
+        </Button>
+        <span className="mx-0.5 h-4 w-px shrink-0 bg-border" />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="撤销 (Ctrl+Z)"
+          onClick={() => editor?.trigger("toolbar", "undo", null)}
+        >
+          <Undo2 />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="重做"
+          onClick={() => editor?.trigger("toolbar", "redo", null)}
+        >
+          <Redo2 />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="清空内容"
+          className="text-destructive hover:text-destructive"
+          onClick={() => setConfirmClear(true)}
+        >
+          <Trash2 />
         </Button>
       </div>
 
@@ -490,6 +522,21 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
           />
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="清空当前工作区"
+        description="确定要清空当前工作区的全部内容吗？此操作不可撤销。"
+        confirmText="清空"
+        destructive
+        onConfirm={() => {
+          const wsState = useWorkspaceStore.getState();
+          if (wsState.activeId) wsState.setContent(wsState.activeId, "");
+          setConfirmClear(false);
+          toast("已清空");
+        }}
+        onCancel={() => setConfirmClear(false)}
+      />
 
       <RulesDialog open={rulesOpen} onOpenChange={setRulesOpen} initialDraft={ruleDraft} />
     </div>
