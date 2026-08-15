@@ -1,0 +1,255 @@
+import { useRef, useState } from "react";
+import favicon from "@/assets/favicon.svg";
+import {
+  Check,
+  Database,
+  Download,
+  FileCode2,
+  FileText,
+  FolderOpen,
+  Moon,
+  Plus,
+  Sun,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { useWorkspaceStore } from "@/stores/workspace";
+import { useSettingsStore } from "@/stores/settings";
+import { useToastStore } from "@/stores/toast";
+import {
+  applyBackup,
+  clearAllData,
+  exportBackup,
+  exportCurrentWorkspace,
+  exportRules,
+  parseBackup,
+  parseRules,
+} from "@/lib/backup";
+import { useRulesStore } from "@/stores/rules";
+import type { BackupData, ThemeMode } from "@/types";
+
+const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
+  { value: "light", label: "浅色" },
+  { value: "dark", label: "深色" },
+  { value: "system", label: "跟随系统" },
+];
+
+export function TitleBar() {
+  const workspaces = useWorkspaceStore((s) => s.workspaces);
+  const activeId = useWorkspaceStore((s) => s.activeId);
+  const createWorkspace = useWorkspaceStore((s) => s.createWorkspace);
+  const deleteWorkspace = useWorkspaceStore((s) => s.deleteWorkspace);
+  const renameWorkspace = useWorkspaceStore((s) => s.renameWorkspace);
+  const setActive = useWorkspaceStore((s) => s.setActive);
+
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
+  const toast = useToastStore((s) => s.push);
+
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [pendingBackup, setPendingBackup] = useState<BackupData | null>(null);
+  const [confirmImport, setConfirmImport] = useState(false);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const backupRef = useRef<HTMLInputElement>(null);
+  const rulesRef = useRef<HTMLInputElement>(null);
+
+  const commitRename = (id: string, fallback: string) => {
+    renameWorkspace(id, renameValue.trim() || fallback);
+    setRenamingId(null);
+  };
+
+  const onBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    void file.text().then((raw) => {
+      const res = parseBackup(raw);
+      if (!res.ok) {
+        toast(res.error);
+        return;
+      }
+      setPendingBackup(res.data);
+      setConfirmImport(true);
+    });
+  };
+
+  const onRulesFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    void file.text().then((raw) => {
+      const res = parseRules(raw);
+      if (!res.ok) {
+        toast(res.error);
+        return;
+      }
+      useRulesStore.getState().replaceAll(res.rules);
+      toast(`已导入 ${res.rules.length} 条替换规则`);
+    });
+  };
+
+  return (
+    <header className="flex h-12 shrink-0 items-stretch border-b border-border bg-card">
+      <div className="flex shrink-0 items-center gap-2.5 border-r border-border px-3">
+        <img src={favicon} alt="with work" className="h-7 w-7 rounded-full" />
+        <div className="leading-tight">
+          <div className="text-sm font-semibold leading-none">with work</div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground">一点微小的工作</div>
+        </div>
+      </div>
+
+      {/* 工作区标签页 */}
+      <div className="flex min-w-0 flex-1 items-end gap-1 overflow-x-auto px-2">
+        {workspaces.map((w) =>
+          renamingId === w.id ? (
+            <input
+              key={w.id}
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={() => commitRename(w.id, w.name)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename(w.id, w.name);
+                if (e.key === "Escape") setRenamingId(null);
+              }}
+              className="mb-0 h-9 rounded-t-md border border-primary bg-background px-3 text-xs outline-none"
+            />
+          ) : (
+            <div
+              key={w.id}
+              role="tab"
+              aria-selected={w.id === activeId}
+              onClick={() => setActive(w.id)}
+              onDoubleClick={() => {
+                setRenamingId(w.id);
+                setRenameValue(w.name);
+              }}
+              className={cn(
+                "group flex h-9 min-w-24 max-w-52 cursor-pointer select-none items-center gap-1.5 rounded-t-md border border-b-0 px-3 text-xs",
+                w.id === activeId
+                  ? "border-border bg-background font-medium"
+                  : "border-transparent text-muted-foreground hover:bg-accent",
+              )}
+            >
+              <span className="truncate">{w.name}</span>
+              <button
+                title="关闭工作区"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteWorkspace(w.id);
+                }}
+                className="rounded-sm p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ),
+        )}
+        <button
+          title="新建工作区"
+          onClick={() => createWorkspace()}
+          className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        >
+          <Plus className="size-4" />
+        </button>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1 px-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
+              <Database className="size-3.5" />
+              数据
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={exportBackup}>
+              <Download /> 导出全部备份
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => backupRef.current?.click()}>
+              <Upload /> 导入备份
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={exportRules}>
+              <FileCode2 /> 导出替换规则
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => rulesRef.current?.click()}>
+              <FolderOpen /> 导入替换规则
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={exportCurrentWorkspace}>
+              <FileText /> 导出当前工作区
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setConfirmClearAll(true)}
+            >
+              <Trash2 /> 清空所有数据
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" title="切换主题">
+              {theme === "dark" ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            {THEME_OPTIONS.map((opt) => (
+              <DropdownMenuItem key={opt.value} onClick={() => setTheme(opt.value)}>
+                <span className="flex-1">{opt.label}</span>
+                {theme === opt.value && <Check className="size-3.5" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <input ref={backupRef} type="file" accept=".json,application/json" className="hidden" onChange={onBackupFile} />
+      <input ref={rulesRef} type="file" accept=".json,application/json" className="hidden" onChange={onRulesFile} />
+
+      <ConfirmDialog
+        open={confirmImport}
+        title="导入备份"
+        description="导入备份将覆盖当前的全部数据（工作区、暂存区、规则、设置），确定继续吗？"
+        confirmText="覆盖导入"
+        destructive
+        onConfirm={() => {
+          if (pendingBackup) {
+            applyBackup(pendingBackup);
+            toast("备份已导入");
+          }
+          setConfirmImport(false);
+          setPendingBackup(null);
+        }}
+        onCancel={() => {
+          setConfirmImport(false);
+          setPendingBackup(null);
+        }}
+      />
+      <ConfirmDialog
+        open={confirmClearAll}
+        title="清空所有数据"
+        description="将删除本地保存的全部工作区、暂存区、规则与设置，此操作不可恢复。"
+        confirmText="全部清空"
+        destructive
+        onConfirm={() => clearAllData()}
+        onCancel={() => setConfirmClearAll(false)}
+      />
+    </header>
+  );
+}

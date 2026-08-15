@@ -1,0 +1,33 @@
+# 参与贡献
+
+感谢你对 with-work 感兴趣！以下是参与开发的简要指南。
+
+## 开发环境
+
+- Node.js ≥ 20，npm
+- 安装与启动命令将在技术栈确定后补充
+
+## 代码规范
+
+- 遵循 `AGENTS.md` 中的约定与目录结构。
+- 提交前确保代码格式符合 Prettier 配置（`.prettierrc.json`）。
+
+## 提交规范
+
+提交信息遵循 Conventional Commits：
+
+```
+feat: add user profile page
+fix: correct timezone display in calendar
+docs: update deployment guide
+```
+
+- 主题行 ≤ 50 字符，祈使句，首字母大写，结尾无标点。
+- 如需要说明，主题下空一行写正文，每行 ≤ 72 字符。
+
+## PR 流程
+
+1. Fork 本仓库并创建功能分支（如 `feat/user-profile`）。
+2. 本地完成开发与验证。
+3. 提交 PR，在描述中说明改动内容与动机。
+4. 通过 Review 后合并。
