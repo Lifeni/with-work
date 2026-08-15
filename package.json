@@ -1,14 +1,18 @@
 {
   "name": "with-work",
+  "displayName": "一点微小的工作",
   "version": "0.1.0",
   "private": true,
-  "description": "with work（一点微小的工作）—— 高效的文本处理工作台",
+  "description": "很惭愧，只是做了一点微小的工作",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:single": "tsc --noEmit && vite build --mode single",
+    "icons": "node scripts/icons.mjs",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -31,6 +35,9 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.1.10",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.4",
     "@types/node": "^26.2.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
@@ -39,12 +46,17 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.4",
     "globals": "^17.11.0",
+    "jsdom": "^30.0.1",
+    "png-to-ico": "^3.0.2",
     "prettier": "^3.5.0",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4.1.10",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.30.0",
     "vite": "^8.2.1",
-    "vite-plugin-singlefile": "^2.2.0"
+    "vite-plugin-pwa": "^1.3.0",
+    "vite-plugin-singlefile": "^2.2.0",
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=20.0.0"
