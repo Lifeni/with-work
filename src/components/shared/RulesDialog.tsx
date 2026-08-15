@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { FolderOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,25 +33,13 @@ export function RulesDialog({ open, onOpenChange, initialDraft }: Props) {
   const toast = useToastStore((s) => s.push);
 
   const [name, setName] = useState("");
-  const [find, setFind] = useState("");
-  const [replace, setReplace] = useState("");
-  const [isRegex, setIsRegex] = useState(false);
-  const [matchCase, setMatchCase] = useState(false);
+  // 打开时带入当前查找/替换内容：父组件以 key 控制重挂载，因此直接在初始值中应用
+  const [find, setFind] = useState(initialDraft?.find ?? "");
+  const [replace, setReplace] = useState(initialDraft?.replace ?? "");
+  const [isRegex, setIsRegex] = useState(initialDraft?.isRegex ?? false);
+  const [matchCase, setMatchCase] = useState(initialDraft?.matchCase ?? false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  // 打开对话框时带入当前查找/替换内容
-  useEffect(() => {
-    if (open && initialDraft) {
-      setFind(initialDraft.find);
-      setReplace(initialDraft.replace);
-      setIsRegex(initialDraft.isRegex);
-      setMatchCase(initialDraft.matchCase);
-      setName("");
-      setEditingId(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
 
   const resetForm = () => {
     setName("");

@@ -1,4 +1,5 @@
 import { applyMonacoTheme } from "./monaco";
+import { useSettingsStore } from "@/stores/settings";
 import type { ThemeMode } from "@/types";
 
 export function resolveTheme(mode: ThemeMode): "light" | "dark" {
@@ -17,9 +18,6 @@ export function applyTheme(mode: ThemeMode) {
 export function initTheme(mode: ThemeMode) {
   applyTheme(mode);
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    // 动态导入避免模块循环依赖问题（theme ← settings）
-    void import("@/stores/settings").then(({ useSettingsStore }) => {
-      if (useSettingsStore.getState().theme === "system") applyTheme("system");
-    });
+    if (useSettingsStore.getState().theme === "system") applyTheme("system");
   });
 }

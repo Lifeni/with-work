@@ -507,7 +507,18 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
         onCancel={() => setConfirmClear(false)}
       />
 
-      <RulesDialog open={rulesOpen} onOpenChange={setRulesOpen} initialDraft={ruleDraft} />
+      <RulesDialog
+        key={
+          rulesOpen
+            ? ruleDraft
+              ? `${ruleDraft.find}|${ruleDraft.replace}|${ruleDraft.isRegex}|${ruleDraft.matchCase}`
+              : "plain"
+            : "closed"
+        }
+        open={rulesOpen}
+        onOpenChange={setRulesOpen}
+        initialDraft={ruleDraft}
+      />
     </div>
   );
 });

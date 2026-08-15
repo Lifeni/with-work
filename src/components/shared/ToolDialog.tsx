@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,25 +24,17 @@ interface Props {
 
 const DEFAULT_CONFIG: ToolConfig = { delimiter: "newline", dedupe: false, ignoreEmpty: true };
 
+/**
+ * 工具配置对话框。
+ * 父组件以 key={tool.id} 控制重挂载：每次打开新工具都会重新读取输入并重置配置，
+ * 因此这里不使用 effect 初始化状态（react-hooks v7 规则）。
+ */
 export function ToolDialog({ tool, onClose }: Props) {
   const toast = useToastStore((s) => s.push);
   const rules = useRulesStore((s) => s.rules);
+  const [input] = useState(() => (tool ? getToolInput() : ""));
   const [config, setConfig] = useState<ToolConfig>(DEFAULT_CONFIG);
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
-
-  // 打开时读取当前输入并重置配置
-  useEffect(() => {
-    if (tool) {
-      setInput(getToolInput());
-      setConfig(DEFAULT_CONFIG);
-    }
-  }, [tool]);
-
-  // 实时预览
-  useEffect(() => {
-    if (tool) setOutput(tool.run(input, config));
-  }, [tool, input, config]);
+  const output = useMemo(() => (tool ? tool.run(input, config) : ""), [tool, input, config]);
 
   const execute = () => {
     if (!tool) return;

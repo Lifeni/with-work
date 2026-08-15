@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Check, Inbox, Moon, Sun } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,10 +29,8 @@ export function StatusBar() {
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
 
-  const [savedAt, setSavedAt] = useState(() => new Date());
-  useEffect(() => {
-    setSavedAt(new Date());
-  }, [ws?.content]);
+  // 内容变化即视为“已自动保存”时刻
+  const savedAt = useMemo(() => new Date(), [ws?.content]);
 
   return (
     <footer className="flex h-6 shrink-0 items-center gap-3 border-t border-border bg-muted px-3 text-[11px] text-muted-foreground">
