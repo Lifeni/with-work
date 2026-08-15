@@ -98,65 +98,9 @@ export default function EditorView() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* 模式切换（单编辑器 / 双编辑器对比）与双模式操作 */}
-      <div className="flex h-8 shrink-0 items-center gap-1.5 border-b border-border px-2">
-        <div className="flex shrink-0 rounded-md border border-border bg-card p-0.5 text-xs">
-          <button
-            className={cn(
-              "flex items-center gap-1 rounded px-2 py-0.5",
-              mode === "single" ? "bg-accent font-medium" : "text-muted-foreground",
-            )}
-            onClick={() => setEditorMode(ws.id, "single")}
-          >
-            <Rows2 className="size-3" />
-            单编辑器
-          </button>
-          <button
-            className={cn(
-              "flex items-center gap-1 rounded px-2 py-0.5",
-              mode === "dual" ? "bg-accent font-medium" : "text-muted-foreground",
-            )}
-            onClick={enterDual}
-          >
-            <Columns2 className="size-3" />
-            双编辑器
-          </button>
-        </div>
-        {mode === "dual" ? (
-          <>
-            <Badge variant="secondary">差异 {changes} 处</Badge>
-            <div className="flex-1" />
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={swap}>
-              <ArrowLeftRight className="size-3.5" />
-              交换左右
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-6 px-2 text-xs"
-              onClick={applyRightToWorkspace}
-            >
-              <Check className="size-3.5" />
-              应用到工作区
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs text-destructive hover:text-destructive"
-              onClick={() => setConfirmClearDiff(true)}
-            >
-              <Trash2 className="size-3.5" />
-              清空两侧
-            </Button>
-          </>
-        ) : (
-          <div className="flex-1" />
-        )}
-      </div>
-
       <FindReplacePanel ref={panelRef} editor={findTarget} />
 
-      <div className="min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
         {mode === "single" ? (
           <Editor
             height="100%"
@@ -201,6 +145,65 @@ export default function EditorView() {
             }}
           />
         )}
+        {/* 模式切换悬浮按钮：单/双编辑器 + 双模式操作（差异/交换/应用/清空） */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-2.5 z-20 flex justify-end px-3">
+          <div className="pointer-events-auto flex items-center gap-1 rounded-lg border border-border bg-card/95 p-1 shadow-lg backdrop-blur">
+            <div className="flex items-center rounded-md bg-muted p-0.5">
+              <button
+                title="单编辑器"
+                onClick={() => setEditorMode(ws.id, "single")}
+                className={cn(
+                  "flex h-6 w-7 items-center justify-center rounded transition-colors",
+                  mode === "single"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Rows2 className="size-3.5" />
+              </button>
+              <button
+                title="双编辑器（对比）"
+                onClick={enterDual}
+                className={cn(
+                  "flex h-6 w-7 items-center justify-center rounded transition-colors",
+                  mode === "dual"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Columns2 className="size-3.5" />
+              </button>
+            </div>
+            {mode === "dual" && (
+              <>
+                <span className="h-4 w-px bg-border" />
+                <Badge variant="secondary" className="font-mono">
+                  差异 {changes}
+                </Badge>
+                <Button variant="ghost" size="icon-sm" title="交换左右" onClick={swap}>
+                  <ArrowLeftRight />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="应用到工作区（右侧）"
+                  onClick={applyRightToWorkspace}
+                >
+                  <Check />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="清空两侧"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setConfirmClearDiff(true)}
+                >
+                  <Trash2 />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       <ConfirmDialog

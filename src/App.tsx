@@ -1,7 +1,6 @@
 import { useEffect, type ComponentType } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TitleBar } from "@/components/shared/TitleBar";
-import { ToolsRail } from "@/components/shared/ToolsRail";
 import { StatusBar } from "@/components/shared/StatusBar";
 import { StagingPanel } from "@/components/shared/StagingPanel";
 import { ToastViewport } from "@/components/shared/ToastViewport";
@@ -41,16 +40,11 @@ export default function App() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+        <TitleBar />
         <div className="flex min-h-0 flex-1">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <TitleBar />
-            <div className="flex min-h-0 flex-1">
-              <ToolsRail />
-              <main className="min-w-0 flex-1 overflow-hidden">
-                <View key={activeId} />
-              </main>
-            </div>
-          </div>
+          <main className="min-w-0 flex-1 overflow-hidden">
+            <View key={activeId} />
+          </main>
           <StagingPanel />
         </div>
         <StatusBar />
