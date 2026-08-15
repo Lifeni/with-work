@@ -10,6 +10,7 @@ interface SettingsState extends AppSettings {
   setEditorFontFamily: (editorFontFamily: string) => void;
   setStagingWidth: (stagingWidth: number) => void;
   setEditorSplit: (editorSplit: number) => void;
+  setStagingTemplateHeight: (stagingTemplateHeight: number) => void;
   replaceAll: (partial: AppSettings) => void;
 }
 
@@ -37,6 +38,8 @@ export const useSettingsStore = create<SettingsState>()(
       setStagingWidth: (stagingWidth) => set({ stagingWidth }),
 
       setEditorSplit: (editorSplit) => set({ editorSplit }),
+
+      setStagingTemplateHeight: (stagingTemplateHeight) => set({ stagingTemplateHeight }),
 
       replaceAll: (partial) => set((s) => ({ ...s, ...partial })),
     }),

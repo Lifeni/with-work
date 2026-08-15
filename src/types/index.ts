@@ -39,6 +39,15 @@ export interface SortTemplate {
   group?: string;
 }
 
+/** 文本模板：一段可复用的文本，可拖拽/插入到编辑器 */
+export interface TextTemplate {
+  id: string;
+  name: string;
+  text: string;
+  /** 分组名（可选，默认未分组） */
+  group?: string;
+}
+
 export interface AppSettings {
   theme: ThemeMode;
   fontSize: number;
@@ -48,22 +57,20 @@ export interface AppSettings {
   stagingWidth?: number;
   /** 左编辑器宽度占比（0.25 ~ 0.75），可拖动调节 */
   editorSplit?: number;
+  /** 暂存区下方模板区高度（px），可拖动调节 */
+  stagingTemplateHeight?: number;
 }
 
 export interface BackupData {
   app: "with-work";
-  version: 2;
+  version: 3;
   exportedAt: string;
   workspaces: Workspace[];
   staging: StagingItem[];
   rules: ReplaceRule[];
   templates: SortTemplate[];
+  textTemplates: TextTemplate[];
   settings: AppSettings;
   diff: { left: string; right: string };
   list: { source: string; reference: string; compare: string };
 }
-
-export const VIEW_LABELS: Record<ViewId, string> = {
-  editor: "编辑器",
-  settings: "设置",
-};

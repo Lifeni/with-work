@@ -35,26 +35,6 @@ const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: "system", label: "跟随系统" },
 ];
 
-function Section({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border border-border bg-card p-4">
-      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
-        {icon}
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
 export default function SettingsView() {
   const settings = useSettingsStore();
   const toast = useToastStore((s) => s.push);
@@ -97,10 +77,16 @@ export default function SettingsView() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-4">
-      <div className="mx-auto grid max-w-3xl grid-cols-1 gap-4">
-        <Section title="外观" icon={<Palette className="size-4 text-muted-foreground" />}>
-          <div className="space-y-3">
+    <div className="p-4">
+      <div className="mx-auto grid max-w-3xl gap-4 md:grid-cols-2">
+        {/* 左列：外观 + 关于 */}
+        <div className="space-y-4">
+          <section className="rounded-lg border border-border bg-card p-4">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
+              <Palette className="size-4 text-muted-foreground" />
+              外观
+            </h2>
+            <div className="space-y-3">
             <div className="flex items-center gap-2">
               <span className="w-24 shrink-0 text-xs text-muted-foreground">主题</span>
               <div className="flex gap-1.5">
@@ -153,11 +139,33 @@ export default function SettingsView() {
               </Button>
             </div>
           </div>
-        </Section>
+          </section>
 
-        <Section title="数据管理" icon={<Database className="size-4 text-muted-foreground" />}>
+          <section className="rounded-lg border border-border bg-card p-4">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
+              <Info className="size-4 text-muted-foreground" />
+              关于
+            </h2>
+            <div className="flex items-center gap-3">
+              <img src={favicon} alt="With Work" className="h-12 w-12 rounded-full" />
+              <div className="text-xs text-muted-foreground">
+                <p className="text-sm font-semibold text-foreground">一点微小的工作 · With Work</p>
+                <p>版本 0.1.0</p>
+                <p>编写时间 2026 年 8 月</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* 右列：数据管理 */}
+        <div className="space-y-4">
+          <section className="rounded-lg border border-border bg-card p-4">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
+              <Database className="size-4 text-muted-foreground" />
+              数据管理
+            </h2>
           <p className="mb-3 text-xs text-muted-foreground">
-            所有工作区、暂存区、替换规则与设置均自动保存在浏览器本地，可随时导出备份或清空。
+            所有工作区、暂存区、替换规则、模板与设置均自动保存在浏览器本地，可随时导出备份或清空。
           </p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={exportBackup}>
@@ -214,18 +222,8 @@ export default function SettingsView() {
               清空所有数据
             </Button>
           </div>
-        </Section>
-
-        <Section title="关于" icon={<Info className="size-4 text-muted-foreground" />}>
-          <div className="flex items-center gap-3">
-            <img src={favicon} alt="With Work" className="h-12 w-12 rounded-full" />
-            <div className="text-xs text-muted-foreground">
-              <p className="text-sm font-semibold text-foreground">一点微小的工作 · With Work</p>
-              <p>版本 0.1.0</p>
-              <p>编写时间 2026 年 8 月</p>
-            </div>
-          </div>
-        </Section>
+          </section>
+        </div>
       </div>
 
       <input
@@ -246,7 +244,7 @@ export default function SettingsView() {
       <ConfirmDialog
         open={confirmImport}
         title="导入备份"
-        description="导入备份将覆盖当前的全部数据（工作区、暂存区、规则、设置），确定继续吗？"
+        description="导入备份将覆盖当前的全部数据（工作区、暂存区、规则、模板、设置），确定继续吗？"
         confirmText="覆盖导入"
         destructive
         onConfirm={() => {
