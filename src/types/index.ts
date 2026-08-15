@@ -32,6 +32,8 @@ export interface SortTemplate {
   id: string;
   name: string;
   items: string[];
+  /** 分组名（可选，默认未分组） */
+  group?: string;
 }
 
 export interface AppSettings {

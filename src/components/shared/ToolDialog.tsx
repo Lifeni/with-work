@@ -95,9 +95,13 @@ export function ToolDialog({ tool, onClose }: Props) {
                   }
                   className="h-7 rounded-md border border-border bg-transparent px-2 text-xs outline-none hover:bg-accent"
                 >
+                  <option value="auto">自动检测（出现最多的符号）</option>
                   <option value="newline">换行</option>
                   <option value="comma">英文逗号</option>
                   <option value="cn-comma">中文逗号</option>
+                  <option value="semicolon">英文分号</option>
+                  <option value="cn-semicolon">中文分号</option>
+                  <option value="cn-dunhao">顿号</option>
                   <option value="space">空格 / Tab</option>
                   <option value="custom">自定义正则</option>
                 </select>

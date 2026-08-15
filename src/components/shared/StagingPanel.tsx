@@ -43,7 +43,6 @@ const IMPORT_TARGETS: { value: ImportTarget; label: string; icon: typeof FileTex
   { value: "diff-right", label: "文本对比 · 右侧", icon: FileDiff },
   { value: "list-source", label: "列表工具 · 源文本", icon: ListOrdered },
   { value: "list-reference", label: "列表工具 · 参考列表", icon: ListOrdered },
-  { value: "list-compare", label: "列表工具 · 对比列表", icon: ListOrdered },
 ];
 
 export function StagingPanel() {
@@ -151,7 +150,16 @@ export function StagingPanel() {
             </div>
           ) : (
             items.map((item) => (
-              <div key={item.id} className="rounded-md border border-border bg-background p-2">
+              <div
+                key={item.id}
+                draggable
+                title="拖拽到编辑器可快速插入（双编辑器模式下可对比）"
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("text/plain", item.text);
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
+                className="cursor-grab rounded-md border border-border bg-background p-2 active:cursor-grabbing"
+              >
                 <p className="line-clamp-3 whitespace-pre-wrap break-all text-xs">{item.text}</p>
                 <div className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
                   <span>{item.text.length} 字符</span>
@@ -203,7 +211,7 @@ export function StagingPanel() {
 
         <div className="flex items-center gap-1 border-t border-border px-3 py-1.5 text-[10px] text-muted-foreground">
           <ArrowRightLeft className="size-3" />
-          暂存区为全局共用，所有工作区共享
+          暂存区为全局共用，所有工作区共享；拖拽条目到编辑器可快速插入
         </div>
 
         {/* 下半部：自定义模板区（排序模板） */}
@@ -221,7 +229,7 @@ export function StagingPanel() {
               <Settings2 />
             </Button>
           </div>
-          <div className="max-h-44 space-y-1.5 overflow-y-auto px-3 pb-3">
+          <div className="max-h-44 space-y-2 overflow-y-auto px-3 pb-3">
             {templates.length === 0 ? (
               <p className="rounded-md border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
                 暂无模板，点击右上角管理按钮创建
@@ -229,34 +237,52 @@ export function StagingPanel() {
                 （提供顺序列表，用于自定义排序）
               </p>
             ) : (
-              templates.map((t) => (
-                <div key={t.id} className="rounded-md border border-border bg-background p-2">
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <span className="min-w-0 flex-1 truncate font-medium" title={t.name}>
-                      {t.name}
-                    </span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
-                      {t.items.length} 条
-                    </span>
-                    <button
-                      title="按此模板排序编辑器文本"
-                      onClick={() => applyTemplate(t)}
-                      className="shrink-0 rounded p-0.5 hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <ListOrdered className="size-3" />
-                    </button>
-                    <button
-                      title="删除模板"
-                      onClick={() => removeTemplate(t.id)}
-                      className="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
+              [...new Set(templates.map((t) => t.group ?? "未分组"))].map((group) => (
+                <div key={group}>
+                  <p className="mb-1 text-[10px] font-medium text-muted-foreground">{group}</p>
+                  <div className="space-y-1.5">
+                    {templates
+                      .filter((t) => (t.group ?? "未分组") === group)
+                      .map((t) => (
+                        <div
+                          key={t.id}
+                          draggable
+                          title="拖拽到编辑器可快速插入（双编辑器模式下可对比）"
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("text/plain", t.items.join("\n"));
+                            e.dataTransfer.effectAllowed = "copy";
+                          }}
+                          className="cursor-grab rounded-md border border-border bg-background p-2 active:cursor-grabbing"
+                        >
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="min-w-0 flex-1 truncate font-medium" title={t.name}>
+                              {t.name}
+                            </span>
+                            <span className="shrink-0 text-[10px] text-muted-foreground">
+                              {t.items.length} 条
+                            </span>
+                            <button
+                              title="按此模板排序编辑器文本"
+                              onClick={() => applyTemplate(t)}
+                              className="shrink-0 rounded p-0.5 hover:bg-accent hover:text-accent-foreground"
+                            >
+                              <ListOrdered className="size-3" />
+                            </button>
+                            <button
+                              title="删除模板"
+                              onClick={() => removeTemplate(t.id)}
+                              className="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
+                          </div>
+                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                            {t.items.slice(0, 3).join("、")}
+                            {t.items.length > 3 ? "…" : ""}
+                          </p>
+                        </div>
+                      ))}
                   </div>
-                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                    {t.items.slice(0, 3).join("、")}
-                    {t.items.length > 3 ? "…" : ""}
-                  </p>
                 </div>
               ))
             )}

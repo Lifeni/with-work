@@ -33,12 +33,14 @@ export function TemplatesDialog({ open, onOpenChange }: Props) {
 
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
+  const [group, setGroup] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setName("");
     setContent("");
+    setGroup("");
     setEditingId(null);
   };
 
@@ -46,6 +48,7 @@ export function TemplatesDialog({ open, onOpenChange }: Props) {
     setEditingId(t.id);
     setName(t.name);
     setContent(t.items.join("\n"));
+    setGroup(t.group ?? "");
   };
 
   const save = () => {
@@ -61,6 +64,7 @@ export function TemplatesDialog({ open, onOpenChange }: Props) {
       id: editingId ?? uid(),
       name: name.trim() || (items[0].length > 12 ? `${items[0].slice(0, 12)}…` : items[0]),
       items,
+      group: group.trim() || undefined,
     };
     if (editingId) updateTemplate(t);
     else addTemplate(t);
@@ -94,12 +98,20 @@ export function TemplatesDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="space-y-2 rounded-md border border-border p-2.5">
-          <Input
-            placeholder="模板名称（可选）"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-8 text-xs"
-          />
+          <div className="grid grid-cols-[1fr_180px] gap-2">
+            <Input
+              placeholder="模板名称（可选）"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-8 text-xs"
+            />
+            <Input
+              placeholder="分组（可选）"
+              value={group}
+              onChange={(e) => setGroup(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
           <Textarea
             rows={4}
             placeholder="模板条目，每行一条（按从上到下顺序排列）"
@@ -136,6 +148,11 @@ export function TemplatesDialog({ open, onOpenChange }: Props) {
                 <span className="w-32 shrink-0 truncate text-xs font-medium" title={t.name}>
                   {t.name}
                 </span>
+                {t.group && (
+                  <Badge variant="secondary" className="shrink-0 text-[9px]">
+                    {t.group}
+                  </Badge>
+                )}
                 <Badge variant="secondary">{t.items.length} 条</Badge>
                 <span
                   className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
