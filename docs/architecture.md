@@ -34,7 +34,7 @@
 | `src/views/settings/` | 设置内容 | `SettingsView.tsx`，由 `SettingsDialog` 以弹窗形式承载 |
 | `src/components/ui/` | 无业务语义的基础组件 | Button、Input、Dialog、DropdownMenu、Tooltip、Toggle、Badge |
 | `src/components/shared/` | 业务共享组件 | TitleBar、StagingPanel（暂存区+模板+规则）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail、ToastViewport、ConfirmDialog |
-| `src/stores/` | Zustand stores | workspace / staging / rules / templates / sortTemplates / textTemplates / settings / list（持久化），ui / status / toast（瞬时） |
+| `src/stores/` | Zustand stores | workspace / staging / rules / templates / textTemplates / settings / list（持久化），ui / status / toast（瞬时） |
 | `src/tools/` | 全局工具注册表 | `registry.ts` + 左侧竖向工具栏入口；工具为纯函数，新增只需追加一条 |
 | `src/lib/` | 纯函数与桥接 | `split.ts`、`sort.ts`、`replace.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`utils.ts` |
 | `src/hooks/` | 自定义 Hooks | `useDebounce` |
@@ -57,6 +57,8 @@
 
 - 四个功能一体：**查找**（正则/大小写/计数/高亮）、**替换**（全部替换 + 规则下拉 + 规则管理）、
   **分割**（按分隔符拆分，写入另一侧编辑器）、**排序**（升序/降序/按排序模板）。
+- 排序支持**开头匹配**（前缀匹配）：模板可自带 `prefixMatch` 属性，工具栏开关可临时开启；
+  全部不匹配时提示且不清空内容，部分匹配时未匹配项写入另一侧编辑器。
 - 全部作用于当前聚焦编辑器（高亮边框者）；替换/分割结果写入另一侧。
 - 替换规则（`stores/rules.ts`）与排序模板（`stores/templates.ts`）可导入/导出。
 
@@ -85,13 +87,14 @@
 ## 内置数据
 
 - `lib/defaultData.ts` 维护内置替换规则与排序模板（`main.tsx` 启动时调用 `seedDefaultData()` 注入）。
+  当前内置：替换规则「单书名号替换」、排序模板「山东 16 市」（默认开头匹配）。
 - 增量注入：以 `ww:seeded` 记录已注入过的内置 id——新增内置项对老用户可见
   （补入缺失项）、用户删除后不复活、编辑过的不覆盖、下架项（`DEPRECATED_BUILTIN_IDS`）
   自动从用户数据中移除。
 
 ## 演进计划
 
-- [x] 测试体系（Vitest + React Testing Library，114 用例）
+- [x] 测试体系（Vitest + React Testing Library，129 用例）
 - [x] 停用 dependabot 自动依赖更新（邮件干扰，改为手动升级）
 - [ ] OCR 等新能力接入（规划中）
 - [ ] 添加 CI（GitHub Actions：lint + typecheck + test + build）
