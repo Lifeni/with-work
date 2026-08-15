@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRightLeft,
-  Check,
   Copy,
   FileDiff,
   FileText,
@@ -72,6 +71,7 @@ export function StagingPanel() {
 
   // 替换规则区
   const rules = useRulesStore((s) => s.rules);
+  const removeRule = useRulesStore((s) => s.removeRule);
 
   // 窄屏（<lg）下暂存区默认收起，通过右下角悬浮按钮打开
   useEffect(() => {
@@ -689,9 +689,17 @@ export function StagingPanel() {
                       >
                         <Pencil className="size-3" />
                       </button>
-                      <span className="shrink-0 rounded p-0.5">
-                        <Check className="size-3 text-muted-foreground" />
-                      </span>
+                      <button
+                        title="删除规则"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeRule(r.id);
+                          toast("规则已删除");
+                        }}
+                        className="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
+                      >
+                        <Trash2 className="size-3" />
+                      </button>
                     </div>
                     <p
                       className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground"

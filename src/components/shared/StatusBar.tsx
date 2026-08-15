@@ -36,7 +36,7 @@ export function StatusBar() {
       ) : (
         <span className="font-medium text-foreground/80">{ws?.name ?? "—"}</span>
       )}
-      <span className="hidden font-mono md:inline">
+      <span className="hidden md:inline">
         行 {line} · 列 {col}
       </span>
       <span className="hidden sm:inline">

@@ -100,6 +100,25 @@ describe("StagingPanel", () => {
     expect(screen.getByRole("button", { name: "更新规则" })).toBeInTheDocument();
   });
 
+  it("替换规则列表删除按钮可直接删除规则", async () => {
+    const user = userEvent.setup();
+    useRulesStore.getState().addRule({
+      id: "r1",
+      name: "规则甲",
+      find: "a",
+      replace: "b",
+      isRegex: false,
+      matchCase: false,
+    });
+    render(<StagingPanel />);
+
+    await user.click(screen.getByRole("button", { name: "替换规则" }));
+    await user.click(screen.getByTitle("删除规则"));
+
+    expect(useRulesStore.getState().rules).toHaveLength(0);
+    expect(screen.queryByText("规则甲")).not.toBeInTheDocument();
+  });
+
   it("文本模板点击插入到聚焦编辑器", async () => {
     const user = userEvent.setup();
     const mock = createMockEditor();
