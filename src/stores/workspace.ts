@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { EditorMode, ViewId, Workspace } from "@/types";
+import type { Workspace } from "@/types";
 
 let seq = 0;
 const nextId = () => `ws-${Date.now().toString(36)}-${(seq++).toString(36)}`;
@@ -14,11 +14,9 @@ interface WorkspaceState {
   setActive: (id: string) => void;
   setContent: (id: string, content: string) => void;
   setLanguage: (id: string, language: string) => void;
-  setEditorMode: (id: string, editorMode: EditorMode) => void;
   setLeft: (id: string, left: string) => void;
   setRight: (id: string, right: string) => void;
   swapSides: (id: string) => void;
-  setView: (id: string, view: ViewId) => void;
   replaceAll: (workspaces: Workspace[]) => void;
 }
 
@@ -73,11 +71,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, language } : w)),
         })),
 
-      setEditorMode: (id, editorMode) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, editorMode } : w)),
-        })),
-
       setLeft: (id, left) =>
         set((s) => ({
           workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, left } : w)),
@@ -93,11 +86,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           workspaces: s.workspaces.map((w) =>
             w.id === id ? { ...w, left: w.right ?? "", right: w.left ?? "" } : w,
           ),
-        })),
-
-      setView: (id, view) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, view } : w)),
         })),
 
       replaceAll: (workspaces) => set({ workspaces, activeId: workspaces[0]?.id ?? null }),
