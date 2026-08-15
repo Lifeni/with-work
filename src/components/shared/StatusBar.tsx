@@ -11,8 +11,9 @@ import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
 import { useStatusStore } from "@/stores/status";
 import { useStagingStore } from "@/stores/staging";
+import { useDiffStore } from "@/stores/diff";
 import { useUiStore } from "@/stores/ui";
-import { VIEW_LABELS, type ThemeMode, type ViewId } from "@/types";
+import type { ThemeMode } from "@/types";
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: "light", label: "浅色" },
@@ -26,23 +27,36 @@ export function StatusBar() {
   const stagingCount = useStagingStore((s) => s.items.length);
   const stagingOpen = useUiStore((s) => s.stagingOpen);
   const toggleStaging = useUiStore((s) => s.toggleStaging);
+  const settingsOpen = useUiStore((s) => s.settingsOpen);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
+  const left = useDiffStore((s) => s.left);
+  const right = useDiffStore((s) => s.right);
 
   // 内容变化即视为“已自动保存”时刻
-  const savedAt = useMemo(() => new Date(), [ws?.content]);
+  const savedAt = useMemo(() => new Date(), [left, right]);
 
   return (
     <footer className="flex h-6 shrink-0 items-center gap-3 border-t border-border bg-muted px-3 text-[11px] text-muted-foreground">
-      <span className="flex items-center gap-1.5">
-        <span className="font-medium text-foreground/80">{ws?.name ?? "—"}</span>
-        <span>·</span>
-        <span>{VIEW_LABELS[(ws?.view ?? "editor") as ViewId] ?? "编辑器"}</span>
-      </span>
+      {settingsOpen ? (
+        <span className="flex items-center gap-1.5">
+          <span className="font-medium text-foreground/80">设置</span>
+          <span>·</span>
+          <span>全局标签页</span>
+        </span>
+      ) : (
+        <span className="flex items-center gap-1.5">
+          <span className="font-medium text-foreground/80">{ws?.name ?? "—"}</span>
+          <span>·</span>
+          <span>编辑器（双栏）</span>
+        </span>
+      )}
       <span className="font-mono">
         行 {line} · 列 {col}
       </span>
-      <span>{ws?.content.length ?? 0} 字符</span>
+      <span>
+        左 {left.length} · 右 {right.length} 字符
+      </span>
 
       <div className="flex-1" />
 

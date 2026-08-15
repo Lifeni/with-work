@@ -9,20 +9,13 @@ import EditorView from "@/views/editor/EditorView";
 import SettingsView from "@/views/settings/SettingsView";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
+import { useUiStore } from "@/stores/ui";
 import { initTheme } from "@/lib/theme";
-import type { ViewId } from "@/types";
-
-const viewComponents: Record<ViewId, ComponentType> = {
-  editor: EditorView,
-  settings: SettingsView,
-};
-
-const VALID_VIEWS = Object.keys(viewComponents) as ViewId[];
 
 export default function App() {
   const activeId = useWorkspaceStore((s) => s.activeId);
-  const rawView = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId)?.view);
   const workspaceCount = useWorkspaceStore((s) => s.workspaces.length);
+  const settingsOpen = useUiStore((s) => s.settingsOpen);
 
   useEffect(() => {
     initTheme(useSettingsStore.getState().theme);
@@ -32,9 +25,8 @@ export default function App() {
     if (workspaceCount === 0) useWorkspaceStore.getState().createWorkspace();
   }, [workspaceCount]);
 
-  // 兼容旧数据：未知视图（如已移除的 diff）回退到编辑器
-  const view: ViewId = VALID_VIEWS.includes(rawView as ViewId) ? (rawView as ViewId) : "editor";
-  const View = viewComponents[view];
+  // 设置是全局独立标签页，不归属任何工作区
+  const View: ComponentType = settingsOpen ? SettingsView : EditorView;
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -45,7 +37,7 @@ export default function App() {
             <TitleBar />
             <div className="flex min-h-0 flex-1">
               <main className="min-w-0 flex-1 overflow-hidden">
-                <View key={activeId} />
+                <View key={settingsOpen ? "settings" : activeId} />
               </main>
             </div>
           </div>

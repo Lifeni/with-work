@@ -38,10 +38,8 @@ import { useWorkspaceStore } from "@/stores/workspace";
 import type { SortTemplate } from "@/types";
 
 const IMPORT_TARGETS: { value: ImportTarget; label: string; icon: typeof FileText }[] = [
-  { value: "editor", label: "编辑器（当前工作区）", icon: FileText },
-  { value: "diff-left", label: "文本对比 · 左侧", icon: FileDiff },
-  { value: "diff-right", label: "文本对比 · 右侧", icon: FileDiff },
-  { value: "list-source", label: "列表工具 · 源文本", icon: ListOrdered },
+  { value: "diff-left", label: "对比 · 左侧", icon: FileDiff },
+  { value: "diff-right", label: "对比 · 右侧", icon: FileDiff },
   { value: "list-reference", label: "列表工具 · 参考列表", icon: ListOrdered },
 ];
 

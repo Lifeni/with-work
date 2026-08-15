@@ -26,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
+import { useUiStore } from "@/stores/ui";
 import { useToastStore } from "@/stores/toast";
 import {
   applyBackup,
@@ -58,8 +59,8 @@ export function TitleBar() {
 
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
-  const view = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId)?.view);
-  const setView = useWorkspaceStore((s) => s.setView);
+  const settingsOpen = useUiStore((s) => s.settingsOpen);
+  const setSettingsOpen = useUiStore((s) => s.setSettingsOpen);
   const toast = useToastStore((s) => s.push);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -76,11 +77,8 @@ export function TitleBar() {
     setRenamingId(null);
   };
 
-  /** 顶栏功能按钮：在 设置 与 编辑器 之间切换 */
-  const toggleView = (target: "settings") => {
-    if (!activeId) return;
-    setView(activeId, view === target ? "editor" : target);
-  };
+  /** 顶栏设置按钮：切换全局设置标签页 */
+  const toggleSettings = () => setSettingsOpen(!settingsOpen);
 
   const onBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,7 +148,10 @@ export function TitleBar() {
               key={w.id}
               role="tab"
               aria-selected={w.id === activeId}
-              onClick={() => setActive(w.id)}
+              onClick={() => {
+                setActive(w.id);
+                setSettingsOpen(false);
+              }}
               onDoubleClick={() => {
                 setRenamingId(w.id);
                 setRenameValue(w.name);
@@ -184,14 +185,28 @@ export function TitleBar() {
         >
           <Plus className="size-4" />
         </button>
+        {/* 全局设置标签页（不归属任何工作区） */}
+        <div
+          role="tab"
+          aria-selected={settingsOpen}
+          onClick={toggleSettings}
+          className={cn(
+            "group relative flex shrink-0 cursor-pointer select-none items-center gap-1.5 border-l border-border/60 px-3 text-xs transition-colors",
+            settingsOpen ? "bg-background font-medium" : "text-muted-foreground hover:bg-accent/60",
+          )}
+        >
+          {settingsOpen && <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />}
+          <Settings className="size-3.5" />
+          设置
+        </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-1 border-l border-border px-2">
         <Button
-          variant={view === "settings" ? "secondary" : "ghost"}
+          variant={settingsOpen ? "secondary" : "ghost"}
           size="icon-sm"
           title="设置"
-          onClick={() => toggleView("settings")}
+          onClick={toggleSettings}
         >
           <Settings />
         </Button>

@@ -19,7 +19,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Toggle } from "@/components/ui/toggle";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { RulesDialog } from "@/components/shared/RulesDialog";
@@ -50,14 +49,18 @@ export interface FindReplaceHandle {
 }
 
 interface Props {
-  editor: monaco.editor.IStandaloneCodeEditor | null;
+  /** 当前聚焦的编辑器（查找/替换/列表分割的源） */
+  focusedEditor: monaco.editor.IStandaloneCodeEditor | null;
+  /** 另一侧编辑器（列表分割/排序的结果目标） */
+  otherEditor: monaco.editor.IStandaloneCodeEditor | null;
   initialMode?: "find" | "replace" | "list";
 }
 
 export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function FindReplacePanel(
-  { editor, initialMode = "find" },
+  { focusedEditor, otherEditor, initialMode = "find" },
   ref,
 ) {
+  const editor = focusedEditor; // 查找/替换作用于当前聚焦的编辑器
   const [mode, setMode] = useState<"find" | "replace" | "list">(initialMode);
   const [find, setFind] = useState("");
   const [replace, setReplace] = useState("");
@@ -254,24 +257,28 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
   const [listIgnoreEmpty, setListIgnoreEmpty] = useState(true);
   const [listDedupe, setListDedupe] = useState(false);
   const [sortMode, setSortMode] = useState<"reference" | "alpha-asc" | "alpha-desc">("reference");
-  // 源文本框（持久化）/ 参考列表持久化到 list store（暂存区导入入口直接写入）
-  const listSourceText = useListStore((s) => s.source);
-  const setListSourceText = useListStore((s) => s.setSource);
+  // 参考列表持久化到 list store（暂存区导入入口直接写入）
   const referenceText = useListStore((s) => s.reference);
   const setReferenceText = useListStore((s) => s.setReference);
-  const [listOutput, setListOutput] = useState<string | null>(null);
 
-  /** 从编辑器获取数据源：选区优先，否则全文 */
-  const listSource = () => {
-    const model = editor?.getModel();
-    const sel = editor?.getSelection();
-    if (editor && model && sel && !sel.isEmpty()) return model.getValueInRange(sel);
-    return model?.getValue() ?? "";
+  /** 把文本写入目标编辑器（整体替换，可撤销） */
+  const writeToEditor = (dst: monaco.editor.IStandaloneCodeEditor | null, text: string) => {
+    const model = dst?.getModel();
+    if (!dst || !model) return false;
+    dst.executeEdits("ww-list", [{ range: model.getFullModelRange(), text }]);
+    return true;
   };
 
-  /** 用当前分隔符配置把源文本框内容拆成列表 */
-  const splitSource = (): string[] | null => {
-    const r = splitText(listSourceText, {
+  /** 分割：作用于当前聚焦编辑器（选区优先），结果自动写入另一侧 */
+  const runSplit = () => {
+    const model = focusedEditor?.getModel();
+    if (!focusedEditor || !model) {
+      toast("请先点击要分割的编辑器（高亮边框者）");
+      return;
+    }
+    const sel = focusedEditor.getSelection();
+    const input = sel && !sel.isEmpty() ? model.getValueInRange(sel) : model.getValue();
+    const r = splitText(input, {
       delimiter: listDelimiter,
       customRegex: listCustomRegex,
       trim: listTrim,
@@ -280,99 +287,57 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
     });
     if (r.error) {
       toast(r.error);
-      return null;
-    }
-    return r.items;
-  };
-
-  /** 分割：结果显示在结果文本框 */
-  const runSplit = () => {
-    const items = splitSource();
-    if (!items) return;
-    setListOutput(items.join("\n"));
-    toast(`已分割为 ${items.length} 项`);
-  };
-
-  /** 排序：基于源文本分割结果，结果写入文本框 */
-  const runSort = () => {
-    const items = splitSource();
-    if (!items || items.length === 0) {
-      toast("请先填写源文本并分割");
       return;
     }
-    let result: SortResult;
+    if (!writeToEditor(otherEditor, r.items.join("\n"))) {
+      toast("另一侧编辑器尚未就绪");
+      return;
+    }
+    toast(`已分割 ${r.items.length} 项并写入另一侧编辑器`);
+  };
+
+  /** 对另一侧编辑器内容按行排序并写回（作用于刚分割的结果） */
+  const sortOtherSide = (sortFn: (items: string[]) => SortResult) => {
+    const model = otherEditor?.getModel();
+    if (!otherEditor || !model) {
+      toast("请先在聚焦的编辑器执行分割");
+      return;
+    }
+    const items = splitLines(model.getValue());
+    if (items.length === 0) {
+      toast("另一侧编辑器没有可排序的内容");
+      return;
+    }
+    const result = sortFn(items);
+    writeToEditor(otherEditor, result.sorted.join("\n"));
+    toast(
+      `已排序 ${result.sorted.length} 项` +
+        (result.unmatched.length > 0 ? `，${result.unmatched.length} 项未匹配` : ""),
+    );
+  };
+
+  const runSort = () => {
     if (sortMode === "reference") {
       const ref = splitLines(referenceText);
       if (ref.length === 0) {
         toast("请先输入参考列表（每行一条）");
         return;
       }
-      result = sortByReference(items, ref);
+      sortOtherSide((items) => sortByReference(items, ref));
     } else {
-      result = {
+      sortOtherSide((items) => ({
         sorted: sortAlphabetical(items, sortMode === "alpha-asc" ? "asc" : "desc"),
         unmatched: [],
-      };
-    }
-    setListOutput(result.sorted.join("\n"));
-    if (result.unmatched.length > 0) {
-      toast(`排序完成，${result.unmatched.length} 项未匹配`);
-    } else {
-      toast("排序完成");
+      }));
     }
   };
 
-  // 自定义排序模板：按模板顺序排列源文本并写入结果框
+  // 排序规则模板：按模板顺序排列另一侧内容
   const templates = useTemplatesStore((s) => s.templates);
   const [templatesOpen, setTemplatesOpen] = useState(false);
 
   const applyTemplate = (t: SortTemplate) => {
-    const items = splitSource();
-    if (!items || items.length === 0) {
-      toast("请先填写源文本并分割");
-      return;
-    }
-    const r = sortByReference(items, t.items);
-    setListOutput(r.sorted.join("\n"));
-    toast(
-      `已按模板「${t.name}」排序` +
-        (r.unmatched.length > 0 ? `，${r.unmatched.length} 项未匹配` : ""),
-    );
-  };
-
-  /** 结果文本框内容应用到编辑器（双模式下面板目标为右侧编辑器） */
-  const applyOutput = () => {
-    if (!listOutput || !listOutput.trim()) {
-      toast("结果为空，无法应用");
-      return;
-    }
-    applyLines(listOutput.split("\n"));
-  };
-
-  const copyLines = (lines: string[]) => {
-    if (lines.length === 0) {
-      toast("没有可复制的内容");
-      return;
-    }
-    void navigator.clipboard.writeText(lines.join("\n"));
-    toast(`已复制 ${lines.length} 条`);
-  };
-
-  /** 把处理结果应用到编辑器：有选区替换选区，否则替换全文（可撤销） */
-  const applyLines = (lines: string[]) => {
-    if (lines.length === 0) {
-      toast("没有可应用的内容");
-      return;
-    }
-    const text = lines.join("\n");
-    const model = editor?.getModel();
-    const sel = editor?.getSelection();
-    if (editor && model && sel && !sel.isEmpty()) {
-      editor.executeEdits("ww-list", [{ range: sel, text }]);
-    } else if (editor && model) {
-      editor.executeEdits("ww-list", [{ range: model.getFullModelRange(), text }]);
-    }
-    toast(`已应用 ${lines.length} 行`);
+    sortOtherSide((items) => sortByReference(items, t.items));
   };
 
   useImperativeHandle(ref, () => ({
@@ -388,7 +353,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
         <div className="flex shrink-0 rounded-md border border-border bg-card p-0.5 text-xs">
           <button
             className={cn(
-              "rounded px-2 py-1",
+              "whitespace-nowrap rounded px-2 py-1",
               mode === "find" ? "bg-accent font-medium" : "text-muted-foreground",
             )}
             onClick={() => setMode("find")}
@@ -397,7 +362,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
           </button>
           <button
             className={cn(
-              "rounded px-2 py-1",
+              "whitespace-nowrap rounded px-2 py-1",
               mode === "replace" ? "bg-accent font-medium" : "text-muted-foreground",
             )}
             onClick={() => setMode("replace")}
@@ -406,7 +371,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
           </button>
           <button
             className={cn(
-              "rounded px-2 py-1",
+              "whitespace-nowrap rounded px-2 py-1",
               mode === "list" ? "bg-accent font-medium" : "text-muted-foreground",
             )}
             onClick={() => setMode("list")}
@@ -502,32 +467,12 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
         </Button>
       </div>
 
-      {/* 列表工具：源文本框 → 分割/排序 → 结果文本框（对比走双编辑器） */}
+      {/* 列表工具：分割作用于聚焦编辑器，结果自动写入另一侧；排序作用于另一侧内容 */}
       {mode === "list" && (
         <div className="mt-1.5 space-y-2">
-          {/* 源文本 */}
-          <div className="flex items-start gap-1.5">
-            <Textarea
-              rows={2}
-              value={listSourceText}
-              onChange={(e) => setListSourceText(e.target.value)}
-              placeholder="在此填写或粘贴源文本，例如：苹果, 香蕉, 橙子, …"
-              className="min-h-10 flex-1 font-mono text-xs"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 shrink-0 text-xs"
-              title="把编辑器选区/全文填入源文本框"
-              onClick={() => {
-                const text = listSource();
-                setListSourceText(text);
-                if (!text.trim()) toast("编辑器内容为空");
-              }}
-            >
-              取编辑器内容
-            </Button>
-          </div>
+          <p className="text-[11px] text-muted-foreground">
+            分割：作用于当前聚焦的编辑器（高亮边框，选区优先），结果自动写入另一侧；排序：作用于另一侧内容
+          </p>
 
           {/* 分隔符与选项 */}
           <div className="flex flex-wrap items-center gap-1.5">
@@ -594,12 +539,12 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
             </Button>
           </div>
 
-          {/* 自定义排序模板（与替换规则类似：chips 一键调用 + 管理对话框） */}
+          {/* 排序规则（与替换规则类似：chips 一键调用 + 管理对话框） */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="shrink-0 text-xs text-muted-foreground">模板</span>
+            <span className="shrink-0 text-xs text-muted-foreground">排序规则</span>
             {templates.length === 0 ? (
               <span className="min-w-0 flex-1 text-[11px] text-muted-foreground/60">
-                暂无模板，点击「管理模板」创建（用于按自定义顺序排序）
+                暂无规则，点击「管理规则」创建（提供顺序列表，按模板顺序排序）
               </span>
             ) : (
               <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
@@ -622,44 +567,9 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
               onClick={() => setTemplatesOpen(true)}
             >
               <Settings2 className="size-3" />
-              管理模板
+              管理规则
             </Button>
           </div>
-
-          {/* 结果文本框 */}
-          {listOutput !== null && (
-            <div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="font-medium">结果 · {listOutput.split("\n").length} 行</span>
-                <div className="flex-1" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => copyLines(listOutput.split("\n"))}
-                >
-                  复制
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => setListOutput(null)}
-                >
-                  清空
-                </Button>
-                <Button size="sm" className="h-6 px-2 text-xs" onClick={applyOutput}>
-                  应用到编辑器
-                </Button>
-              </div>
-              <Textarea
-                rows={4}
-                value={listOutput}
-                onChange={(e) => setListOutput(e.target.value)}
-                className="mt-1 font-mono text-xs"
-              />
-            </div>
-          )}
         </div>
       )}
 
