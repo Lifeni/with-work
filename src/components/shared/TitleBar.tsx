@@ -8,9 +8,11 @@ import {
   FolderOpen,
   Moon,
   Plus,
+  Redo2,
   Settings,
   Sun,
   Trash2,
+  Undo2,
   Upload,
   X,
 } from "lucide-react";
@@ -24,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { getActiveEditor } from "@/lib/editorBridge";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
 import { useUiStore } from "@/stores/ui";
@@ -77,6 +80,20 @@ export function TitleBar() {
     setRenamingId(null);
   };
 
+  /** 编辑操作（作用于当前聚焦的编辑器） */
+  const undoFocused = () => getActiveEditor()?.trigger("toolbar", "undo", null);
+  const redoFocused = () => getActiveEditor()?.trigger("toolbar", "redo", null);
+  const clearFocused = () => {
+    const ed = getActiveEditor();
+    const model = ed?.getModel();
+    if (!ed || !model) {
+      toast("没有可清空的编辑器");
+      return;
+    }
+    ed.executeEdits("ww-clear", [{ range: model.getFullModelRange(), text: "" }]);
+    toast("已清空聚焦编辑器（Ctrl+Z 可撤销）");
+  };
+
   /** 顶栏设置按钮：切换全局设置标签页 */
   const toggleSettings = () => setSettingsOpen(!settingsOpen);
 
@@ -127,6 +144,25 @@ export function TitleBar() {
 
   return (
     <header className="flex h-9 shrink-0 items-stretch bg-card">
+      {/* 编辑操作：撤销 / 重做 / 清空（作用于聚焦编辑器） */}
+      <div className="flex shrink-0 items-center gap-0.5 border-r border-border px-1.5">
+        <Button variant="ghost" size="icon-sm" title="撤销 (Ctrl+Z)" onClick={undoFocused}>
+          <Undo2 />
+        </Button>
+        <Button variant="ghost" size="icon-sm" title="重做" onClick={redoFocused}>
+          <Redo2 />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="清空聚焦编辑器"
+          className="text-destructive hover:text-destructive"
+          onClick={clearFocused}
+        >
+          <Trash2 />
+        </Button>
+      </div>
+
       {/* 工作区标签页（VS Code 风格：满高矩形，激活标签顶部高亮、底部与内容区相连） */}
       <div className="no-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto">
         {workspaces.map((w) =>

@@ -56,13 +56,16 @@ export default function EditorView() {
     if (side === "left") setLeftEditor(ed);
     else setRightEditor(ed);
     setActiveEditor(ed);
-    ed.onDidFocusEditorText(() => setFocused(side));
+    ed.onDidFocusEditorText(() => {
+      setFocused(side);
+      setActiveEditor(ed);
+    });
     ed.onDidChangeCursorPosition((e) => setCursor(e.position.lineNumber, e.position.column));
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () =>
-      panelRef.current?.open("find"),
+      panelRef.current?.open("main"),
     );
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () =>
-      panelRef.current?.open("replace"),
+      panelRef.current?.open("main"),
     );
   };
 
