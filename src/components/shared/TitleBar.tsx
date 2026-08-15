@@ -15,10 +15,8 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import favicon from "@/assets/favicon.svg";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { ToolDialog } from "@/components/shared/ToolDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,9 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { applyTool } from "@/lib/applyTool";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
 import { useToastStore } from "@/stores/toast";
@@ -42,7 +38,6 @@ import {
   parseRules,
 } from "@/lib/backup";
 import { useRulesStore } from "@/stores/rules";
-import { tools, type GlobalTool } from "@/tools/registry";
 import type { BackupData, ThemeMode } from "@/types";
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
@@ -70,7 +65,6 @@ export function TitleBar() {
   const [pendingBackup, setPendingBackup] = useState<BackupData | null>(null);
   const [confirmImport, setConfirmImport] = useState(false);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
-  const [dialogTool, setDialogTool] = useState<GlobalTool | null>(null);
   const backupRef = useRef<HTMLInputElement>(null);
   const rulesRef = useRef<HTMLInputElement>(null);
 
@@ -83,16 +77,6 @@ export function TitleBar() {
   const toggleView = (target: "list" | "settings") => {
     if (!activeId) return;
     setView(activeId, view === target ? "editor" : target);
-  };
-
-  /** 常用工具：有选区处理选区，否则处理全文；Ctrl+Z 可撤销 */
-  const runTool = (tool: GlobalTool) => {
-    if (tool.needsConfig) {
-      setDialogTool(tool);
-      return;
-    }
-    const res = applyTool(tool, (input) => tool.run(input));
-    if (res) toast(res.message);
   };
 
   const onBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,33 +111,6 @@ export function TitleBar() {
 
   return (
     <header className="flex h-9 shrink-0 items-stretch bg-card">
-      {/* 品牌区：英文左、中文右 */}
-      <div className="flex shrink-0 items-center gap-1.5 border-r border-border px-2.5">
-        <img src={favicon} alt="With Work" className="h-7 w-7 rounded-full" />
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] text-muted-foreground">With Work</span>
-          <span className="text-xs font-semibold leading-none">一点微小的工作</span>
-        </div>
-      </div>
-
-      {/* 常用工具（Photoshop 式，一行图标） */}
-      <div className="no-scrollbar flex shrink-0 items-center gap-0.5 overflow-x-auto border-r border-border px-1.5">
-        {tools.map((t) => (
-          <Tooltip key={t.id}>
-            <TooltipTrigger asChild>
-              <button
-                title={t.name}
-                onClick={() => runTool(t)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                <t.icon className="size-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t.name}</TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
-
       {/* 工作区标签页（VS Code 风格：满高矩形，激活标签顶部高亮、底部与内容区相连） */}
       <div className="no-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto">
         {workspaces.map((w) =>
@@ -296,8 +253,6 @@ export function TitleBar() {
         className="hidden"
         onChange={onRulesFile}
       />
-
-      <ToolDialog tool={dialogTool} onClose={() => setDialogTool(null)} />
 
       <ConfirmDialog
         open={confirmImport}
