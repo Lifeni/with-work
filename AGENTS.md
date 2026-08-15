@@ -35,7 +35,7 @@ with-work/
 │   ├── components/
 │   │   ├── ui/               # 通用基础组件（shadcn 风格：Button、Dialog 等）
 │   │   └── shared/           # 业务共享组件（TitleBar、StagingPanel 等）
-│   ├── views/                # 四个功能视图（编辑器 / 对比 / 列表工具 / 设置）
+│   ├── views/                # 功能视图（编辑器（单/双模式）/ 列表工具 / 设置）
 │   ├── stores/               # Zustand stores（全部自动持久化到 localStorage）
 │   ├── tools/                # 全局工具注册表（文本处理工具，新增工具只需追加一条）
 │   ├── hooks/                # 自定义 Hooks
@@ -55,7 +55,8 @@ with-work/
 - **图标**：界面图标用 lucide-react；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联）。
 - **路径别名**：`@/` 指向 `src/`。
 - **主题**：CSS 变量（oklch）+ `.dark` 类切换，Monaco 主题跟随。
-- **全局工具**：`src/tools/registry.ts` 注册表 + 左侧栏魔法棒入口；工具是纯函数（输入文本 → 输出文本），作用于当前工作区（选区优先），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。
+- **全局工具**：`src/tools/registry.ts` 注册表 + 左侧工具栏（Photoshop 式）入口；工具是纯函数（输入文本 → 输出文本），作用于当前工作区（选区优先），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。
+- **编辑器模式**：每个工作区可切换单编辑器 / 双编辑器（对比）；查找替换面板同时适用于两种模式（双模式作用于右侧编辑器）。
 
 ## 代码约定
 

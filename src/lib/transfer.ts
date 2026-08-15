@@ -22,13 +22,19 @@ export function importText(target: ImportTarget, text: string) {
       break;
     case "diff-left":
       useDiffStore.getState().setLeft(text);
-      if (activeId) ws.setView(activeId, "diff");
-      toast("已导入到对比左侧");
+      if (activeId) {
+        ws.setEditorMode(activeId, "dual");
+        ws.setView(activeId, "editor");
+      }
+      toast("已导入到对比左侧（双编辑器模式）");
       break;
     case "diff-right":
       useDiffStore.getState().setRight(text);
-      if (activeId) ws.setView(activeId, "diff");
-      toast("已导入到对比右侧");
+      if (activeId) {
+        ws.setEditorMode(activeId, "dual");
+        ws.setView(activeId, "editor");
+      }
+      toast("已导入到对比右侧（双编辑器模式）");
       break;
     case "list-source":
       useListStore.getState().setSource(text);

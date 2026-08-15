@@ -23,6 +23,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { RulesDialog } from "@/components/shared/RulesDialog";
 import { cn } from "@/lib/utils";
+import { applyReplacements, computeReplacement } from "@/lib/replace";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRulesStore } from "@/stores/rules";
 import { useSettingsStore } from "@/stores/settings";
@@ -45,53 +46,6 @@ export interface FindReplaceHandle {
 interface Props {
   editor: monaco.editor.IStandaloneCodeEditor | null;
   initialMode?: "find" | "replace";
-}
-
-/** 计算单处替换的替换文本（支持 $1、$&、$$） */
-function computeReplacement(
-  replace: string,
-  isRegex: boolean,
-  matchText: string,
-  groups: string[],
-): string {
-  if (!isRegex) return replace;
-  return replace.replace(/\$(\d+)|\$&|\$\$/g, (token, num: string | undefined) => {
-    if (token === "$&") return matchText;
-    if (token === "$$") return "$";
-    if (num !== undefined) return groups[Number(num) - 1] ?? "";
-    return token;
-  });
-}
-
-function escapeRegExp(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/** 在字符串层面应用全部替换（用于预览） */
-function applyReplacements(
-  text: string,
-  find: string,
-  replace: string,
-  isRegex: boolean,
-  matchCase: boolean,
-): string {
-  if (!find) return text;
-  try {
-    if (isRegex) {
-      const flags = "g" + (matchCase ? "" : "i");
-      const re = new RegExp(find, flags);
-      return text.replace(re, (...args) => {
-        const matchText = args[0] as string;
-        const groups = args.slice(1, -2) as string[];
-        return computeReplacement(replace, true, matchText, groups);
-      });
-    }
-    if (matchCase) return text.split(find).join(replace);
-    const re = new RegExp(escapeRegExp(find), "gi");
-    return text.replace(re, () => replace);
-  } catch {
-    return text;
-  }
 }
 
 export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function FindReplacePanel(
@@ -127,11 +81,19 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
   const decorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
   const currentRef = useRef(0);
 
-  const content = useWorkspaceStore(
-    (s) => s.workspaces.find((w) => w.id === s.activeId)?.content ?? "",
-  );
   const rules = useRulesStore((s) => s.rules);
   const toast = useToastStore((s) => s.push);
+
+  // 监听目标编辑器内容版本：单/双编辑器模式下都能在内容变化时自动重跑搜索
+  const [modelVersion, setModelVersion] = useState(0);
+  useEffect(() => {
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+    const sub = model.onDidChangeContent(() => setModelVersion((v) => v + 1));
+    return () => sub.dispose();
+  }, [editor]);
+
   const monacoTheme = useSettingsStore((s) =>
     s.theme === "dark"
       ? "vs-dark"
@@ -171,6 +133,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
     const model = editor?.getModel();
     if (!editor || !model || !debouncedFind) {
       decorationsRef.current?.clear();
+      decorationsRef.current = null;
       setMatches([]);
       setCurrent(0);
       setFindError(null);
@@ -198,7 +161,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
     setCurrent(idx);
     applyDecorations(infos, idx, highlightAll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedFind, isRegex, matchCase, highlightAll, editor, content]);
+  }, [debouncedFind, isRegex, matchCase, highlightAll, editor, modelVersion]);
 
   function navigate(idx: number) {
     if (idx < 0 || idx >= matches.length || !editor) return;
@@ -246,9 +209,10 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
       toast("没有匹配项，无法预览");
       return;
     }
+    const text = editor?.getModel()?.getValue() ?? "";
     setPreview({
-      original: content,
-      result: applyReplacements(content, find, replace, isRegex, matchCase),
+      original: text,
+      result: applyReplacements(text, find, replace, isRegex, matchCase),
       count: matches.length,
     });
     setPreviewOpen(true);
@@ -256,8 +220,13 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
 
   function applyPreview() {
     if (!preview) return;
-    const ws = useWorkspaceStore.getState();
-    if (ws.activeId) ws.setContent(ws.activeId, preview.result);
+    // 用编辑器操作应用结果，单/双模式均可 Ctrl+Z 撤销
+    const model = editor?.getModel();
+    if (editor && model) {
+      editor.executeEdits("ww-preview", [
+        { range: model.getFullModelRange(), text: preview.result },
+      ]);
+    }
     setPreview(null);
     setPreviewOpen(false);
     toast("已应用替换");

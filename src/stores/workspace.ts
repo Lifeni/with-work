@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ViewId, Workspace } from "@/types";
+import type { EditorMode, ViewId, Workspace } from "@/types";
 
 let seq = 0;
 const nextId = () => `ws-${Date.now().toString(36)}-${(seq++).toString(36)}`;
@@ -14,6 +14,7 @@ interface WorkspaceState {
   setActive: (id: string) => void;
   setContent: (id: string, content: string) => void;
   setLanguage: (id: string, language: string) => void;
+  setEditorMode: (id: string, editorMode: EditorMode) => void;
   setView: (id: string, view: ViewId) => void;
   replaceAll: (workspaces: Workspace[]) => void;
 }
@@ -31,6 +32,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           name: `工作区 ${get().workspaces.length + 1}`,
           content: "",
           language: "auto",
+          editorMode: "single",
           view: "editor",
         };
         set((s) => ({ workspaces: [...s.workspaces, ws], activeId: id }));
@@ -64,6 +66,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setLanguage: (id, language) =>
         set((s) => ({
           workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, language } : w)),
+        })),
+
+      setEditorMode: (id, editorMode) =>
+        set((s) => ({
+          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, editorMode } : w)),
         })),
 
       setView: (id, view) =>

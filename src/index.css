@@ -111,6 +111,14 @@
   background: transparent;
 }
 
+/* 隐藏滚动条（标签栏等单行区域） */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Monaco 查找高亮 */
 .ww-find-match {
   background: color-mix(in oklab, #f59e0b 30%, transparent);

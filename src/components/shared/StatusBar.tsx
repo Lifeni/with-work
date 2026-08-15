@@ -12,7 +12,7 @@ import { useSettingsStore } from "@/stores/settings";
 import { useStatusStore } from "@/stores/status";
 import { useStagingStore } from "@/stores/staging";
 import { useUiStore } from "@/stores/ui";
-import { VIEW_LABELS, type ThemeMode } from "@/types";
+import { VIEW_LABELS, type ThemeMode, type ViewId } from "@/types";
 
 const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: "light", label: "浅色" },
@@ -39,7 +39,7 @@ export function StatusBar() {
       <span className="flex items-center gap-1.5">
         <span className="font-medium text-foreground/80">{ws?.name ?? "—"}</span>
         <span>·</span>
-        <span>{VIEW_LABELS[ws?.view ?? "editor"]}</span>
+        <span>{VIEW_LABELS[(ws?.view ?? "editor") as ViewId] ?? "编辑器"}</span>
       </span>
       <span className="font-mono">
         行 {line} · 列 {col}

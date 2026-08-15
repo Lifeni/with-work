@@ -6,8 +6,10 @@ import {
   FileCode2,
   FileText,
   FolderOpen,
+  ListOrdered,
   Moon,
   Plus,
+  Settings,
   Sun,
   Trash2,
   Upload,
@@ -54,6 +56,8 @@ export function TitleBar() {
 
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
+  const view = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId)?.view);
+  const setView = useWorkspaceStore((s) => s.setView);
   const toast = useToastStore((s) => s.push);
 
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -67,6 +71,12 @@ export function TitleBar() {
   const commitRename = (id: string, fallback: string) => {
     renameWorkspace(id, renameValue.trim() || fallback);
     setRenamingId(null);
+  };
+
+  /** 顶栏功能按钮：在 列表工具 / 设置 与 编辑器 之间切换 */
+  const toggleView = (target: "list" | "settings") => {
+    if (!activeId) return;
+    setView(activeId, view === target ? "editor" : target);
   };
 
   const onBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,7 +112,7 @@ export function TitleBar() {
   return (
     <header className="flex h-9 shrink-0 items-stretch bg-card">
       {/* 工作区标签页（VS Code 风格：满高矩形，激活标签顶部高亮、底部与内容区相连） */}
-      <div className="flex min-w-0 flex-1 items-stretch overflow-x-auto border-b border-border">
+      <div className="no-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto">
         {workspaces.map((w) =>
           renamingId === w.id ? (
             <input
@@ -115,7 +125,7 @@ export function TitleBar() {
                 if (e.key === "Enter") commitRename(w.id, w.name);
                 if (e.key === "Escape") setRenamingId(null);
               }}
-              className="h-full w-40 shrink-0 border-r border-border bg-background px-3 text-xs outline-none"
+              className="w-40 shrink-0 border-b border-primary bg-background px-3 text-xs outline-none"
             />
           ) : (
             <div
@@ -128,12 +138,13 @@ export function TitleBar() {
                 setRenameValue(w.name);
               }}
               className={cn(
-                "group relative flex h-full min-w-24 max-w-52 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-border/60 px-3 text-xs transition-colors",
+                "group relative flex min-w-24 max-w-52 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-border/60 px-3 text-xs transition-colors",
                 w.id === activeId
-                  ? "border-b-2 border-b-background border-t-2 border-t-primary bg-background font-medium"
-                  : "text-muted-foreground hover:bg-accent/60",
+                  ? "bg-background font-medium"
+                  : "border-b border-border text-muted-foreground hover:bg-accent/60",
               )}
             >
+              {w.id === activeId && <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />}
               <span className="truncate">{w.name}</span>
               <button
                 title="关闭工作区"
@@ -151,13 +162,30 @@ export function TitleBar() {
         <button
           title="新建工作区"
           onClick={() => createWorkspace()}
-          className="flex h-full shrink-0 items-center px-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="flex shrink-0 items-center px-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <Plus className="size-4" />
         </button>
       </div>
 
       <div className="flex shrink-0 items-center gap-1 border-l border-border px-2">
+        <Button
+          variant={view === "list" ? "secondary" : "ghost"}
+          size="sm"
+          className="h-7 gap-1.5 text-xs"
+          onClick={() => toggleView("list")}
+        >
+          <ListOrdered className="size-3.5" />
+          列表工具
+        </Button>
+        <Button
+          variant={view === "settings" ? "secondary" : "ghost"}
+          size="icon-sm"
+          title="设置"
+          onClick={() => toggleView("settings")}
+        >
+          <Settings />
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">

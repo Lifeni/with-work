@@ -6,17 +6,22 @@ import {
   Filter,
   FlipVertical2,
   List,
+  Replace,
   SortAsc,
   SortDesc,
   type LucideIcon,
 } from "lucide-react";
+import { applyReplacements } from "@/lib/replace";
 import { splitText, type SplitDelimiter } from "@/lib/split";
+import { useRulesStore } from "@/stores/rules";
 
 export interface ToolConfig {
   delimiter?: SplitDelimiter;
   customRegex?: string;
   dedupe?: boolean;
   ignoreEmpty?: boolean;
+  /** 按规则替换：选中的替换规则 id */
+  ruleId?: string;
 }
 
 export interface GlobalTool {
@@ -111,6 +116,18 @@ export const tools: GlobalTool[] = [
         dedupe: cfg?.dedupe ?? false,
       });
       return r.items.join("\n");
+    },
+  },
+  {
+    id: "apply-rule",
+    name: "按规则替换",
+    description: "把一条替换规则应用到当前文本（选区优先）",
+    icon: Replace,
+    needsConfig: true,
+    run: (i, cfg) => {
+      const rule = useRulesStore.getState().rules.find((r) => r.id === cfg?.ruleId);
+      if (!rule) return i;
+      return applyReplacements(i, rule.find, rule.replace, rule.isRegex, rule.matchCase);
     },
   },
 ];

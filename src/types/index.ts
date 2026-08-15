@@ -1,4 +1,5 @@
-export type ViewId = "editor" | "diff" | "list" | "settings";
+export type ViewId = "editor" | "list" | "settings";
+export type EditorMode = "single" | "dual";
 export type ThemeMode = "light" | "dark" | "system";
 
 export interface Workspace {
@@ -7,6 +8,8 @@ export interface Workspace {
   content: string;
   language: string;
   view: ViewId;
+  /** 编辑器模式：单编辑器 / 双编辑器（对比）。旧数据可能缺失，读取时用 ?? "single" */
+  editorMode?: EditorMode;
 }
 
 export interface StagingItem {
@@ -45,7 +48,6 @@ export interface BackupData {
 
 export const VIEW_LABELS: Record<ViewId, string> = {
   editor: "编辑器",
-  diff: "文本对比",
   list: "列表工具",
   settings: "设置",
 };
