@@ -4,7 +4,6 @@ import * as monaco from "monaco-editor";
 import { ArrowLeftRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FindReplacePanel, type FindReplaceHandle } from "@/views/editor/FindReplacePanel";
-import { ListPanel } from "@/views/editor/ListPanel";
 import { detectLanguage } from "@/lib/detect";
 import { setActiveEditor } from "@/lib/editorBridge";
 import { cn } from "@/lib/utils";
@@ -100,26 +99,19 @@ export default function EditorView() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* 顶部面板区：查找替换 + 列表（独立） */}
-      <div className="flex shrink-0 gap-1.5 border-b border-border px-1.5 pt-1.5">
-        <div className="min-w-0 flex-1">
-          <FindReplacePanel
-            ref={panelRef}
-            focusedEditor={focusedEditor}
-            otherEditor={otherEditor}
-          />
-        </div>
-        <ListPanel focusedEditor={focusedEditor} otherEditor={otherEditor} />
+      {/* 顶部工具面板：查找替换 + 分割 + 排序规则（单卡片） */}
+      <div className="shrink-0 border-b border-border px-1.5 pt-1.5">
+        <FindReplacePanel ref={panelRef} focusedEditor={focusedEditor} otherEditor={otherEditor} />
       </div>
 
-      {/* 双编辑器区 */}
-      <div ref={editorAreaRef} className="flex min-h-0 flex-1 gap-1.5 p-1.5">
+      {/* 双编辑器区（窄屏纵向堆叠，宽屏左右并排） */}
+      <div ref={editorAreaRef} className="flex min-h-0 flex-1 flex-col gap-1.5 p-1.5 lg:flex-row">
         <div
           className={cn(
-            "min-w-0 overflow-hidden rounded-md transition-shadow",
+            "min-h-0 flex-1 overflow-hidden rounded-md transition-shadow lg:min-w-0 lg:flex-none",
             focused === "left" ? "ring-2 ring-primary/70" : "ring-1 ring-border",
           )}
-          style={{ width: `calc(${split * 100}% - 18px)` }}
+          style={{ flexBasis: `calc(${split * 100}% - 18px)` }}
         >
           <Editor
             height="100%"
@@ -133,14 +125,14 @@ export default function EditorView() {
         </div>
 
         {/* 中间操作区：交换 / 左右互传 / 拖动调节宽度 */}
-        <div className="relative flex w-9 shrink-0 flex-col items-center justify-center gap-2">
+        <div className="relative flex shrink-0 items-center justify-center gap-2 px-1 lg:w-9 lg:flex-col lg:px-0">
           <div
-            className="absolute inset-y-0 -left-2 w-4 cursor-ew-resize"
+            className="absolute inset-y-0 -left-2 hidden w-4 cursor-ew-resize lg:block"
             title="拖动调节左右宽度"
             onMouseDown={startSplitResize}
           />
           <div
-            className="absolute inset-y-0 -right-2 w-4 cursor-ew-resize"
+            className="absolute inset-y-0 -right-2 hidden w-4 cursor-ew-resize lg:block"
             title="拖动调节左右宽度"
             onMouseDown={startSplitResize}
           />
@@ -172,7 +164,7 @@ export default function EditorView() {
 
         <div
           className={cn(
-            "min-w-0 flex-1 overflow-hidden rounded-md transition-shadow",
+            "min-h-0 flex-1 overflow-hidden rounded-md transition-shadow lg:min-w-0",
             focused === "right" ? "ring-2 ring-primary/70" : "ring-1 ring-border",
           )}
         >

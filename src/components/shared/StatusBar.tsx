@@ -50,10 +50,10 @@ export function StatusBar() {
           <span>编辑器（双栏）</span>
         </span>
       )}
-      <span className="font-mono">
+      <span className="hidden font-mono md:inline">
         行 {line} · 列 {col}
       </span>
-      <span>
+      <span className="hidden sm:inline">
         左 {left.length} · 右 {right.length} 字符
       </span>
 
