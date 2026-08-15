@@ -143,9 +143,9 @@ export function TitleBar() {
   };
 
   return (
-    <header className="flex h-9 shrink-0 items-stretch border-b border-border bg-card">
+    <header className="flex h-9 shrink-0 items-stretch bg-card">
       {/* 编辑操作：撤销 / 重做 / 清空（作用于聚焦编辑器） */}
-      <div className="flex shrink-0 items-center gap-0.5 border-r border-border px-1.5">
+      <div className="flex shrink-0 items-center gap-0.5 border-b border-r border-border px-1.5">
         <Button variant="ghost" size="icon-sm" title="撤销 (Ctrl+Z)" onClick={undoFocused}>
           <Undo2 />
         </Button>
@@ -194,16 +194,13 @@ export function TitleBar() {
               }}
               className={cn(
                 "group relative flex min-w-24 max-w-52 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-border/60 px-3 text-xs transition-colors",
-                w.id === activeId
+                w.id === activeId && !settingsOpen
                   ? "bg-background font-medium"
-                  : "text-muted-foreground hover:bg-accent/60",
+                  : "border-b border-border text-muted-foreground hover:bg-accent/60",
               )}
             >
-              {w.id === activeId && (
-                <>
-                  <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />
-                  <span className="absolute inset-x-0 -bottom-px h-px bg-background" />
-                </>
+              {w.id === activeId && !settingsOpen && (
+                <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />
               )}
               <span className="truncate">{w.name}</span>
               <button
@@ -222,7 +219,7 @@ export function TitleBar() {
         <button
           title="新建工作区"
           onClick={() => createWorkspace()}
-          className="flex shrink-0 items-center px-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="flex shrink-0 items-center border-b border-border px-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <Plus className="size-4" />
         </button>
@@ -233,21 +230,18 @@ export function TitleBar() {
           onClick={toggleSettings}
           className={cn(
             "group relative flex shrink-0 cursor-pointer select-none items-center gap-1.5 border-l border-border/60 px-3 text-xs transition-colors",
-            settingsOpen ? "bg-background font-medium" : "text-muted-foreground hover:bg-accent/60",
+            settingsOpen
+              ? "bg-background font-medium"
+              : "border-b border-border text-muted-foreground hover:bg-accent/60",
           )}
         >
-          {settingsOpen && (
-            <>
-              <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />
-              <span className="absolute inset-x-0 -bottom-px h-px bg-background" />
-            </>
-          )}
+          {settingsOpen && <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />}
           <Settings className="size-3.5" />
           设置
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 border-l border-border px-2">
+      <div className="flex shrink-0 items-center gap-1 border-b border-l border-border px-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-sm" title="数据（导入 / 导出 / 备份）">

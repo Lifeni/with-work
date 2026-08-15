@@ -210,6 +210,9 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
   const [customRegex, setCustomRegex] = useState("");
   const templates = useTemplatesStore((s) => s.templates);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  // 规则下拉框（受控，选中后应用并复位）
+  const [ruleSelect, setRuleSelect] = useState("");
+  const [templateSelect, setTemplateSelect] = useState("");
 
   /** 把文本写入目标编辑器（整体替换，可撤销） */
   const writeToEditor = (dst: monaco.editor.IStandaloneCodeEditor | null, text: string) => {
@@ -278,7 +281,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
           ref={findInputRef}
           value={find}
           onChange={(e) => setFind(e.target.value)}
-          placeholder="查找内容（支持正则）"
+          placeholder="查找内容"
           className="h-6.5 min-w-0 flex-1 text-xs"
         />
         <Badge
@@ -369,38 +372,36 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
 
       {findError && <p className="text-xs text-destructive">正则表达式无效，请检查语法</p>}
 
-      {/* 第二行：规则 */}
-      <div className="flex items-center gap-1.5">
-        <span className="shrink-0 text-xs text-muted-foreground">规则</span>
-        {rules.length === 0 ? (
-          <span className="min-w-0 flex-1 text-[11px] text-muted-foreground/60">
-            暂无规则，点击右侧「管理规则」添加；或先输入查找/替换内容再点开，可直接保存为新规则
-          </span>
-        ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-            {rules.map((r) => (
-              <button
-                key={r.id}
-                title={`${r.find} → ${r.replace}`}
-                onClick={() => applyRule(r)}
-                className="shrink-0 rounded-full border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                {r.name}
-              </button>
-            ))}
-          </div>
-        )}
+      {/* 第二行：替换规则下拉 + 分隔符与分割 + 排序规则下拉 */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <select
+          value={ruleSelect}
+          onChange={(e) => {
+            const rule = rules.find((r) => r.id === e.target.value);
+            if (rule) applyRule(rule);
+            setRuleSelect("");
+          }}
+          title="替换规则"
+          className="h-6.5 max-w-32 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+        >
+          <option value="">选择替换规则</option>
+          {rules.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
         <Button
-          variant="outline"
-          size="sm"
-          className="h-6 shrink-0 px-2 text-xs"
+          variant="ghost"
+          size="icon-sm"
+          className="h-6.5 w-6.5"
+          title="管理替换规则"
           onClick={() => {
             setRuleDraft(find.trim() ? { find, replace, isRegex, matchCase } : null);
             setRulesOpen(true);
           }}
         >
-          <Settings2 className="size-3" />
-          管理规则
+          <Settings2 />
         </Button>
         <span className="mx-0.5 h-4 w-px shrink-0 bg-border" />
         <span className="shrink-0 text-xs text-muted-foreground">分隔符</span>
@@ -409,7 +410,7 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
           onChange={(e) => setDelimiter(e.target.value as SplitDelimiter)}
           className="h-6.5 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
         >
-          <option value="auto">自动检测（出现最多的符号）</option>
+          <option value="auto">自动检测</option>
           <option value="newline">换行</option>
           <option value="comma">英文逗号</option>
           <option value="cn-comma">中文逗号</option>
@@ -423,44 +424,39 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
           <Input
             value={customRegex}
             onChange={(e) => setCustomRegex(e.target.value)}
-            placeholder="如 [，,、]"
+            placeholder="分隔正则"
             className="h-6.5 w-28 font-mono text-xs"
           />
         )}
         <Button size="sm" className="h-6.5 px-2 text-[11px]" onClick={runSplit}>
           分割
         </Button>
-      </div>
-
-      {/* 第三行：排序规则 */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="shrink-0 text-xs text-muted-foreground">排序规则</span>
-        {templates.length === 0 ? (
-          <span className="min-w-0 flex-1 text-[11px] text-muted-foreground/60">
-            暂无规则，点击「管理规则」创建
-          </span>
-        ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-            {templates.map((t) => (
-              <button
-                key={t.id}
-                title={t.items.join("、")}
-                onClick={() => applyTemplate(t)}
-                className="shrink-0 rounded-full border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                {t.name}
-              </button>
-            ))}
-          </div>
-        )}
+        <span className="mx-0.5 h-4 w-px shrink-0 bg-border" />
+        <select
+          value={templateSelect}
+          onChange={(e) => {
+            const t = templates.find((x) => x.id === e.target.value);
+            if (t) applyTemplate(t);
+            setTemplateSelect("");
+          }}
+          title="排序规则"
+          className="h-6.5 max-w-32 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+        >
+          <option value="">选择排序规则</option>
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
         <Button
-          variant="outline"
-          size="sm"
-          className="h-6 shrink-0 px-2 text-xs"
+          variant="ghost"
+          size="icon-sm"
+          className="h-6.5 w-6.5"
+          title="管理排序规则"
           onClick={() => setTemplatesOpen(true)}
         >
-          <Settings2 className="size-3" />
-          管理规则
+          <Settings2 />
         </Button>
       </div>
 

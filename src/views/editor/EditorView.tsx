@@ -100,7 +100,7 @@ export default function EditorView() {
   return (
     <div className="flex h-full flex-col">
       {/* 顶部工具面板：查找替换 + 分割 + 排序规则（单卡片） */}
-      <div className="shrink-0 border-b border-border px-1.5 pt-1.5">
+      <div className="shrink-0 px-1.5 pt-1.5">
         <FindReplacePanel ref={panelRef} focusedEditor={focusedEditor} otherEditor={otherEditor} />
       </div>
 

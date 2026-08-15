@@ -218,13 +218,11 @@ export default function SettingsView() {
 
         <Section title="关于" icon={<Info className="size-4 text-muted-foreground" />}>
           <div className="flex items-center gap-3">
-            <img src={favicon} alt="with work" className="h-10 w-10 rounded-full" />
+            <img src={favicon} alt="With Work" className="h-12 w-12 rounded-full" />
             <div className="text-xs text-muted-foreground">
               <p className="text-sm font-semibold text-foreground">一点微小的工作 · With Work</p>
-              <p>版本 0.1.0 · 文本处理工作台</p>
-              <p className="mt-1">
-                技术栈：React 19 · Vite · TypeScript · Tailwind CSS · Monaco Editor · Zustand
-              </p>
+              <p>版本 0.1.0</p>
+              <p>编写时间 2026 年 8 月</p>
             </div>
           </div>
         </Section>
