@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { FolderOpen, ListOrdered, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { AArrowUp, FolderOpen, ListOrdered, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Toggle } from "@/components/ui/toggle";
 import { uid } from "@/lib/utils";
 import { exportTemplates, parseTemplates } from "@/lib/backup";
 import { useTemplatesStore } from "@/stores/templates";
@@ -36,7 +38,9 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
   const [group, setGroup] = useState("");
+  const [prefixMatch, setPrefixMatch] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // 外部指定编辑对象：打开时直接进入编辑状态（父组件以 key 重挂载，渲染期应用一次）
@@ -49,6 +53,7 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
       setName(t.name);
       setContent(t.items.join("\n"));
       setGroup(t.group ?? "");
+      setPrefixMatch(t.prefixMatch ?? false);
     }
   }
 
@@ -56,6 +61,7 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
     setName("");
     setContent("");
     setGroup("");
+    setPrefixMatch(false);
     setEditingId(null);
   };
 
@@ -64,6 +70,7 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
     setName(t.name);
     setContent(t.items.join("\n"));
     setGroup(t.group ?? "");
+    setPrefixMatch(t.prefixMatch ?? false);
   };
 
   const save = () => {
@@ -80,6 +87,7 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
       name: name.trim() || (items[0].length > 12 ? `${items[0].slice(0, 12)}…` : items[0]),
       items,
       group: group.trim() || undefined,
+      prefixMatch,
     };
     if (editingId) updateTemplate(t);
     else addTemplate(t);
@@ -135,6 +143,15 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
             className="min-h-20 font-mono text-xs"
           />
           <div className="flex items-center gap-2">
+            <Toggle
+              active={prefixMatch}
+              onClick={() => setPrefixMatch(!prefixMatch)}
+              title="开头匹配：文本以列表项开头即算匹配"
+              className="h-7 text-xs"
+            >
+              <AArrowUp className="size-3.5" />
+              开头匹配
+            </Toggle>
             <div className="flex-1" />
             <Button size="sm" className="h-7 text-xs" onClick={save}>
               <Plus className="size-3.5" />
@@ -169,6 +186,12 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
                   </Badge>
                 )}
                 <Badge variant="secondary">{t.items.length} 条</Badge>
+                {t.prefixMatch && (
+                  <Badge variant="outline" className="shrink-0 gap-0.5 text-[9px]">
+                    <AArrowUp className="size-2.5" />
+                    开头匹配
+                  </Badge>
+                )}
                 <span
                   className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
                   title={t.items.join("、")}
@@ -184,7 +207,7 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
                   size="icon-sm"
                   title="删除"
                   className="text-destructive hover:text-destructive"
-                  onClick={() => removeTemplate(t.id)}
+                  onClick={() => setPendingDeleteId(t.id)}
                 >
                   <Trash2 className="size-3" />
                 </Button>
@@ -209,6 +232,22 @@ export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
           accept=".json,application/json"
           className="hidden"
           onChange={onImportFile}
+        />
+        <ConfirmDialog
+          open={pendingDeleteId !== null}
+          title="删除模板"
+          description={
+            pendingDeleteId
+              ? `确定删除排序模板「${templates.find((t) => t.id === pendingDeleteId)?.name ?? ""}」吗？`
+              : undefined
+          }
+          confirmText="删除"
+          destructive
+          onConfirm={() => {
+            if (pendingDeleteId) removeTemplate(pendingDeleteId);
+            setPendingDeleteId(null);
+          }}
+          onCancel={() => setPendingDeleteId(null)}
         />
       </DialogContent>
     </Dialog>

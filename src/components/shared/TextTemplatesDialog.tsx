@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { FileText, FolderOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ export function TextTemplatesDialog({ open, onOpenChange, editId }: Props) {
   const [content, setContent] = useState("");
   const [group, setGroup] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // 外部指定编辑对象：打开时直接进入编辑状态（父组件以 key 重挂载，渲染期应用一次）
@@ -178,7 +180,7 @@ export function TextTemplatesDialog({ open, onOpenChange, editId }: Props) {
                   size="icon-sm"
                   title="删除"
                   className="text-destructive hover:text-destructive"
-                  onClick={() => removeTemplate(t.id)}
+                  onClick={() => setPendingDeleteId(t.id)}
                 >
                   <Trash2 className="size-3" />
                 </Button>
@@ -203,6 +205,22 @@ export function TextTemplatesDialog({ open, onOpenChange, editId }: Props) {
           accept=".json,application/json"
           className="hidden"
           onChange={onImportFile}
+        />
+        <ConfirmDialog
+          open={pendingDeleteId !== null}
+          title="删除模板"
+          description={
+            pendingDeleteId
+              ? `确定删除文本模板「${templates.find((t) => t.id === pendingDeleteId)?.name ?? ""}」吗？`
+              : undefined
+          }
+          confirmText="删除"
+          destructive
+          onConfirm={() => {
+            if (pendingDeleteId) removeTemplate(pendingDeleteId);
+            setPendingDeleteId(null);
+          }}
+          onCancel={() => setPendingDeleteId(null)}
         />
       </DialogContent>
     </Dialog>

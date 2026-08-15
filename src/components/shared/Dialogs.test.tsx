@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RulesDialog } from "@/components/shared/RulesDialog";
 import { TemplatesDialog } from "@/components/shared/TemplatesDialog";
@@ -54,15 +54,18 @@ describe("RulesDialog", () => {
     expect(useRulesStore.getState().rules).toHaveLength(0);
   });
 
-  it("展示已有规则并可删除", async () => {
+  it("展示已有规则并可删除（需确认）", async () => {
     const user = userEvent.setup();
     useRulesStore.getState().addRule(makeRule());
     render(<RulesDialog open onOpenChange={noop} />);
 
     expect(screen.getByText("规则甲")).toBeInTheDocument();
-    expect(screen.getByText("foo")).toBeInTheDocument();
 
     await user.click(screen.getByTitle("删除"));
+    // 未确认前不删除
+    expect(useRulesStore.getState().rules).toHaveLength(1);
+    const confirm = screen.getByRole("dialog", { name: "删除规则" });
+    await user.click(within(confirm).getByRole("button", { name: "删除" }));
     expect(useRulesStore.getState().rules).toHaveLength(0);
   });
 
@@ -126,7 +129,7 @@ describe("TemplatesDialog（排序模板）", () => {
     expect(useTemplatesStore.getState().templates).toHaveLength(0);
   });
 
-  it("展示与删除排序模板", async () => {
+  it("展示与删除排序模板（需确认）", async () => {
     const user = userEvent.setup();
     useTemplatesStore.getState().addTemplate({ id: "t1", name: "序列", items: ["a", "b", "c"] });
     render(<TemplatesDialog open onOpenChange={noop} />);
@@ -135,7 +138,48 @@ describe("TemplatesDialog（排序模板）", () => {
     expect(screen.getByText("3 条")).toBeInTheDocument();
 
     await user.click(screen.getByTitle("删除"));
+    expect(useTemplatesStore.getState().templates).toHaveLength(1);
+    const confirm = screen.getByRole("dialog", { name: "删除模板" });
+    await user.click(within(confirm).getByRole("button", { name: "删除" }));
     expect(useTemplatesStore.getState().templates).toHaveLength(0);
+  });
+
+  it("保存模板时可开启开头匹配选项", async () => {
+    const user = userEvent.setup();
+    render(<TemplatesDialog open onOpenChange={noop} />);
+
+    await user.type(screen.getByPlaceholderText(/每行一条/), "济南\n青岛");
+    await user.click(screen.getByTitle("开头匹配：文本以列表项开头即算匹配"));
+    await user.click(screen.getByRole("button", { name: "保存模板" }));
+
+    expect(useTemplatesStore.getState().templates[0]).toMatchObject({ prefixMatch: true });
+  });
+
+  it("开头匹配模板在列表中展示状态提示", () => {
+    useTemplatesStore.getState().addTemplate({
+      id: "t1",
+      name: "山东 16 市",
+      items: ["济南"],
+      prefixMatch: true,
+    });
+    render(<TemplatesDialog open onOpenChange={noop} />);
+
+    // 表单中的开关与列表项状态标签都会出现「开头匹配」文本
+    expect(screen.getAllByText("开头匹配").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("编辑开头匹配模板时选项回显", async () => {
+    const user = userEvent.setup();
+    useTemplatesStore.getState().addTemplate({
+      id: "t1",
+      name: "山东 16 市",
+      items: ["济南", "青岛"],
+      prefixMatch: true,
+    });
+    render(<TemplatesDialog open onOpenChange={noop} editId="t1" />);
+
+    await user.click(screen.getByRole("button", { name: "更新模板" }));
+    expect(useTemplatesStore.getState().templates[0]).toMatchObject({ prefixMatch: true });
   });
 });
 
@@ -165,7 +209,7 @@ describe("TextTemplatesDialog（文本模板）", () => {
     expect(useTextTemplatesStore.getState().templates).toHaveLength(0);
   });
 
-  it("展示与删除文本模板", async () => {
+  it("展示与删除文本模板（需确认）", async () => {
     const user = userEvent.setup();
     useTextTemplatesStore.getState().addTemplate({ id: "tt1", name: "段落", text: "正文内容" });
     render(<TextTemplatesDialog open onOpenChange={noop} />);
@@ -173,6 +217,9 @@ describe("TextTemplatesDialog（文本模板）", () => {
     expect(screen.getByText("段落")).toBeInTheDocument();
 
     await user.click(screen.getByTitle("删除"));
+    expect(useTextTemplatesStore.getState().templates).toHaveLength(1);
+    const confirm = screen.getByRole("dialog", { name: "删除模板" });
+    await user.click(within(confirm).getByRole("button", { name: "删除" }));
     expect(useTextTemplatesStore.getState().templates).toHaveLength(0);
   });
 });

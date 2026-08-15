@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StagingPanel } from "@/components/shared/StagingPanel";
 import { setActiveEditor, setRuleApplyListener } from "@/lib/editorBridge";
@@ -9,6 +9,7 @@ import { useRulesStore } from "@/stores/rules";
 import { useStagingStore } from "@/stores/staging";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
+import { useToastStore } from "@/stores/toast";
 import { useWorkspaceStore } from "@/stores/workspace";
 
 describe("StagingPanel", () => {
@@ -39,6 +40,28 @@ describe("StagingPanel", () => {
 
     await user.click(screen.getByTitle("复制"));
     expect(writeText).toHaveBeenCalledWith("可复制的文本");
+  });
+
+  it("从剪贴板粘贴按钮读取剪贴板并添加条目", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, "readText").mockResolvedValue("剪贴板里的文本");
+    render(<StagingPanel />);
+
+    await user.click(screen.getByTitle("从剪贴板粘贴到暂存区"));
+
+    expect(useStagingStore.getState().items).toHaveLength(1);
+    expect(useStagingStore.getState().items[0].text).toBe("剪贴板里的文本");
+  });
+
+  it("剪贴板为空时提示且不添加条目", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, "readText").mockResolvedValue("");
+    render(<StagingPanel />);
+
+    await user.click(screen.getByTitle("从剪贴板粘贴到暂存区"));
+
+    expect(useStagingStore.getState().items).toHaveLength(0);
+    expect(useToastStore.getState().toasts.some((t) => t.message === "剪贴板为空")).toBe(true);
   });
 
   it("清空需经确认对话框", async () => {
@@ -100,7 +123,7 @@ describe("StagingPanel", () => {
     expect(screen.getByRole("button", { name: "更新规则" })).toBeInTheDocument();
   });
 
-  it("替换规则列表删除按钮可直接删除规则", async () => {
+  it("替换规则列表删除需确认后生效", async () => {
     const user = userEvent.setup();
     useRulesStore.getState().addRule({
       id: "r1",
@@ -114,6 +137,11 @@ describe("StagingPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "替换规则" }));
     await user.click(screen.getByTitle("删除规则"));
+
+    // 未确认前不删除
+    expect(useRulesStore.getState().rules).toHaveLength(1);
+    const confirm = screen.getByRole("dialog", { name: "删除确认" });
+    await user.click(within(confirm).getByRole("button", { name: "删除" }));
 
     expect(useRulesStore.getState().rules).toHaveLength(0);
     expect(screen.queryByText("规则甲")).not.toBeInTheDocument();

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRightLeft,
+  ClipboardPaste,
   Copy,
   FileDiff,
   FileText,
@@ -54,6 +55,12 @@ export function StagingPanel() {
 
   const [draft, setDraft] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
+  // 删除确认：kind 区分暂存区条目 / 文本模板 / 排序模板 / 替换规则
+  const [pendingDelete, setPendingDelete] = useState<{
+    kind: "staging" | "text-template" | "sort-template" | "rule";
+    id: string;
+    name: string;
+  } | null>(null);
   // 条目行内编辑（双击或编辑按钮进入）
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
@@ -102,6 +109,21 @@ export function StagingPanel() {
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+  };
+
+  /** 从剪贴板读取文本并添加到暂存区 */
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast("剪贴板为空");
+        return;
+      }
+      add(text);
+      toast("已从剪贴板粘贴到暂存区");
+    } catch {
+      toast("无法读取剪贴板（请检查浏览器权限）");
+    }
   };
 
   /** 按模板对编辑器内容（选区优先）排序并应用 */
@@ -278,18 +300,30 @@ export function StagingPanel() {
               placeholder="粘贴或输入文本，暂存后供各工具取用…"
               className="min-h-12 text-xs"
             />
-            <Button
-              size="sm"
-              className="h-7 w-full text-xs"
-              onClick={() => {
-                add(draft);
-                setDraft("");
-                if (draft.trim()) toast("已添加到暂存区");
-              }}
-            >
-              <Plus className="size-3.5" />
-              添加
-            </Button>
+            <div className="flex gap-1.5">
+              <Button
+                size="sm"
+                className="h-7 flex-1 text-xs"
+                onClick={() => {
+                  add(draft);
+                  setDraft("");
+                  if (draft.trim()) toast("已添加到暂存区");
+                }}
+              >
+                <Plus className="size-3.5" />
+                添加
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 flex-1 text-xs"
+                title="从剪贴板粘贴到暂存区"
+                onClick={() => void pasteFromClipboard()}
+              >
+                <ClipboardPaste className="size-3.5" />
+                从剪贴板粘贴
+              </Button>
+            </div>
           </div>
 
           <div
@@ -396,7 +430,13 @@ export function StagingPanel() {
                       </button>
                       <button
                         title="删除此条目"
-                        onClick={() => remove(item.id)}
+                        onClick={() =>
+                          setPendingDelete({
+                            kind: "staging",
+                            id: item.id,
+                            name: item.text.slice(0, 20),
+                          })
+                        }
                         className="rounded p-0.5 text-destructive hover:bg-accent"
                       >
                         <Trash2 className="size-3" />
@@ -562,7 +602,13 @@ export function StagingPanel() {
                                 </button>
                                 <button
                                   title="删除模板"
-                                  onClick={() => removeTextTemplate(t.id)}
+                                  onClick={() =>
+                                    setPendingDelete({
+                                      kind: "text-template",
+                                      id: t.id,
+                                      name: t.name,
+                                    })
+                                  }
                                   className="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                                 >
                                   <Trash2 className="size-3" />
@@ -610,6 +656,11 @@ export function StagingPanel() {
                                 <span className="min-w-0 flex-1 truncate font-medium" title={t.name}>
                                   {t.name}
                                 </span>
+                                {t.prefixMatch && (
+                                  <Badge variant="outline" className="shrink-0 text-[9px]">
+                                    开头匹配
+                                  </Badge>
+                                )}
                                 <span className="shrink-0 text-[10px] text-muted-foreground">
                                   {t.items.length} 条
                                 </span>
@@ -629,7 +680,13 @@ export function StagingPanel() {
                                 </button>
                                 <button
                                   title="删除模板"
-                                  onClick={() => removeTemplate(t.id)}
+                                  onClick={() =>
+                                    setPendingDelete({
+                                      kind: "sort-template",
+                                      id: t.id,
+                                      name: t.name,
+                                    })
+                                  }
                                   className="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                                 >
                                   <Trash2 className="size-3" />
@@ -693,8 +750,7 @@ export function StagingPanel() {
                         title="删除规则"
                         onClick={(e) => {
                           e.stopPropagation();
-                          removeRule(r.id);
-                          toast("规则已删除");
+                          setPendingDelete({ kind: "rule", id: r.id, name: r.name });
                         }}
                         className="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                       >
@@ -745,6 +801,42 @@ export function StagingPanel() {
               toast("暂存区已清空");
             }}
             onCancel={() => setConfirmClear(false)}
+          />
+          <ConfirmDialog
+            open={pendingDelete !== null}
+            title="删除确认"
+            description={
+              pendingDelete
+                ? {
+                    staging: `确定删除暂存区条目「${pendingDelete.name}」吗？`,
+                    "text-template": `确定删除文本模板「${pendingDelete.name}」吗？`,
+                    "sort-template": `确定删除排序模板「${pendingDelete.name}」吗？`,
+                    rule: `确定删除替换规则「${pendingDelete.name}」吗？`,
+                  }[pendingDelete.kind]
+                : undefined
+            }
+            confirmText="删除"
+            destructive
+            onConfirm={() => {
+              if (!pendingDelete) return;
+              switch (pendingDelete.kind) {
+                case "staging":
+                  remove(pendingDelete.id);
+                  break;
+                case "text-template":
+                  removeTextTemplate(pendingDelete.id);
+                  break;
+                case "sort-template":
+                  removeTemplate(pendingDelete.id);
+                  break;
+                case "rule":
+                  removeRule(pendingDelete.id);
+                  break;
+              }
+              toast("已删除");
+              setPendingDelete(null);
+            }}
+            onCancel={() => setPendingDelete(null)}
           />
         </div>
       </div>
