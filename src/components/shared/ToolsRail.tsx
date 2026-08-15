@@ -25,7 +25,7 @@ export function ToolsRail() {
       {/* 品牌区：Logo + 中文左列 / 英文右列 竖排（底部对齐） */}
       <div className="flex shrink-0 flex-col items-center gap-2">
         <img src={favicon} alt="With Work" className="h-8 w-8 rounded-full" />
-        <div className="flex items-end gap-0.5">
+        <div className="flex items-end gap-0">
           <span
             className="text-[11px] font-semibold leading-[1.5]"
             style={{ writingMode: "vertical-rl" }}

@@ -23,16 +23,18 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   /** 打开时若提供，将当前查找/替换内容带入表单，便于保存为新规则 */
   initialDraft?: { find: string; replace: string; isRegex: boolean; matchCase: boolean } | null;
+  /** 打开时若提供，直接进入该规则的编辑状态 */
+  editId?: string | null;
 }
 
-export function RulesDialog({ open, onOpenChange, initialDraft }: Props) {
+export function RulesDialog({ open, onOpenChange, initialDraft, editId }: Props) {
   const rules = useRulesStore((s) => s.rules);
   const addRule = useRulesStore((s) => s.addRule);
   const updateRule = useRulesStore((s) => s.updateRule);
   const removeRule = useRulesStore((s) => s.removeRule);
   const toast = useToastStore((s) => s.push);
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialDraft?.find ?? "");
   // 打开时带入当前查找/替换内容：父组件以 key 控制重挂载，因此直接在初始值中应用
   const [find, setFind] = useState(initialDraft?.find ?? "");
   const [replace, setReplace] = useState(initialDraft?.replace ?? "");
@@ -40,6 +42,21 @@ export function RulesDialog({ open, onOpenChange, initialDraft }: Props) {
   const [matchCase, setMatchCase] = useState(initialDraft?.matchCase ?? false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // 外部指定编辑对象：打开时直接进入编辑状态（父组件以 key 重挂载，渲染期应用一次）
+  const [appliedEditId, setAppliedEditId] = useState<string | null>(null);
+  if (editId && editId !== appliedEditId) {
+    const rule = useRulesStore.getState().rules.find((r) => r.id === editId);
+    setAppliedEditId(editId);
+    if (rule) {
+      setEditingId(rule.id);
+      setName(rule.name);
+      setFind(rule.find);
+      setReplace(rule.replace);
+      setIsRegex(rule.isRegex);
+      setMatchCase(rule.matchCase);
+    }
+  }
 
   const resetForm = () => {
     setName("");

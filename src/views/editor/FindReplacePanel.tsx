@@ -4,9 +4,11 @@ import {
   ArrowDown,
   ArrowUp,
   CaseSensitive,
-  Eye,
   Highlighter,
+  ListOrdered,
   Regex,
+  ReplaceAll,
+  Scissors,
   Settings2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -15,14 +17,15 @@ import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { RulesDialog } from "@/components/shared/RulesDialog";
 import { TemplatesDialog } from "@/components/shared/TemplatesDialog";
-import { applyReplacements, computeReplacement } from "@/lib/replace";
-import { sortByReference } from "@/lib/sort";
+import { setRuleApplyListener } from "@/lib/editorBridge";
+import { computeReplacement } from "@/lib/replace";
+import { sortAlphabetical, sortByReference } from "@/lib/sort";
 import { splitLines, splitText, type SplitDelimiter } from "@/lib/split";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
 import { useToastStore } from "@/stores/toast";
-import type { ReplaceRule, SortTemplate } from "@/types";
+import type { ReplaceRule } from "@/types";
 
 interface MatchInfo {
   line: number;
@@ -179,24 +182,6 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
     toast(`已替换 ${matches.length} 处`);
   }
 
-  /** 替换预览：把替换后的全文写入另一侧编辑器（双编辑器即对比） */
-  function showPreview() {
-    if (!find) return;
-    if (matches.length === 0) {
-      toast("没有匹配项，无法预览");
-      return;
-    }
-    const text = editor?.getModel()?.getValue() ?? "";
-    const result = applyReplacements(text, find, replace, isRegex, matchCase);
-    const model = otherEditor?.getModel();
-    if (!otherEditor || !model) {
-      toast("另一侧编辑器尚未就绪");
-      return;
-    }
-    otherEditor.executeEdits("ww-preview", [{ range: model.getFullModelRange(), text: result }]);
-    toast("替换预览已写入另一侧编辑器");
-  }
-
   function applyRule(rule: ReplaceRule) {
     setFind(rule.find);
     setReplace(rule.replace);
@@ -249,40 +234,91 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
     toast(`已分割 ${r.items.length} 项并写入另一侧编辑器`);
   };
 
-  /** 排序规则：对另一侧编辑器内容按行排序并写回 */
-  const applyTemplate = (t: SortTemplate) => {
-    const model = otherEditor?.getModel();
-    if (!otherEditor || !model) {
-      toast("请先分割文本到另一侧编辑器");
+  /** 排序：作用于当前聚焦编辑器（选区优先）。
+   *  选了排序模板 → 按模板排；未选 → 升序，再点一次切降序，循环切换 */
+  const runSort = () => {
+    const model = focusedEditor?.getModel();
+    if (!focusedEditor || !model) {
+      toast("请先点击要排序的编辑器（高亮边框者）");
       return;
     }
-    const items = splitLines(model.getValue());
+    const sel = focusedEditor.getSelection();
+    const input = sel && !sel.isEmpty() ? model.getValueInRange(sel) : model.getValue();
+    const items = splitLines(input);
     if (items.length === 0) {
-      toast("另一侧编辑器没有可排序的内容");
+      toast("该编辑器没有可排序的内容");
       return;
     }
-    const r = sortByReference(items, t.items);
-    writeToEditor(otherEditor, r.sorted.join("\n"));
-    toast(
-      `已按「${t.name}」排序 ${r.sorted.length} 项` +
-        (r.unmatched.length > 0 ? `，${r.unmatched.length} 项未匹配` : ""),
-    );
+
+    const t = templates.find((x) => x.id === templateSelect);
+    if (t) {
+      const r = sortByReference(items, t.items);
+      applyToFocused(sel, model, r.sorted.join("\n"));
+      toast(
+        `已按「${t.name}」排序 ${r.sorted.length} 项` +
+          (r.unmatched.length > 0 ? `，${r.unmatched.length} 项未匹配` : ""),
+      );
+      return;
+    }
+
+    // 未选规则：升序 ↔ 降序循环（内容已是升序结果则下一次降序，反之亦然）
+    const ascText = sortAlphabetical(items, "asc").join("\n");
+    const descText = sortAlphabetical(items, "desc").join("\n");
+    let next: string;
+    let order: "升序" | "降序";
+    if (input === ascText) {
+      next = descText;
+      order = "降序";
+    } else if (input === descText) {
+      next = ascText;
+      order = "升序";
+    } else {
+      next = ascText;
+      order = "升序";
+    }
+    applyToFocused(sel, model, next);
+    toast(`已按${order}排序 ${items.length} 项`);
   };
+
+  /** 把结果写入聚焦编辑器：有选区替换选区，否则替换全文（可撤销） */
+  const applyToFocused = (
+    sel: monaco.Selection | null,
+    model: monaco.editor.ITextModel,
+    text: string,
+  ) => {
+    if (sel && !sel.isEmpty()) {
+      focusedEditor?.executeEdits("ww-sort", [{ range: sel, text }]);
+    } else {
+      focusedEditor?.executeEdits("ww-sort", [{ range: model.getFullModelRange(), text }]);
+    }
+  };
+
+  // 接收来自暂存区等入口的规则应用请求，把规则填入查找/替换输入框
+  useEffect(() => {
+    setRuleApplyListener((rule) => {
+      setFind(rule.find);
+      setReplace(rule.replace);
+      setIsRegex(rule.isRegex);
+      setMatchCase(rule.matchCase);
+      toast(`已应用规则：${rule.name}`);
+    });
+    return () => setRuleApplyListener(null);
+  }, [toast]);
 
   useImperativeHandle(ref, () => ({
     open: () => setTimeout(() => findInputRef.current?.focus(), 60),
   }));
 
   return (
-    <div className="space-y-1 rounded-md border border-border bg-background p-1.5">
-      {/* 第一行：查找 + 替换（同在一行，紧凑布局，窄屏自动换行） */}
+    <div className="bg-background p-0">
+      {/* 单行四功能：查找 → 替换 → 分割 → 排序（窄屏自动换行） */}
       <div className="flex flex-wrap items-center gap-1.5">
         <Input
           ref={findInputRef}
           value={find}
           onChange={(e) => setFind(e.target.value)}
-          placeholder="查找内容"
-          className="h-6.5 min-w-0 flex-1 text-xs"
+          placeholder="查找"
+          className="h-6.5 min-w-28 flex-1 basis-40 text-xs"
         />
         <Badge
           variant={findError ? "destructive" : "secondary"}
@@ -341,39 +377,15 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
         >
           <ArrowDown />
         </Button>
+
         <span className="mx-0.5 h-4 w-px shrink-0 bg-border" />
+
         <Input
           value={replace}
           onChange={(e) => setReplace(e.target.value)}
           placeholder="替换为"
-          className="h-6.5 min-w-0 flex-1 text-xs"
+          className="h-6.5 min-w-24 flex-1 basis-32 text-xs"
         />
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-6.5 shrink-0 px-2 text-[11px]"
-          onClick={replaceOne}
-        >
-          替换
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-6.5 shrink-0 px-2 text-[11px]"
-          onClick={replaceAll}
-        >
-          全部替换
-        </Button>
-        <Button size="sm" className="h-6.5 shrink-0 px-2 text-[11px]" onClick={showPreview}>
-          <Eye className="size-3" />
-          预览
-        </Button>
-      </div>
-
-      {findError && <p className="text-xs text-destructive">正则表达式无效，请检查语法</p>}
-
-      {/* 第二行：替换规则下拉 + 分隔符与分割 + 排序规则下拉 */}
-      <div className="flex flex-wrap items-center gap-1.5">
         <select
           value={ruleSelect}
           onChange={(e) => {
@@ -382,15 +394,27 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
             setRuleSelect("");
           }}
           title="替换规则"
-          className="h-6.5 max-w-32 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+          className="h-6.5 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
         >
-          <option value="">选择替换规则</option>
+          <option value="">替换规则</option>
           {rules.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}
             </option>
           ))}
         </select>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="h-6.5 shrink-0 px-2 text-[11px]"
+          onClick={replaceOne}
+        >
+          替换
+        </Button>
+        <Button size="sm" className="h-6.5 shrink-0 px-2 text-[11px]" onClick={replaceAll}>
+          <ReplaceAll className="size-3" />
+          全部替换
+        </Button>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -403,11 +427,13 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
         >
           <Settings2 />
         </Button>
+
         <span className="mx-0.5 h-4 w-px shrink-0 bg-border" />
-        <span className="shrink-0 text-xs text-muted-foreground">分隔符</span>
+
         <select
           value={delimiter}
           onChange={(e) => setDelimiter(e.target.value as SplitDelimiter)}
+          title="分割分隔符"
           className="h-6.5 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
         >
           <option value="auto">自动检测</option>
@@ -428,27 +454,30 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
             className="h-6.5 w-28 font-mono text-xs"
           />
         )}
-        <Button size="sm" className="h-6.5 px-2 text-[11px]" onClick={runSplit}>
+        <Button size="sm" className="h-6.5 shrink-0 px-2 text-[11px]" onClick={runSplit}>
+          <Scissors className="size-3" />
           分割
         </Button>
+
         <span className="mx-0.5 h-4 w-px shrink-0 bg-border" />
+
         <select
           value={templateSelect}
-          onChange={(e) => {
-            const t = templates.find((x) => x.id === e.target.value);
-            if (t) applyTemplate(t);
-            setTemplateSelect("");
-          }}
+          onChange={(e) => setTemplateSelect(e.target.value)}
           title="排序规则"
-          className="h-6.5 max-w-32 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+          className="h-6.5 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
         >
-          <option value="">选择排序规则</option>
+          <option value="">排序规则</option>
           {templates.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>
           ))}
         </select>
+        <Button size="sm" className="h-6.5 shrink-0 px-2 text-[11px]" onClick={runSort}>
+          <ListOrdered className="size-3" />
+          排序
+        </Button>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -459,6 +488,8 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
           <Settings2 />
         </Button>
       </div>
+
+      {findError && <p className="mt-1 text-xs text-destructive">正则表达式无效，请检查语法</p>}
 
       <RulesDialog
         key={

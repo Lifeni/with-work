@@ -1,24 +1,10 @@
-import { useMemo } from "react";
-import { Check, Inbox, Moon, Sun } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useState } from "react";
+import { Check, Inbox } from "lucide-react";
 import { cn, formatTime } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/workspace";
-import { useSettingsStore } from "@/stores/settings";
 import { useStatusStore } from "@/stores/status";
 import { useStagingStore } from "@/stores/staging";
 import { useUiStore } from "@/stores/ui";
-import type { ThemeMode } from "@/types";
-
-const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
-  { value: "light", label: "浅色" },
-  { value: "dark", label: "深色" },
-  { value: "system", label: "跟随系统" },
-];
 
 export function StatusBar() {
   const ws = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId));
@@ -27,13 +13,17 @@ export function StatusBar() {
   const stagingOpen = useUiStore((s) => s.stagingOpen);
   const toggleStaging = useUiStore((s) => s.toggleStaging);
   const settingsOpen = useUiStore((s) => s.settingsOpen);
-  const theme = useSettingsStore((s) => s.theme);
-  const setTheme = useSettingsStore((s) => s.setTheme);
   const left = ws?.left ?? "";
   const right = ws?.right ?? "";
 
-  // 内容变化即视为“已自动保存”时刻
-  const savedAt = useMemo(() => new Date(), [left, right]);
+  // 内容变化即视为“已自动保存”时刻（渲染期调整状态，避免 effect 连锁渲染）
+  const contentKey = `${left}\u0000${right}`;
+  const [lastSavedContent, setLastSavedContent] = useState(contentKey);
+  const [savedAt, setSavedAt] = useState(() => new Date());
+  if (contentKey !== lastSavedContent) {
+    setLastSavedContent(contentKey);
+    setSavedAt(new Date());
+  }
 
   return (
     <footer className="flex h-6 shrink-0 items-center gap-3 border-t border-border bg-muted px-3 text-[11px] text-muted-foreground">
@@ -41,14 +31,10 @@ export function StatusBar() {
         <span className="flex items-center gap-1.5">
           <span className="font-medium text-foreground/80">设置</span>
           <span>·</span>
-          <span>全局标签页</span>
+          <span>弹窗</span>
         </span>
       ) : (
-        <span className="flex items-center gap-1.5">
-          <span className="font-medium text-foreground/80">{ws?.name ?? "—"}</span>
-          <span>·</span>
-          <span>编辑器（双栏）</span>
-        </span>
+        <span className="font-medium text-foreground/80">{ws?.name ?? "—"}</span>
       )}
       <span className="hidden font-mono md:inline">
         行 {line} · 列 {col}
@@ -73,25 +59,6 @@ export function StatusBar() {
         <Check className="size-3" />
         已自动保存 {formatTime(savedAt.getTime())}
       </span>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            title="切换主题"
-            className="flex items-center rounded px-1.5 py-0.5 hover:bg-accent"
-          >
-            {theme === "dark" ? <Moon className="size-3" /> : <Sun className="size-3" />}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="mb-1 w-32">
-          {THEME_OPTIONS.map((opt) => (
-            <DropdownMenuItem key={opt.value} onClick={() => setTheme(opt.value)}>
-              <span className="flex-1">{opt.label}</span>
-              {theme === opt.value && <Check className="size-3.5" />}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
     </footer>
   );
 }

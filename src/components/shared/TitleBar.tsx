@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
 import {
   Check,
-  Database,
   Download,
   FileCode2,
   FileText,
   FolderOpen,
+  HardDrive,
   Moon,
   Plus,
   Redo2,
@@ -14,6 +14,7 @@ import {
   Trash2,
   Undo2,
   Upload,
+  WrapText,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,8 @@ export function TitleBar() {
 
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
+  const wordWrap = useSettingsStore((s) => s.wordWrap);
+  const setWordWrap = useSettingsStore((s) => s.setWordWrap);
   const settingsOpen = useUiStore((s) => s.settingsOpen);
   const setSettingsOpen = useUiStore((s) => s.setSettingsOpen);
   const toast = useToastStore((s) => s.push);
@@ -83,16 +86,6 @@ export function TitleBar() {
   /** 编辑操作（作用于当前聚焦的编辑器） */
   const undoFocused = () => getActiveEditor()?.trigger("toolbar", "undo", null);
   const redoFocused = () => getActiveEditor()?.trigger("toolbar", "redo", null);
-  const clearFocused = () => {
-    const ed = getActiveEditor();
-    const model = ed?.getModel();
-    if (!ed || !model) {
-      toast("没有可清空的编辑器");
-      return;
-    }
-    ed.executeEdits("ww-clear", [{ range: model.getFullModelRange(), text: "" }]);
-    toast("已清空聚焦编辑器（Ctrl+Z 可撤销）");
-  };
 
   /** 顶栏设置按钮：切换全局设置标签页 */
   const toggleSettings = () => setSettingsOpen(!settingsOpen);
@@ -144,7 +137,7 @@ export function TitleBar() {
 
   return (
     <header className="flex h-9 shrink-0 items-stretch bg-card">
-      {/* 编辑操作：撤销 / 重做 / 清空（作用于聚焦编辑器） */}
+      {/* 编辑操作：撤销 / 重做 / 自动换行（作用于聚焦编辑器） */}
       <div className="flex shrink-0 items-center gap-0.5 border-b border-r border-border px-1.5">
         <Button variant="ghost" size="icon-sm" title="撤销 (Ctrl+Z)" onClick={undoFocused}>
           <Undo2 />
@@ -155,11 +148,11 @@ export function TitleBar() {
         <Button
           variant="ghost"
           size="icon-sm"
-          title="清空聚焦编辑器"
-          className="text-destructive hover:text-destructive"
-          onClick={clearFocused}
+          title={wordWrap ? "自动换行：开启" : "自动换行：关闭"}
+          onClick={() => setWordWrap(!wordWrap)}
+          className={cn(wordWrap && "bg-accent text-accent-foreground")}
         >
-          <Trash2 />
+          <WrapText className="size-3.5" />
         </Button>
       </div>
 
@@ -223,29 +216,31 @@ export function TitleBar() {
         >
           <Plus className="size-4" />
         </button>
-        {/* 全局设置标签页（不归属任何工作区） */}
-        <div
-          role="tab"
-          aria-selected={settingsOpen}
-          onClick={toggleSettings}
-          className={cn(
-            "group relative flex shrink-0 cursor-pointer select-none items-center gap-1.5 border-l border-border/60 px-3 text-xs transition-colors",
-            settingsOpen
-              ? "bg-background font-medium"
-              : "border-b border-border text-muted-foreground hover:bg-accent/60",
-          )}
-        >
-          {settingsOpen && <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />}
-          <Settings className="size-3.5" />
-          设置
-        </div>
+        {/* 空白区域补齐底部边线（与各 tab 的 border-b 连成一线） */}
+        <div aria-hidden className="min-w-4 flex-1 border-b border-border" />
       </div>
 
       <div className="flex shrink-0 items-center gap-1 border-b border-l border-border px-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" title="切换主题">
+              {theme === "dark" ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            {THEME_OPTIONS.map((opt) => (
+              <DropdownMenuItem key={opt.value} onClick={() => setTheme(opt.value)}>
+                <span className="flex-1">{opt.label}</span>
+                {theme === opt.value && <Check className="size-3.5" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-sm" title="数据（导入 / 导出 / 备份）">
-              <Database />
+              <HardDrive />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -283,21 +278,16 @@ export function TitleBar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" title="切换主题">
-              {theme === "dark" ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            {THEME_OPTIONS.map((opt) => (
-              <DropdownMenuItem key={opt.value} onClick={() => setTheme(opt.value)}>
-                <span className="flex-1">{opt.label}</span>
-                {theme === opt.value && <Check className="size-3.5" />}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="设置"
+          aria-pressed={settingsOpen}
+          onClick={toggleSettings}
+          className={cn(settingsOpen && "bg-accent text-accent-foreground")}
+        >
+          <Settings className="size-3.5" />
+        </Button>
       </div>
 
       <input
@@ -325,7 +315,7 @@ export function TitleBar() {
       <ConfirmDialog
         open={confirmImport}
         title="导入备份"
-        description="导入备份将覆盖当前的全部数据（工作区、暂存区、规则、设置），确定继续吗？"
+        description="导入备份将覆盖当前的全部数据（工作区、暂存区、规则、模板、设置），确定继续吗？"
         confirmText="覆盖导入"
         destructive
         onConfirm={() => {

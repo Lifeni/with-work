@@ -21,10 +21,12 @@ import type { SortTemplate } from "@/types";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** 打开时若提供，直接进入该模板的编辑状态 */
+  editId?: string | null;
 }
 
 /** 自定义排序模板管理：名称 + 条目列表（每行一条，按从上到下顺序排列） */
-export function TemplatesDialog({ open, onOpenChange }: Props) {
+export function TemplatesDialog({ open, onOpenChange, editId }: Props) {
   const templates = useTemplatesStore((s) => s.templates);
   const addTemplate = useTemplatesStore((s) => s.addTemplate);
   const updateTemplate = useTemplatesStore((s) => s.updateTemplate);
@@ -36,6 +38,19 @@ export function TemplatesDialog({ open, onOpenChange }: Props) {
   const [group, setGroup] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // 外部指定编辑对象：打开时直接进入编辑状态（父组件以 key 重挂载，渲染期应用一次）
+  const [appliedEditId, setAppliedEditId] = useState<string | null>(null);
+  if (editId && editId !== appliedEditId) {
+    const t = useTemplatesStore.getState().templates.find((x) => x.id === editId);
+    setAppliedEditId(editId);
+    if (t) {
+      setEditingId(t.id);
+      setName(t.name);
+      setContent(t.items.join("\n"));
+      setGroup(t.group ?? "");
+    }
+  }
 
   const resetForm = () => {
     setName("");
