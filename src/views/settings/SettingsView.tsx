@@ -147,11 +147,21 @@ export default function SettingsView() {
               关于
             </h2>
             <div className="flex items-center gap-3">
-              <img src={favicon} alt="With Work" className="h-12 w-12 rounded-full" />
+              <img src={favicon} alt="一点微小的工作" className="h-12 w-12 rounded-full" />
               <div className="text-xs text-muted-foreground">
-                <p className="text-sm font-semibold text-foreground">一点微小的工作 · With Work</p>
+                <p className="text-sm font-semibold text-foreground">一点微小的工作</p>
                 <p>版本 0.1.0</p>
-                <p>编写时间 2026 年 8 月</p>
+                <p>
+                  构建时间{" "}
+                  {new Date(__BUILD_TIME__).toLocaleString("zh-CN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                </p>
               </div>
             </div>
           </section>

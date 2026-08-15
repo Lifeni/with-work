@@ -14,6 +14,10 @@ export default defineConfig(({ mode }) => {
   // PWA 仅用于 Vercel 部署版；单文件构建与测试模式不启用
   const isPwa = !isSingle && mode !== "test";
   return {
+    // 构建时间注入：设置页“关于”展示动态构建时间（__BUILD_TIME__ 为 UTC ISO 字符串）
+    define: {
+      __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    },
     plugins: [
       react(),
       tailwindcss(),
