@@ -37,6 +37,8 @@ export interface SortTemplate {
   items: string[];
   /** 分组名（可选，默认未分组） */
   group?: string;
+  /** 开头匹配：文本以列表项开头即算匹配（旧数据可能缺失） */
+  prefixMatch?: boolean;
 }
 
 /** 文本模板：一段可复用的文本，可拖拽/插入到编辑器 */

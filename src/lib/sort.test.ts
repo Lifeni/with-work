@@ -37,6 +37,25 @@ describe("sortByReference", () => {
     expect(r.unmatched).toEqual(["a", "b"]);
   });
 
+  it("prefix 模式：以参考列表项开头的文本视为匹配", () => {
+    const r = sortByReference(["青岛西海岸", "济南市", "上海"], ["济南", "青岛"], "prefix");
+    expect(r.sorted).toEqual(["济南市", "青岛西海岸"]);
+    expect(r.unmatched).toEqual(["上海"]);
+  });
+
+  it("prefix 模式：多个参考项命中时按参考顺序取第一个", () => {
+    const r = sortByReference(["济南市历下区", "济南大学"], ["济南", "济南大学"], "prefix");
+    // 两项都以“济南”开头，按参考顺序归入“济南”组，保持输入相对顺序
+    expect(r.sorted).toEqual(["济南市历下区", "济南大学"]);
+    expect(r.unmatched).toEqual([]);
+  });
+
+  it("默认仍为精确匹配，prefix 不影响原有行为", () => {
+    const r = sortByReference(["济南市"], ["济南"]);
+    expect(r.sorted).toEqual([]);
+    expect(r.unmatched).toEqual(["济南市"]);
+  });
+
   it("空输入返回空结果", () => {
     const r = sortByReference([], ["a"]);
     expect(r.sorted).toEqual([]);

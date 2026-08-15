@@ -41,12 +41,13 @@ describe("内置模板与规则", () => {
     expect(rule.isRegex).toBe(true);
   });
 
-  it("山东 16 市模板保持用户给定顺序", () => {
+  it("山东 16 市模板保持用户给定顺序并默认开头匹配", () => {
     localStorage.clear();
     seedDefaultData();
 
     const t = useTemplatesStore.getState().templates[0];
     expect(t.name).toBe("山东 16 市");
+    expect(t.prefixMatch).toBe(true);
     expect(t.items).toEqual([
       "济南",
       "青岛",
@@ -127,5 +128,32 @@ describe("内置模板与规则", () => {
     expect(templates.some((t) => t.id === "builtin-sort-weekday")).toBe(false);
     expect(templates).toEqual(DEFAULT_SORT_TEMPLATES);
     expect(useTextTemplatesStore.getState().templates).toEqual([]);
+  });
+
+  it("老用户已有的内置模板自动补齐开头匹配属性", () => {
+    localStorage.clear();
+    // 模拟老用户：山东 16 市已存在但缺 prefixMatch 字段（旧版本注入）
+    useTemplatesStore.getState().addTemplate({
+      id: "builtin-sort-shandong-cities",
+      name: "山东 16 市",
+      items: ["济南", "青岛"],
+      group: "内置",
+    });
+    localStorage.setItem(SEEDED_KEY, JSON.stringify(["builtin-sort-shandong-cities"]));
+
+    seedDefaultData();
+
+    const t = useTemplatesStore.getState().templates.find(
+      (x) => x.id === "builtin-sort-shandong-cities",
+    );
+    expect(t?.prefixMatch).toBe(true);
+    // 用户显式关闭过（prefixMatch 非 undefined）不会被覆盖
+    useTemplatesStore
+      .getState()
+      .updateTemplate({ ...t!, prefixMatch: false });
+    seedDefaultData();
+    expect(
+      useTemplatesStore.getState().templates.find((x) => x.id === t!.id)?.prefixMatch,
+    ).toBe(false);
   });
 });

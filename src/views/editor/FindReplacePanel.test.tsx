@@ -6,6 +6,7 @@ import { createMockEditor } from "@/test/mockEditor";
 import { resetStores } from "@/test/resetStores";
 import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
+import { useToastStore } from "@/stores/toast";
 
 // 查找输入有 200ms 防抖，等待时间留足余量
 const DEBOUNCE_MS = 400;
@@ -174,6 +175,123 @@ describe("FindReplacePanel", () => {
     await user.click(screen.getByRole("button", { name: "排序" }));
 
     expect(focused.getValue()).toBe("a\nb\nc");
+  });
+
+  it("按模板排序时全部不匹配则提示且不清空编辑器", async () => {
+    const user = userEvent.setup();
+    useTemplatesStore.getState().addTemplate({
+      id: "t1",
+      name: "自定义序",
+      items: ["a", "b", "c"],
+    });
+    const focused = createMockEditor("x\ny");
+    render(<FindReplacePanel focusedEditor={focused.editor} otherEditor={null} />);
+
+    await user.selectOptions(screen.getByTitle("排序规则"), "t1");
+    await user.click(screen.getByRole("button", { name: "排序" }));
+
+    // 内容保持不变，未被清空
+    expect(focused.getValue()).toBe("x\ny");
+    expect(useToastStore.getState().toasts.some((t) => t.message === "没有匹配的项目")).toBe(true);
+  });
+
+  it("按模板排序时未匹配项写入另一侧编辑器", async () => {
+    const user = userEvent.setup();
+    useTemplatesStore.getState().addTemplate({
+      id: "t1",
+      name: "自定义序",
+      items: ["a", "b"],
+    });
+    const focused = createMockEditor("b\nx\na");
+    const other = createMockEditor("");
+    render(<FindReplacePanel focusedEditor={focused.editor} otherEditor={other.editor} />);
+
+    await user.selectOptions(screen.getByTitle("排序规则"), "t1");
+    await user.click(screen.getByRole("button", { name: "排序" }));
+
+    // 聚焦编辑器保留匹配项并按模板排序
+    expect(focused.getValue()).toBe("a\nb");
+    // 未匹配项移到另一侧
+    expect(other.getValue()).toBe("x");
+    expect(
+      useToastStore.getState().toasts.some((t) => t.message.includes("1 项未匹配已移至另一侧")),
+    ).toBe(true);
+  });
+
+  it("开启开头匹配后按模板前缀排序", async () => {
+    const user = userEvent.setup();
+    useTemplatesStore.getState().addTemplate({
+      id: "t1",
+      name: "自定义序",
+      items: ["a", "b"],
+    });
+    const focused = createMockEditor("b市\nx\na市");
+    render(<FindReplacePanel focusedEditor={focused.editor} otherEditor={null} />);
+
+    await user.selectOptions(screen.getByTitle("排序规则"), "t1");
+    await user.click(screen.getByTitle("开头匹配：文本以模板列表项开头即算匹配"));
+    await user.click(screen.getByRole("button", { name: "排序" }));
+
+    expect(focused.getValue()).toBe("a市\nb市");
+  });
+
+  it("未开启开头匹配时保持精确匹配（前缀文本不命中）", async () => {
+    const user = userEvent.setup();
+    useTemplatesStore.getState().addTemplate({
+      id: "t1",
+      name: "自定义序",
+      items: ["a", "b"],
+    });
+    const focused = createMockEditor("a市\nb市");
+    render(<FindReplacePanel focusedEditor={focused.editor} otherEditor={null} />);
+
+    await user.selectOptions(screen.getByTitle("排序规则"), "t1");
+    await user.click(screen.getByRole("button", { name: "排序" }));
+
+    expect(focused.getValue()).toBe("a市\nb市"); // 全部不匹配，不清空
+    expect(useToastStore.getState().toasts.some((t) => t.message === "没有匹配的项目")).toBe(true);
+  });
+
+  it("模板自带开头匹配属性时无需工具栏开关即可前缀匹配", async () => {
+    const user = userEvent.setup();
+    useTemplatesStore.getState().addTemplate({
+      id: "t1",
+      name: "自定义序",
+      items: ["a", "b"],
+      prefixMatch: true,
+    });
+    const focused = createMockEditor("b市\na市");
+    render(<FindReplacePanel focusedEditor={focused.editor} otherEditor={null} />);
+
+    await user.selectOptions(screen.getByTitle("排序规则"), "t1");
+    await user.click(screen.getByRole("button", { name: "排序" }));
+
+    expect(focused.getValue()).toBe("a市\nb市");
+  });
+
+  it("选择带开头匹配的模板后工具栏开关自动勾选", async () => {
+    const user = userEvent.setup();
+    useTemplatesStore.getState().addTemplate({
+      id: "t1",
+      name: "前缀模板",
+      items: ["a", "b"],
+      prefixMatch: true,
+    });
+    useTemplatesStore.getState().addTemplate({
+      id: "t2",
+      name: "精确模板",
+      items: ["a", "b"],
+    });
+    render(<FindReplacePanel focusedEditor={null} otherEditor={null} />);
+
+    const prefixToggle = screen.getByTitle("开头匹配：文本以模板列表项开头即算匹配");
+    expect(prefixToggle).toHaveAttribute("aria-pressed", "false");
+
+    await user.selectOptions(screen.getByTitle("排序规则"), "t1");
+    expect(prefixToggle).toHaveAttribute("aria-pressed", "true");
+
+    await user.selectOptions(screen.getByTitle("排序规则"), "t2");
+    expect(prefixToggle).toHaveAttribute("aria-pressed", "false");
   });
 
   it("已移除预览按钮", () => {

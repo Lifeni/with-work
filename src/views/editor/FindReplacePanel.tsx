@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import * as monaco from "monaco-editor";
 import {
+  AArrowUp,
   ArrowDown,
   ArrowUp,
   CaseSensitive,
@@ -198,6 +199,8 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
   // 规则下拉框（受控，选中后应用并复位）
   const [ruleSelect, setRuleSelect] = useState("");
   const [templateSelect, setTemplateSelect] = useState("");
+  // 排序匹配模式：以模板列表项开头即匹配
+  const [prefixMatch, setPrefixMatch] = useState(false);
 
   /** 把文本写入目标编辑器（整体替换，可撤销） */
   const writeToEditor = (dst: monaco.editor.IStandaloneCodeEditor | null, text: string) => {
@@ -252,12 +255,23 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
 
     const t = templates.find((x) => x.id === templateSelect);
     if (t) {
-      const r = sortByReference(items, t.items);
+      const r = sortByReference(items, t.items, prefixMatch || t.prefixMatch ? "prefix" : "exact");
+      if (r.sorted.length === 0) {
+        toast("没有匹配的项目");
+        return;
+      }
       applyToFocused(sel, model, r.sorted.join("\n"));
-      toast(
-        `已按「${t.name}」排序 ${r.sorted.length} 项` +
-          (r.unmatched.length > 0 ? `，${r.unmatched.length} 项未匹配` : ""),
-      );
+      if (r.unmatched.length > 0) {
+        const moved = writeToEditor(otherEditor, r.unmatched.join("\n"));
+        toast(
+          `已按「${t.name}」排序 ${r.sorted.length} 项` +
+            (moved
+              ? `，${r.unmatched.length} 项未匹配已移至另一侧`
+              : `，${r.unmatched.length} 项未匹配（另一侧未就绪）`),
+        );
+      } else {
+        toast(`已按「${t.name}」排序 ${r.sorted.length} 项`);
+      }
       return;
     }
 
@@ -463,7 +477,12 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
 
         <select
           value={templateSelect}
-          onChange={(e) => setTemplateSelect(e.target.value)}
+          onChange={(e) => {
+            setTemplateSelect(e.target.value);
+            // 选中模板后同步开头匹配开关状态（模板自带属性或关闭）
+            const t = templates.find((x) => x.id === e.target.value);
+            setPrefixMatch(t?.prefixMatch ?? false);
+          }}
           title="排序规则"
           className="h-6.5 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
         >
@@ -474,6 +493,14 @@ export const FindReplacePanel = forwardRef<FindReplaceHandle, Props>(function Fi
             </option>
           ))}
         </select>
+        <Toggle
+          active={prefixMatch}
+          onClick={() => setPrefixMatch(!prefixMatch)}
+          title="开头匹配：文本以模板列表项开头即算匹配"
+          className="h-6.5 w-6.5 px-0"
+        >
+          <AArrowUp className="size-3.5" />
+        </Toggle>
         <Button size="sm" className="h-6.5 shrink-0 px-2 text-[11px]" onClick={runSort}>
           <ListOrdered className="size-3" />
           排序

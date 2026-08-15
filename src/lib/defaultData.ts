@@ -58,7 +58,13 @@ const SHANDONG_CITIES = [
 ];
 
 export const DEFAULT_SORT_TEMPLATES: SortTemplate[] = [
-  { id: "builtin-sort-shandong-cities", name: "山东 16 市", items: SHANDONG_CITIES, group: "内置" },
+  {
+    id: "builtin-sort-shandong-cities",
+    name: "山东 16 市",
+    items: SHANDONG_CITIES,
+    group: "内置",
+    prefixMatch: true,
+  },
 ];
 
 export const DEFAULT_TEXT_TEMPLATES: TextTemplate[] = [];
@@ -90,6 +96,24 @@ function removeDeprecated<T extends { id: string }>(existing: T[]): T[] {
   return existing.filter((x) => !DEPRECATED_BUILTIN_IDS.includes(x.id));
 }
 
+/** 补齐内置项的默认属性（如 prefixMatch）：仅当旧数据缺失该字段时写入，不覆盖用户改动 */
+function syncBuiltinDefaults(
+  existing: SortTemplate[],
+  defaults: SortTemplate[],
+): SortTemplate[] {
+  const defaultsById = new Map(defaults.map((d) => [d.id, d]));
+  let changed = false;
+  const next = existing.map((t) => {
+    const d = defaultsById.get(t.id);
+    if (d && t.prefixMatch === undefined && d.prefixMatch !== undefined) {
+      changed = true;
+      return { ...t, prefixMatch: d.prefixMatch };
+    }
+    return t;
+  });
+  return changed ? next : existing;
+}
+
 /** 增量注入内置数据：新增内置项对老用户可见，已删除的不复活，编辑过的不覆盖，下架的自动移除 */
 export function seedDefaultData() {
   const seeded = readSeeded();
@@ -102,6 +126,10 @@ export function seedDefaultData() {
   if (templates.length !== useTemplatesStore.getState().templates.length) {
     useTemplatesStore.getState().replaceAll(templates);
   }
+  const syncedTemplates = syncBuiltinDefaults(templates, DEFAULT_SORT_TEMPLATES);
+  if (syncedTemplates !== templates) {
+    useTemplatesStore.getState().replaceAll(syncedTemplates);
+  }
   const textTemplates = removeDeprecated(useTextTemplatesStore.getState().templates);
   if (textTemplates.length !== useTextTemplatesStore.getState().templates.length) {
     useTextTemplatesStore.getState().replaceAll(textTemplates);
@@ -109,7 +137,7 @@ export function seedDefaultData() {
 
   const rulesResult = injectMissing(rules, DEFAULT_RULES, seeded);
   if (rulesResult.injected.length) useRulesStore.getState().replaceAll(rulesResult.items);
-  const templatesResult = injectMissing(templates, DEFAULT_SORT_TEMPLATES, seeded);
+  const templatesResult = injectMissing(syncedTemplates, DEFAULT_SORT_TEMPLATES, seeded);
   if (templatesResult.injected.length) useTemplatesStore.getState().replaceAll(templatesResult.items);
   const textTemplatesResult = injectMissing(textTemplates, DEFAULT_TEXT_TEMPLATES, seeded);
   if (textTemplatesResult.injected.length) {
