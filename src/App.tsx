@@ -23,7 +23,9 @@ const viewComponents: Record<ViewId, ComponentType> = {
 
 export default function App() {
   const activeId = useWorkspaceStore((s) => s.activeId);
-  const view = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId)?.view ?? "editor");
+  const view = useWorkspaceStore(
+    (s) => s.workspaces.find((w) => w.id === s.activeId)?.view ?? "editor",
+  );
   const workspaceCount = useWorkspaceStore((s) => s.workspaces.length);
 
   useEffect(() => {
@@ -45,9 +47,9 @@ export default function App() {
           <main className="min-w-0 flex-1 overflow-hidden">
             <View key={activeId} />
           </main>
+          <StagingPanel />
         </div>
         <StatusBar />
-        <StagingPanel />
         <ToastViewport />
       </div>
     </TooltipProvider>

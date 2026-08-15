@@ -101,17 +101,17 @@ export function TitleBar() {
   };
 
   return (
-    <header className="flex h-12 shrink-0 items-stretch border-b border-border bg-card">
+    <header className="flex h-12 shrink-0 items-stretch bg-card">
       <div className="flex shrink-0 items-center gap-2.5 border-r border-border px-3">
-        <img src={favicon} alt="with work" className="h-7 w-7 rounded-full" />
+        <img src={favicon} alt="With Work" className="h-7 w-7 rounded-full" />
         <div className="leading-tight">
-          <div className="text-sm font-semibold leading-none">with work</div>
-          <div className="mt-0.5 text-[10px] text-muted-foreground">一点微小的工作</div>
+          <div className="text-sm font-semibold leading-none">一点微小的工作</div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground">With Work</div>
         </div>
       </div>
 
-      {/* 工作区标签页 */}
-      <div className="flex min-w-0 flex-1 items-end gap-1 overflow-x-auto px-2">
+      {/* 工作区标签页（VS Code 风格：满高矩形，激活标签顶部高亮、底部与内容区相连） */}
+      <div className="flex min-w-0 flex-1 items-stretch overflow-x-auto border-b border-border">
         {workspaces.map((w) =>
           renamingId === w.id ? (
             <input
@@ -124,7 +124,7 @@ export function TitleBar() {
                 if (e.key === "Enter") commitRename(w.id, w.name);
                 if (e.key === "Escape") setRenamingId(null);
               }}
-              className="mb-0 h-9 rounded-t-md border border-primary bg-background px-3 text-xs outline-none"
+              className="h-full w-40 shrink-0 border-r border-border bg-background px-3 text-xs outline-none"
             />
           ) : (
             <div
@@ -137,10 +137,10 @@ export function TitleBar() {
                 setRenameValue(w.name);
               }}
               className={cn(
-                "group flex h-9 min-w-24 max-w-52 cursor-pointer select-none items-center gap-1.5 rounded-t-md border border-b-0 px-3 text-xs",
+                "group relative flex h-full min-w-24 max-w-52 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-border/60 px-3 text-xs transition-colors",
                 w.id === activeId
-                  ? "border-border bg-background font-medium"
-                  : "border-transparent text-muted-foreground hover:bg-accent",
+                  ? "border-b-2 border-b-background border-t-2 border-t-primary bg-background font-medium"
+                  : "text-muted-foreground hover:bg-accent/60",
               )}
             >
               <span className="truncate">{w.name}</span>
@@ -160,13 +160,13 @@ export function TitleBar() {
         <button
           title="新建工作区"
           onClick={() => createWorkspace()}
-          className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="flex h-full shrink-0 items-center px-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <Plus className="size-4" />
         </button>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 px-2">
+      <div className="flex shrink-0 items-center gap-1 border-l border-border px-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
@@ -219,8 +219,20 @@ export function TitleBar() {
         </DropdownMenu>
       </div>
 
-      <input ref={backupRef} type="file" accept=".json,application/json" className="hidden" onChange={onBackupFile} />
-      <input ref={rulesRef} type="file" accept=".json,application/json" className="hidden" onChange={onRulesFile} />
+      <input
+        ref={backupRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={onBackupFile}
+      />
+      <input
+        ref={rulesRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={onRulesFile}
+      />
 
       <ConfirmDialog
         open={confirmImport}

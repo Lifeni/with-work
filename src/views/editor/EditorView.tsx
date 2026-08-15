@@ -4,6 +4,7 @@ import * as monaco from "monaco-editor";
 import { Redo2, Search, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { detectLanguage } from "@/lib/detect";
 import { FindReplacePanel, type FindReplaceHandle } from "@/views/editor/FindReplacePanel";
 import { useSettingsStore } from "@/stores/settings";
 import { useStatusStore } from "@/stores/status";
@@ -11,6 +12,7 @@ import { useToastStore } from "@/stores/toast";
 import { useWorkspaceStore } from "@/stores/workspace";
 
 const LANGUAGES = [
+  { value: "auto", label: "自动检测" },
   { value: "plaintext", label: "纯文本" },
   { value: "markdown", label: "Markdown" },
   { value: "json", label: "JSON" },
@@ -53,6 +55,9 @@ export default function EditorView() {
 
   if (!ws) return null;
 
+  // “自动检测”时根据内容实时判断语言，用户可手动指定覆盖
+  const effectiveLanguage = ws.language === "auto" ? detectLanguage(ws.content) : ws.language;
+
   const theme =
     settings.theme === "dark"
       ? "vs-dark"
@@ -76,11 +81,8 @@ export default function EditorView() {
         </Button>
         <select
           value={ws.language}
-          onChange={(e) => {
-            setLanguage(ws.id, e.target.value);
-            const model = editor?.getModel();
-            if (model) monaco.editor.setModelLanguage(model, e.target.value);
-          }}
+          onChange={(e) => setLanguage(ws.id, e.target.value)}
+          title="语言（自动检测时根据内容实时判断）"
           className="h-7 rounded-md border border-border bg-transparent px-2 text-xs outline-none transition-colors hover:bg-accent"
         >
           {LANGUAGES.map((l) => (
@@ -117,19 +119,13 @@ export default function EditorView() {
         </Button>
       </div>
 
-      {panelOpen && (
-        <FindReplacePanel
-          ref={panelRef}
-          editor={editor}
-          initialMode="find"
-        />
-      )}
+      {panelOpen && <FindReplacePanel ref={panelRef} editor={editor} initialMode="find" />}
 
       <div className="min-h-0 flex-1">
         <Editor
           height="100%"
           value={ws.content}
-          language={ws.language}
+          language={effectiveLanguage}
           theme={theme}
           onMount={handleMount}
           onChange={(v) => setContent(ws.id, v ?? "")}

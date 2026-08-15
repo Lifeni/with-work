@@ -13,7 +13,9 @@ const VIEWS: { id: ViewId; label: string; icon: LucideIcon }[] = [
 
 export function ActivityBar() {
   const activeId = useWorkspaceStore((s) => s.activeId);
-  const view = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId)?.view ?? "editor");
+  const view = useWorkspaceStore(
+    (s) => s.workspaces.find((w) => w.id === s.activeId)?.view ?? "editor",
+  );
   const setView = useWorkspaceStore((s) => s.setView);
 
   return (

@@ -4,12 +4,7 @@ import { useListStore } from "@/stores/list";
 import { useToastStore } from "@/stores/toast";
 
 export type ImportTarget =
-  | "editor"
-  | "diff-left"
-  | "diff-right"
-  | "list-source"
-  | "list-reference"
-  | "list-compare";
+  "editor" | "diff-left" | "diff-right" | "list-source" | "list-reference" | "list-compare";
 
 /** 暂存区条目 → 各工具的导入入口 */
 export function importText(target: ImportTarget, text: string) {

@@ -35,7 +35,15 @@ const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: "system", label: "跟随系统" },
 ];
 
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Section({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-lg border border-border bg-card p-4">
       <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
@@ -97,7 +105,11 @@ export default function SettingsView() {
               <span className="w-24 shrink-0 text-xs text-muted-foreground">主题</span>
               <div className="flex gap-1.5">
                 {THEME_OPTIONS.map((opt) => (
-                  <Toggle key={opt.value} active={settings.theme === opt.value} onClick={() => settings.setTheme(opt.value)}>
+                  <Toggle
+                    key={opt.value}
+                    active={settings.theme === opt.value}
+                    onClick={() => settings.setTheme(opt.value)}
+                  >
                     {opt.label}
                   </Toggle>
                 ))}
@@ -117,7 +129,10 @@ export default function SettingsView() {
             </div>
             <div className="flex items-center gap-2">
               <span className="w-24 shrink-0 text-xs text-muted-foreground">自动换行</span>
-              <Toggle active={settings.wordWrap} onClick={() => settings.setWordWrap(!settings.wordWrap)}>
+              <Toggle
+                active={settings.wordWrap}
+                onClick={() => settings.setWordWrap(!settings.wordWrap)}
+              >
                 {settings.wordWrap ? "开启" : "关闭"}
               </Toggle>
             </div>
@@ -149,7 +164,12 @@ export default function SettingsView() {
               <Download className="size-3.5" />
               导出全部备份
             </Button>
-            <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => backupRef.current?.click()}>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs"
+              onClick={() => backupRef.current?.click()}
+            >
               <Upload className="size-3.5" />
               导入备份
             </Button>
@@ -157,11 +177,21 @@ export default function SettingsView() {
               <FileCode2 className="size-3.5" />
               导出替换规则
             </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => rulesRef.current?.click()}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => rulesRef.current?.click()}
+            >
               <Upload className="size-3.5" />
               导入替换规则
             </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={exportCurrentWorkspace}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={exportCurrentWorkspace}
+            >
               <FileText className="size-3.5" />
               导出当前工作区（.txt）
             </Button>
@@ -190,7 +220,7 @@ export default function SettingsView() {
           <div className="flex items-center gap-3">
             <img src={favicon} alt="with work" className="h-10 w-10 rounded-full" />
             <div className="text-xs text-muted-foreground">
-              <p className="text-sm font-semibold text-foreground">with work · 一点微小的工作</p>
+              <p className="text-sm font-semibold text-foreground">一点微小的工作 · With Work</p>
               <p>版本 0.1.0 · 文本处理工作台</p>
               <p className="mt-1">
                 技术栈：React 19 · Vite · TypeScript · Tailwind CSS · Monaco Editor · Zustand
@@ -200,8 +230,20 @@ export default function SettingsView() {
         </Section>
       </div>
 
-      <input ref={backupRef} type="file" accept=".json,application/json" className="hidden" onChange={onBackupFile} />
-      <input ref={rulesRef} type="file" accept=".json,application/json" className="hidden" onChange={onRulesFile} />
+      <input
+        ref={backupRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={onBackupFile}
+      />
+      <input
+        ref={rulesRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={onRulesFile}
+      />
 
       <ConfirmDialog
         open={confirmImport}

@@ -30,7 +30,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           id,
           name: `工作区 ${get().workspaces.length + 1}`,
           content: "",
-          language: "plaintext",
+          language: "auto",
           view: "editor",
         };
         set((s) => ({ workspaces: [...s.workspaces, ws], activeId: id }));

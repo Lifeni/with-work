@@ -66,7 +66,12 @@ export default function DiffView() {
           <ArrowLeftRight className="size-3.5" />
           交换左右
         </Button>
-        <Button variant="secondary" size="sm" className="h-7 text-xs" onClick={() => setConfirmApply(true)}>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setConfirmApply(true)}
+        >
           <Check className="size-3.5" />
           应用到工作区
         </Button>

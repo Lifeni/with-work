@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FolderOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,11 @@ import type { ReplaceRule } from "@/types";
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** 打开时若提供，将当前查找/替换内容带入表单，便于保存为新规则 */
+  initialDraft?: { find: string; replace: string; isRegex: boolean; matchCase: boolean } | null;
 }
 
-export function RulesDialog({ open, onOpenChange }: Props) {
+export function RulesDialog({ open, onOpenChange, initialDraft }: Props) {
   const rules = useRulesStore((s) => s.rules);
   const addRule = useRulesStore((s) => s.addRule);
   const updateRule = useRulesStore((s) => s.updateRule);
@@ -37,6 +39,19 @@ export function RulesDialog({ open, onOpenChange }: Props) {
   const [matchCase, setMatchCase] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // 打开对话框时带入当前查找/替换内容
+  useEffect(() => {
+    if (open && initialDraft) {
+      setFind(initialDraft.find);
+      setReplace(initialDraft.replace);
+      setIsRegex(initialDraft.isRegex);
+      setMatchCase(initialDraft.matchCase);
+      setName("");
+      setEditingId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const resetForm = () => {
     setName("");
@@ -155,7 +170,10 @@ export function RulesDialog({ open, onOpenChange }: Props) {
                 <span className="w-32 shrink-0 truncate text-xs font-medium" title={r.name}>
                   {r.name}
                 </span>
-                <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground" title={r.find}>
+                <span
+                  className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground"
+                  title={r.find}
+                >
                   {r.find}
                 </span>
                 <span className="text-muted-foreground">→</span>
@@ -194,7 +212,13 @@ export function RulesDialog({ open, onOpenChange }: Props) {
             导出规则
           </Button>
         </DialogFooter>
-        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={onImportFile} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={onImportFile}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -54,7 +54,12 @@ export function parseBackup(
 ): { ok: true; data: BackupData } | { ok: false; error: string } {
   try {
     const d: unknown = JSON.parse(raw);
-    if (!d || typeof d !== "object" || (d as BackupData).app !== "with-work" || (d as BackupData).version !== 1) {
+    if (
+      !d ||
+      typeof d !== "object" ||
+      (d as BackupData).app !== "with-work" ||
+      (d as BackupData).version !== 1
+    ) {
       return { ok: false, error: "文件格式不正确：不是 with-work 的备份文件" };
     }
     return { ok: true, data: d as BackupData };
