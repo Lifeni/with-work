@@ -22,15 +22,24 @@ export function ActivityBar() {
 
   return (
     <aside className="flex w-12 shrink-0 flex-col items-center gap-1.5 border-r border-border bg-card py-2.5">
-      {/* 品牌区：Logo + 竖排中文标题 */}
-      <img src={favicon} alt="With Work" className="h-6 w-6 rounded-full" />
-      <span
-        className="text-[9px] font-semibold leading-none tracking-widest"
-        style={{ writingMode: "vertical-rl" }}
-      >
-        一点微小的工作
-      </span>
-      <span className="text-[8px] leading-none text-muted-foreground">With Work</span>
+      {/* 品牌区：Logo + 中文/英文竖排两列 */}
+      <div className="flex shrink-0 flex-col items-center gap-2">
+        <img src={favicon} alt="With Work" className="h-8 w-8 rounded-full" />
+        <div className="flex gap-1.5">
+          <span
+            className="text-[11px] font-semibold leading-[1.5]"
+            style={{ writingMode: "vertical-rl" }}
+          >
+            一点微小的工作
+          </span>
+          <span
+            className="text-[9px] leading-[1.5] text-muted-foreground"
+            style={{ writingMode: "vertical-rl" }}
+          >
+            With Work
+          </span>
+        </div>
+      </div>
 
       {/* 视图切换 */}
       <div className="mt-2 flex flex-col items-center gap-1">
