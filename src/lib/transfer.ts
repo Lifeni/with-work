@@ -37,18 +37,21 @@ export function importText(target: ImportTarget, text: string) {
       toast("已导入到对比右侧（双编辑器模式）");
       break;
     case "list-source":
-      useListStore.getState().setSource(text);
-      if (activeId) ws.setView(activeId, "list");
-      toast("已导入到列表工具·源文本");
+      // 列表工具已融合进查找替换面板：源 = 编辑器选区/全文，直接导入编辑器
+      if (activeId) {
+        ws.setContent(activeId, text);
+        ws.setView(activeId, "editor");
+      }
+      toast("已导入到编辑器（查找替换面板 · 列表页可用）");
       break;
     case "list-reference":
       useListStore.getState().setReference(text);
-      if (activeId) ws.setView(activeId, "list");
+      if (activeId) ws.setView(activeId, "editor");
       toast("已导入到列表工具·参考列表");
       break;
     case "list-compare":
       useListStore.getState().setCompare(text);
-      if (activeId) ws.setView(activeId, "list");
+      if (activeId) ws.setView(activeId, "editor");
       toast("已导入到列表工具·对比列表");
       break;
   }

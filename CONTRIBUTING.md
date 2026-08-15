@@ -14,15 +14,15 @@
 
 ## 提交规范
 
-提交信息遵循 Conventional Commits：
+提交信息遵循 Conventional Commits，主题行与正文使用中文（前缀保留英文）：
 
 ```
-feat: add user profile page
-fix: correct timezone display in calendar
-docs: update deployment guide
+feat: 新增用户资料页
+fix: 修复日历时区显示错误
+docs: 更新部署指南
 ```
 
-- 主题行 ≤ 50 字符，祈使句，首字母大写，结尾无标点。
+- 主题行 ≤ 50 字符，祈使句，结尾无标点。
 - 如需要说明，主题下空一行写正文，每行 ≤ 72 字符。
 
 ## PR 流程

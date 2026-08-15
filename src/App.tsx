@@ -6,7 +6,6 @@ import { StatusBar } from "@/components/shared/StatusBar";
 import { StagingPanel } from "@/components/shared/StagingPanel";
 import { ToastViewport } from "@/components/shared/ToastViewport";
 import EditorView from "@/views/editor/EditorView";
-import ListView from "@/views/list/ListView";
 import SettingsView from "@/views/settings/SettingsView";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
@@ -15,7 +14,6 @@ import type { ViewId } from "@/types";
 
 const viewComponents: Record<ViewId, ComponentType> = {
   editor: EditorView,
-  list: ListView,
   settings: SettingsView,
 };
 

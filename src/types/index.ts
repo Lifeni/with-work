@@ -1,4 +1,4 @@
-export type ViewId = "editor" | "list" | "settings";
+export type ViewId = "editor" | "settings";
 export type EditorMode = "single" | "dual";
 export type ThemeMode = "light" | "dark" | "system";
 
@@ -48,6 +48,5 @@ export interface BackupData {
 
 export const VIEW_LABELS: Record<ViewId, string> = {
   editor: "编辑器",
-  list: "列表工具",
   settings: "设置",
 };

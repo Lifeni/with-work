@@ -6,7 +6,6 @@ import {
   FileCode2,
   FileText,
   FolderOpen,
-  ListOrdered,
   Moon,
   Plus,
   Settings,
@@ -73,8 +72,8 @@ export function TitleBar() {
     setRenamingId(null);
   };
 
-  /** 顶栏功能按钮：在 列表工具 / 设置 与 编辑器 之间切换 */
-  const toggleView = (target: "list" | "settings") => {
+  /** 顶栏功能按钮：在 设置 与 编辑器 之间切换 */
+  const toggleView = (target: "settings") => {
     if (!activeId) return;
     setView(activeId, view === target ? "editor" : target);
   };
@@ -170,15 +169,6 @@ export function TitleBar() {
 
       <div className="flex shrink-0 items-center gap-1 border-l border-border px-2">
         <Button
-          variant={view === "list" ? "secondary" : "ghost"}
-          size="sm"
-          className="h-7 gap-1.5 text-xs"
-          onClick={() => toggleView("list")}
-        >
-          <ListOrdered className="size-3.5" />
-          列表工具
-        </Button>
-        <Button
           variant={view === "settings" ? "secondary" : "ghost"}
           size="icon-sm"
           title="设置"
@@ -189,9 +179,8 @@ export function TitleBar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs">
-              <Database className="size-3.5" />
-              数据
+            <Button variant="ghost" size="icon-sm" title="数据（导入 / 导出 / 备份）">
+              <Database />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
