@@ -160,6 +160,7 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
     onDidFocusEditorText: () => ({ dispose: () => {} }),
     onDidChangeCursorPosition: () => ({ dispose: () => {} }),
     addCommand: () => {},
+    addAction: () => {},
     getTargetAtClientPoint: () => null,
     executeEdits: (source: string, edits: Array<{ range: MockRange; text: string }>) => {
       editsLog.push({ source, edits });

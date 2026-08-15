@@ -25,10 +25,10 @@ import {
 } from "@/components/ui/dialog";
 import { FindReplacePanel, type FindReplaceHandle } from "@/views/editor/FindReplacePanel";
 import { detectLanguage } from "@/lib/detect";
-import { setActiveEditor } from "@/lib/editorBridge";
+import { getActiveEditor, setActiveEditor } from "@/lib/editorBridge";
 import { applyReplacements } from "@/lib/replace";
 import { splitLines } from "@/lib/split";
-import { cn, uid } from "@/lib/utils";
+import { cn, downloadText, uid } from "@/lib/utils";
 import { cleanupWorkspaceModels, getWorkspaceModels } from "@/lib/workspaceModels";
 import { useRulesStore } from "@/stores/rules";
 import { useSettingsStore } from "@/stores/settings";
@@ -40,6 +40,72 @@ import { useToastStore } from "@/stores/toast";
 import { useWorkspaceStore } from "@/stores/workspace";
 
 type Side = "left" | "right";
+
+/**
+ * 额外快捷键（仅注册 Monaco standalone 未内置的键位；
+ * Ctrl+D、Ctrl+Shift+L、Ctrl+Shift+K、Ctrl+Enter、Ctrl+Shift+Enter、Alt+↑/↓、
+ * Shift+Alt+↑/↓ 等已由 Monaco 原生绑定，覆盖注册反而会破坏原生行为）
+ */
+const EXTRA_KEYBINDINGS: Array<{
+  id: string;
+  label: string;
+  keybinding: number;
+  command: string;
+}> = [
+  // 文本转换
+  {
+    id: "ww.transform-uppercase",
+    label: "转换为大写",
+    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyU,
+    command: "editor.action.transformToUppercase",
+  },
+  // 行处理（无标准键位，选用不冲突的组合）
+  {
+    id: "ww.sort-lines-asc",
+    label: "升序排序行",
+    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyJ,
+    command: "editor.action.sortLinesAscending",
+  },
+  {
+    id: "ww.sort-lines-desc",
+    label: "降序排序行",
+    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyJ,
+    command: "editor.action.sortLinesDescending",
+  },
+  {
+    id: "ww.remove-duplicate-lines",
+    label: "删除重复行",
+    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.KeyR,
+    command: "editor.action.removeDuplicateLines",
+  },
+  {
+    id: "ww.trim-trailing-whitespace",
+    label: "修剪行尾空格",
+    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyT,
+    command: "editor.action.trimTrailingWhitespace",
+  },
+];
+
+/** 文件名时间戳：2026-08-15-221530 */
+function fileTimestamp(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+/** Ctrl+S：把聚焦编辑器的全部文本保存为 txt 文件；无文本时提示 */
+function saveFocused() {
+  const ed = getActiveEditor();
+  const text = ed?.getModel()?.getValue() ?? "";
+  if (!text.trim()) {
+    useToastStore.getState().push("没有文本");
+    return;
+  }
+  const ws = useWorkspaceStore.getState();
+  const name = ws.workspaces.find((w) => w.id === ws.activeId)?.name ?? "工作区";
+  downloadText(`${name}-${fileTimestamp()}.txt`, text);
+  useToastStore.getState().push("已保存到下载");
+}
 
 export default function EditorView() {
   const ws = useWorkspaceStore((s) => s.workspaces.find((w) => w.id === s.activeId));
@@ -88,6 +154,7 @@ export default function EditorView() {
     dropIntoEditor: { enabled: false },
   };
 
+  // VS Code 风格快捷键：多光标 / 行操作 / 文本转换 / 行处理（作用于当前编辑器）
   const mountEditor = (ed: monaco.editor.IStandaloneCodeEditor, side: Side) => {
     if (side === "left") setLeftEditor(ed);
     else setRightEditor(ed);
@@ -104,6 +171,17 @@ export default function EditorView() {
     ed.onDidChangeCursorPosition((e) => setCursor(e.position.lineNumber, e.position.column));
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => panelRef.current?.open());
     ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => panelRef.current?.open());
+    // Ctrl+S：保存聚焦编辑器文本（下载 txt 文件）
+    ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveFocused);
+    // 额外快捷键（不覆盖 Monaco 原生绑定）
+    for (const { id, label, keybinding, command } of EXTRA_KEYBINDINGS) {
+      ed.addAction({
+        id,
+        label,
+        keybindings: [keybinding],
+        run: () => ed.trigger("keyboard", command, null),
+      });
+    }
   };
 
   // 卸载时注销全局编辑器引用（全局工具会回退到直接读写工作区内容）
