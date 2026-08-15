@@ -50,7 +50,6 @@ with-work/
 ├── public/                   # 公开静态资源（favicon.ico、favicon.svg、PWA 图标）
 ├── scripts/                  # 构建辅助脚本（icons.mjs：PWA 图标生成）
 ├── docs/                     # 项目文档（architecture.md）
-├── .github/                  # GitHub 配置（Dependabot）
 └── AGENTS.md                 # 本文档
 ```
 
@@ -66,6 +65,7 @@ with-work/
 - **主题**：CSS 变量（oklch）+ `.dark` 类切换，Monaco 主题跟随（`lib/theme.ts`）。
 - **全局工具**：`src/tools/registry.ts` 注册表 + 左侧竖向工具栏（Photoshop 式）入口；工具是纯函数（输入文本 → 输出文本），作用于聚焦编辑器（选区优先，无选区时处理全文），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。
 - **测试**：Vitest + Testing Library（jsdom）。测试模式通过 vite alias 将 `monaco-editor` 替换为 `src/test/mockMonaco.ts`（构建不受影响）；`@monaco-editor/react` 需要组件测试时自行 mock。改动画布组件后跑 `npm test`。
+- **内置数据**：`lib/defaultData.ts` 维护内置替换规则与排序模板（增量注入：新内置项对老用户可见，删除不复活，下架项自动移除）；`main.tsx` 启动时调用 `seedDefaultData()`。
 
 ## 代码约定
 

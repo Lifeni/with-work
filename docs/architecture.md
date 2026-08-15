@@ -82,9 +82,17 @@
   `@monaco-editor/react` 的组件时自行 mock（参考 `src/App.test.tsx`）。
 - 新增功能建议配套测试；改动后运行 `npm test`、`npm run lint`、`npm run build`。
 
+## 内置数据
+
+- `lib/defaultData.ts` 维护内置替换规则与排序模板（`main.tsx` 启动时调用 `seedDefaultData()` 注入）。
+- 增量注入：以 `ww:seeded` 记录已注入过的内置 id——新增内置项对老用户可见
+  （补入缺失项）、用户删除后不复活、编辑过的不覆盖、下架项（`DEPRECATED_BUILTIN_IDS`）
+  自动从用户数据中移除。
+
 ## 演进计划
 
-- [x] 测试体系（Vitest + React Testing Library，107 用例）
+- [x] 测试体系（Vitest + React Testing Library，114 用例）
+- [x] 停用 dependabot 自动依赖更新（邮件干扰，改为手动升级）
 - [ ] OCR 等新能力接入（规划中）
 - [ ] 添加 CI（GitHub Actions：lint + typecheck + test + build）
-- [ ] 开源前检查：LICENSE 版权人、README 完善、dependabot（已启用）
+- [ ] 开源前检查：LICENSE 版权人、README 完善
