@@ -150,7 +150,7 @@ export default function SettingsView() {
               <img src={favicon} alt="一点微小的工作" className="h-12 w-12 rounded-full" />
               <div className="text-xs text-muted-foreground">
                 <p className="text-sm font-semibold text-foreground">一点微小的工作</p>
-                <p>版本 0.1.0</p>
+                <p>版本 1.0.0 🕯️</p>
                 <p>
                   构建时间{" "}
                   {new Date(__BUILD_TIME__).toLocaleString("zh-CN", {
