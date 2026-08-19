@@ -4,8 +4,14 @@
 
 ## 开发环境
 
-- Node.js ≥ 20，npm
-- 安装与启动命令将在技术栈确定后补充
+- Node.js ≥ 20，pnpm 10+
+
+## 快速开始
+
+```bash
+pnpm install    # 安装依赖
+pnpm dev        # 启动开发服务器 → http://localhost:3000
+```
 
 ## 代码规范
 

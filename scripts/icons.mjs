@@ -1,6 +1,6 @@
 /**
  * 从 src/assets/favicon.svg 生成各平台图标（favicon.ico + PWA PNG）。
- * 用法：npm run icons（修改 SVG 后重新执行即可）
+ * 用法：pnpm icons（修改 SVG 后重新执行即可）
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
