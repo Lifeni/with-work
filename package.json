@@ -1,7 +1,7 @@
 {
   "name": "with-work",
   "displayName": "一点微小的工作",
-  "version": "1.0.0",
+  "version": "100.0.0",
   "private": true,
   "description": "很惭愧，只是做了一点微小的工作",
   "type": "module",
