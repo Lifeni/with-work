@@ -7,16 +7,18 @@ import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
 
 // 双构建模式：
-//   npm run build         → dist/（部署到 Vercel，启用 PWA 离线支持）
-//   npm run build:single  → dist-single/（单文件 HTML，样式/脚本/图标全部内嵌）
+//   pnpm build         → dist/（部署到 Vercel，启用 PWA 离线支持）
+//   pnpm build:single  → dist-single/（单文件 HTML，样式/脚本/图标全部内嵌）
 export default defineConfig(({ mode }) => {
   const isSingle = mode === "single";
   // PWA 仅用于 Vercel 部署版；单文件构建与测试模式不启用
   const isPwa = !isSingle && mode !== "test";
   return {
     // 构建时间注入：设置页“关于”展示动态构建时间（__BUILD_TIME__ 为 UTC ISO 字符串）
+    // 构建模式：single = 单文件版；其余（含测试）为 deploy = 部署版
     define: {
       __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+      __BUILD_MODE__: JSON.stringify(isSingle ? "single" : "deploy"),
     },
     plugins: [
       react(),

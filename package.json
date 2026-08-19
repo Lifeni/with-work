@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build --mode single && node scripts/ship-single.mjs",
     "build:single": "tsc --noEmit && vite build --mode single",
     "icons": "node scripts/icons.mjs",
     "preview": "vite preview",

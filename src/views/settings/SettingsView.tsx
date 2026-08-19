@@ -3,7 +3,9 @@ import favicon from "@/assets/favicon.svg";
 import {
   Database,
   Download,
+  ExternalLink,
   FileCode2,
+  FileDown,
   FileText,
   Info,
   Palette,
@@ -150,7 +152,9 @@ export default function SettingsView() {
               <img src={favicon} alt="一点微小的工作" className="h-12 w-12 rounded-full" />
               <div className="text-xs text-muted-foreground">
                 <p className="text-sm font-semibold text-foreground">一点微小的工作</p>
-                <p>版本 1.0.0 🕯️</p>
+                <p>
+                  版本 1.0.0{__BUILD_MODE__ === "single" && " 单文件版"} 🕯️
+                </p>
                 <p>
                   构建时间{" "}
                   {new Date(__BUILD_TIME__).toLocaleString("zh-CN", {
@@ -163,6 +167,30 @@ export default function SettingsView() {
                   })}
                 </p>
               </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {/* 单文件版本身就是单文件，不再提供下载入口 */}
+              {__BUILD_MODE__ !== "single" && (
+                <a
+                  href="./with-work-single.html"
+                  download="一点微小的工作.html"
+                  title="下载单文件版本（离线可运行）"
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-transparent px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  <FileDown className="size-3.5" />
+                  下载单文件版
+                </a>
+              )}
+              <a
+                href="https://github.com/Lifeni/with-work"
+                target="_blank"
+                rel="noreferrer"
+                title="在 GitHub 上查看源码"
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-transparent px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <ExternalLink className="size-3.5" />
+                GitHub 仓库
+              </a>
             </div>
           </section>
         </div>
