@@ -13,17 +13,27 @@
 | 编辑器 | Monaco Editor（锁 0.52.x） | VS Code 内核：查找/替换（正则、计数、跳转）、minimap、内置 Diff 编辑器 |
 | 状态管理 | Zustand + persist | 轻量；所有 store 自动持久化到 localStorage（key 前缀 `ww:`） |
 | 测试 | Vitest + React Testing Library | jsdom 环境；测试模式将 `monaco-editor` alias 为 `src/test/mockMonaco.ts` |
+| 包管理 | pnpm | 确定性依赖树（pnpm-lock.yaml），安装快速、节省磁盘 |
 | 字体 | Inter（@fontsource 自托管） | 中文字体走系统回退栈（MiSans / HarmonyOS Sans SC / Noto Sans SC），不打包 |
 | 部署 | Vercel | `vercel.json` 配置 framework/build/outputDirectory |
 
 ## 双构建模式
 
-- **`npm run build`**：Vercel 静态部署。输出 `dist/`（index.html + assets/），启用 PWA（vite-plugin-pwa，离线可用）。
-- **`npm run build:single`**：`vite build --mode single` 触发 `vite-plugin-singlefile`，
+- **`pnpm build`**：Vercel 静态部署。输出 `dist/`（index.html + assets/），启用 PWA（vite-plugin-pwa，离线可用）；
+  构建时额外执行单文件构建并复制为 `dist/with-work-single.html`——设置页「关于」在**部署版**提供
+  「下载单文件版」入口；**单文件版**则不提供下载并标注「单文件版」。
+- **`pnpm build:single`**：`vite build --mode single` 触发 `vite-plugin-singlefile`，
   输出 `dist-single/index.html`。JS / CSS / 字体 / Monaco worker（`?worker&inline`）/ 品牌图标
-  （模块导入）全部内嵌为 data URI，双击即可离线运行。PWA 在单文件模式不启用。
-- **图标**：`npm run icons` 从 `src/assets/favicon.svg` 生成 `public/` 下的 PWA 图标
+  （模块导入）全部内嵌为 data URI，PWA 在单文件模式不启用；
+  经 `scripts/ship-single.mjs` 将 favicon（svg/ico）进一步内联为 data URI，单文件彻底自包含（图标亦可用）。
+- **图标**：`pnpm icons` 从 `src/assets/favicon.svg` 生成 `public/` 下的 PWA 图标
   （192/512、maskable）与 `favicon.ico`（scripts/icons.mjs，png-to-ico + sharp）。
+
+## 构建注入
+
+- `vite.config.ts` 通过 `define` 注入两个编译期常量（类型声明见 `src/vite-env.d.ts`）：
+  - `__BUILD_TIME__`：构建时刻（设置页「关于 → 构建时间」）；
+  - `__BUILD_MODE__`：`"single"`（单文件版）或 `"deploy"`（部署版 / 测试）。
 
 ## 目录职责
 
@@ -41,7 +51,7 @@
 | `src/test/` | 测试基础设施 | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`resetStores.ts`、`setup.ts` |
 | `src/types/` | 全局类型定义 | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等 |
 | `src/assets/` | 静态资源 | `favicon.svg`（品牌 Logo 源文件，模块导入 → 两种构建均内联） |
-| `scripts/` | 构建辅助脚本 | `icons.mjs`：PWA 图标与 favicon.ico 生成 |
+| `scripts/` | 构建辅助脚本 | `icons.mjs`（PWA 图标与 favicon.ico 生成）、`ship-single.mjs`（单文件图标内联与产物分发） |
 
 ## 关键机制
 
@@ -82,7 +92,7 @@
 - 测试模式通过 vite alias 将 `monaco-editor` 替换为 `src/test/mockMonaco.ts`（构建不受影响）；
   需要编辑器实例时用 `src/test/mockEditor.ts` 的 `createMockEditor`；渲染含
   `@monaco-editor/react` 的组件时自行 mock（参考 `src/App.test.tsx`）。
-- 新增功能建议配套测试；改动后运行 `npm test`、`npm run lint`、`npm run build`。
+- 新增功能建议配套测试；改动后运行 `pnpm test`、`pnpm lint`、`pnpm build`。
 
 ## 内置数据
 
@@ -92,10 +102,3 @@
   （补入缺失项）、用户删除后不复活、编辑过的不覆盖、下架项（`DEPRECATED_BUILTIN_IDS`）
   自动从用户数据中移除。
 
-## 演进计划
-
-- [x] 测试体系（Vitest + React Testing Library，129 用例）
-- [x] 停用 dependabot 自动依赖更新（邮件干扰，改为手动升级）
-- [ ] OCR 等新能力接入（规划中）
-- [ ] 添加 CI（GitHub Actions：lint + typecheck + test + build）
-- [ ] 开源前检查：LICENSE 版权人、README 完善

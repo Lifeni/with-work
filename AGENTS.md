@@ -6,28 +6,28 @@
 ## 项目概述
 
 - **项目名**：with-work（中文名：一点微小的工作）
-- **定位**：工作辅助类 Web 应用，核心是文本处理（查找/替换、分割/排序、对比）；后续规划图像文字识别等功能
+- **定位**：工作辅助类 Web 应用，核心是文本处理（查找/替换、分割/排序、对比）
 - **技术栈**：React 19 + Vite 8 + TypeScript（strict）+ Tailwind CSS v4 + shadcn 风格组件（Radix）+ Monaco Editor（锁 0.52.x）+ Zustand + Vitest
-- **包管理器**：npm（勿混用其他包管理器，依赖变更通过 `npm install <pkg>` 完成，勿手动改 lockfile）
+- **包管理器**：pnpm（勿混用其他包管理器，依赖变更通过 `pnpm add <pkg>` 完成，勿手动改 lockfile）
 - **部署**：Vercel（`vercel.json` 已配置，构建输出 `dist/`）
-- **双构建模式**：`npm run build`（Vercel 静态部署，启用 PWA）与 `npm run build:single`（单文件 HTML，输出 `dist-single/`，所有资源内嵌，双击可离线运行）
-- **PWA**：vite-plugin-pwa（仅部署版启用），manifest 图标由 `scripts/icons.mjs` 生成（`npm run icons`）
-- **开源计划**：MIT 许可证，托管于 GitHub（仓库：Lifeni/with-work）
+- **双构建模式**：`pnpm run build`（Vercel 静态部署，启用 PWA；构建时额外执行单文件构建并复制为 `dist/with-work-single.html`，设置页关于在部署版提供下载、单文件版标注「单文件版」）与 `pnpm run build:single`（单文件 HTML，输出 `dist-single/`，所有资源内嵌、favicon 亦内联，双击可离线运行）
+- **PWA**：vite-plugin-pwa（仅部署版启用），manifest 图标由 `scripts/icons.mjs` 生成（`pnpm run icons`）
+- **开源状态**：已开源（MIT 许可证），GitHub 仓库：Lifeni/with-work
 
 ## 常用命令
 
 | 命令 | 说明 |
 | --- | --- |
-| `npm install` | 安装依赖（首次） |
-| `npm run dev` | 启动开发服务器 → http://localhost:3000 |
-| `npm run build` | 类型检查 + 生产构建 → `dist/`（Vercel） |
-| `npm run build:single` | 类型检查 + 单文件构建 → `dist-single/index.html` |
-| `npm run preview` | 预览 `dist/` 构建产物 |
-| `npm test` | 运行全部测试（Vitest，jsdom） |
-| `npm run test:watch` | 监听模式运行测试 |
-| `npm run lint` | ESLint 检查 |
-| `npm run format` / `format:check` | Prettier 格式化 / 检查 |
-| `npm run icons` | 从 `src/assets/favicon.svg` 生成 PWA 图标与 favicon.ico |
+| `pnpm install` | 安装依赖（首次） |
+| `pnpm dev` | 启动开发服务器 → http://localhost:3000 |
+| `pnpm build` | 类型检查 + 生产构建 → `dist/`（Vercel） |
+| `pnpm build:single` | 类型检查 + 单文件构建 → `dist-single/index.html` |
+| `pnpm preview` | 预览 `dist/` 构建产物 |
+| `pnpm test` | 运行全部测试（Vitest，jsdom） |
+| `pnpm test:watch` | 监听模式运行测试 |
+| `pnpm lint` | ESLint 检查 |
+| `pnpm format` / `format:check` | Prettier 格式化 / 检查 |
+| `pnpm icons` | 从 `src/assets/favicon.svg` 生成 PWA 图标与 favicon.ico |
 
 ## 目录结构
 
@@ -60,11 +60,11 @@ with-work/
 - **工作区模型**：每个工作区持有独立的 Monaco Model（`lib/workspaceModels.ts` 缓存），切换工作区时换绑 Model，撤销/重做历史按工作区独立保留；store ↔ Model 双向同步（`ww-sync`）。
 - **查找替换面板**（`views/editor/FindReplacePanel.tsx`）：编辑器顶部一体面板，包含查找（正则/大小写/计数高亮）、替换（全部替换/规则下拉）、分割、排序四个功能；排序支持开头匹配（模板属性或工具栏开关），作用于聚焦编辑器，替换/分割结果写入另一侧。
 - **暂存区**（`StagingPanel.tsx`）：右侧面板，多工作区共用；包含全局暂存区（文本条目）、文本模板、排序模板、替换规则四个模块，条目可拖动到编辑器（规则拖入 = 按规则替换全文），双击编辑，支持分组与导入/导出。
-- **图标**：界面图标用 lucide-react；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联；PWA 图标由 `npm run icons` 生成到 `public/`）。
+- **图标**：界面图标用 lucide-react；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联；PWA 图标由 `pnpm run icons` 生成到 `public/`）。
 - **路径别名**：`@/` 指向 `src/`。
 - **主题**：CSS 变量（oklch）+ `.dark` 类切换，Monaco 主题跟随（`lib/theme.ts`）。
 - **全局工具**：`src/tools/registry.ts` 注册表 + 左侧竖向工具栏（Photoshop 式）入口；工具是纯函数（输入文本 → 输出文本），作用于聚焦编辑器（选区优先，无选区时处理全文），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。
-- **测试**：Vitest + Testing Library（jsdom）。测试模式通过 vite alias 将 `monaco-editor` 替换为 `src/test/mockMonaco.ts`（构建不受影响）；`@monaco-editor/react` 需要组件测试时自行 mock。改动画布组件后跑 `npm test`。
+- **测试**：Vitest + Testing Library（jsdom）。测试模式通过 vite alias 将 `monaco-editor` 替换为 `src/test/mockMonaco.ts`（构建不受影响）；`@monaco-editor/react` 需要组件测试时自行 mock。改动画布组件后跑 `pnpm test`。
 - **内置数据**：`lib/defaultData.ts` 维护内置替换规则与排序模板（增量注入：新内置项对老用户可见，删除不复活，下架项自动移除）；`main.tsx` 启动时调用 `seedDefaultData()`。
 
 ## 代码约定
@@ -87,6 +87,5 @@ with-work/
 ## 给 AI 助手的提示
 
 - 新任务开始前，先阅读本文件与 `docs/` 下相关文档。
-- 改动后运行 `npm run build`（含类型检查）、`npm run lint` 与 `npm test` 验证。
+- 改动后运行 `pnpm build`（含类型检查）、`pnpm lint` 与 `pnpm test` 验证。
 - 修改持久化数据结构或备份格式时，注意升级 `version` 并兼容旧数据。
-- 本仓库尚未开源；公开前请确认 README、LICENSE、`.github/` 内容已就绪。
