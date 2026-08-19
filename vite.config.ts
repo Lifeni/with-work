@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
               manifest: {
                 name: "一点微小的工作",
                 short_name: "With Work",
-                description: "一点微小的工作 —— 高效的文本处理工作台",
+                description: "很惭愧，只是做了一点微小的工作",
                 lang: "zh-CN",
                 theme_color: "#6d28d9",
                 background_color: "#ffffff",
