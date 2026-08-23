@@ -39,6 +39,16 @@ import { useWorkspaceStore } from "@/stores/workspace";
 type Side = "left" | "right";
 
 /**
+ * DataTransfer.types 在部分浏览器（Chrome/Edge）为 DOMStringList（无 includes 方法）。
+ * 统一按可迭代/contains 兼容判断，避免 dragover 处理抛错导致 drop 被浏览器拒绝。
+ */
+function hasDragType(types: readonly string[] | DOMStringList | undefined, type: string): boolean {
+  if (!types) return false;
+  if (Array.isArray(types)) return types.includes(type);
+  return (types as DOMStringList).contains?.(type) ?? false;
+}
+
+/**
  * 额外快捷键（仅注册 Monaco standalone 未内置的键位；
  * Ctrl+D、Ctrl+Shift+L、Ctrl+Shift+K、Ctrl+Enter、Ctrl+Shift+Enter、Alt+↑/↓、
  * Shift+Alt+↑/↓ 等已由 Monaco 原生绑定，覆盖注册反而会破坏原生行为）
@@ -206,18 +216,18 @@ watch(
 
 // store 内容变化（交换/复制到另一侧/备份导入等直接改 store 的操作）时同步到 Model，
 // 保证 Model 与 store 一致（否则切回工作区时会显示陈旧内容）；executeEdits 保留可撤销
+// 对比用编辑器当前 Model（真实场景与 workspaceModels 缓存为同一对象，且范围基于实时内容）
 watch([left, right], () => {
-  const id = ws.value?.id;
-  const pair = id ? getWorkspaceModels(id) : null;
-  if (!pair) return;
-  if (leftEditor.value && pair.left.getValue() !== left.value) {
+  const leftModel = leftEditor.value?.getModel();
+  if (leftEditor.value && leftModel && leftModel.getValue() !== left.value) {
     leftEditor.value.executeEdits("ww-sync", [
-      { range: pair.left.getFullModelRange(), text: left.value },
+      { range: leftModel.getFullModelRange(), text: left.value },
     ]);
   }
-  if (rightEditor.value && pair.right.getValue() !== right.value) {
+  const rightModel = rightEditor.value?.getModel();
+  if (rightEditor.value && rightModel && rightModel.getValue() !== right.value) {
     rightEditor.value.executeEdits("ww-sync", [
-      { range: pair.right.getFullModelRange(), text: right.value },
+      { range: rightModel.getFullModelRange(), text: right.value },
     ]);
   }
 });
@@ -283,8 +293,11 @@ function clearFocusedContent() {
 /** 拖拽悬停（捕获阶段，先于 Monaco 内部处理）：允许规则/文本拖入 */
 function handleEditorDragOver(e: DragEvent) {
   const dt = e.dataTransfer;
-  if (!dt || dt.types.includes("Files")) return;
-  if (dt.types.includes("application/x-with-work-rule") || dt.types.includes("text/plain")) {
+  if (!dt || hasDragType(dt.types, "Files")) return;
+  if (
+    hasDragType(dt.types, "application/x-with-work-rule") ||
+    hasDragType(dt.types, "text/plain")
+  ) {
     e.preventDefault();
     e.stopPropagation();
     dt.dropEffect = "copy";
@@ -301,7 +314,7 @@ function handleEditorDrop(e: DragEvent, side: Side) {
   if (!ed) return;
 
   // 替换规则拖入：按规则对编辑器全部内容执行替换（可撤销）
-  if (dt.types.includes("application/x-with-work-rule")) {
+  if (hasDragType(dt.types, "application/x-with-work-rule")) {
     const ruleId = dt.getData("application/x-with-work-rule");
     const rule = useRulesStore().rules.find((x) => x.id === ruleId);
     const model = ed.getModel();
@@ -444,12 +457,12 @@ function handleModelChange(side: Side, value: string) {
         class="relative flex shrink-0 items-center justify-center gap-2 px-1 lg:w-9 lg:flex-col lg:justify-start lg:px-0"
       >
         <div
-          class="absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20 lg:block"
+          class="absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-border/40 hover:bg-primary/25 lg:block"
           title="拖动调节左右宽度"
           @pointerdown="startSplitResize"
         />
         <div
-          class="absolute inset-y-0 -right-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20 lg:block"
+          class="absolute inset-y-0 -right-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-border/40 hover:bg-primary/25 lg:block"
           title="拖动调节左右宽度"
           @pointerdown="startSplitResize"
         />

@@ -58,7 +58,13 @@ const naiveSize = computed(() => {
   }
 });
 
-const circle = computed(() => props.size === "icon" || props.size === "icon-sm");
+const circled = computed(() => props.size === "icon" || props.size === "icon-sm");
+// 图标按钮：固定宽高（圆角矩形，非正圆）
+const sizeStyle = computed(() => {
+  if (props.size === "icon") return { width: "36px" };
+  if (props.size === "icon-sm") return { width: "26px" };
+  return undefined;
+});
 
 const activeStyle = computed(() =>
   props.active
@@ -73,6 +79,11 @@ const activeStyle = computed(() =>
         "--n-ripple-color": "var(--accent-foreground)",
       }
     : undefined,
+);
+
+/** 合并激活态与尺寸样式 */
+const mergedStyle = computed(() =>
+  props.active ? { ...activeStyle.value, ...sizeStyle.value } : sizeStyle.value,
 );
 
 // 分离 title（用于 tooltip，同时转为 aria-label 透传保留可访问性与测试定位）
@@ -95,11 +106,11 @@ const forwarding = computed(() => {
         :attr-type="props.type"
         :type="naiveType"
         :size="naiveSize"
-        :circle="circle"
+        :circle="circled"
         :bordered="bordered"
         :disabled="forwarding.disabled"
         :aria-label="forwarding.ariaLabel"
-        :style="activeStyle"
+        :style="mergedStyle"
         :class="cn(forwarding.className as string, 'align-middle')"
         v-bind="{ ...forwarding.rest }"
       >
@@ -113,11 +124,11 @@ const forwarding = computed(() => {
     :attr-type="props.type"
     :type="naiveType"
     :size="naiveSize"
-    :circle="circle"
+    :circle="circled"
     :bordered="bordered"
     :disabled="forwarding.disabled"
     :aria-label="forwarding.ariaLabel"
-    :style="activeStyle"
+    :style="mergedStyle"
     :class="cn(forwarding.className as string, 'align-middle')"
     v-bind="{ ...forwarding.rest }"
   >

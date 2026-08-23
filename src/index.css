@@ -102,7 +102,8 @@
     margin: 0;
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans);
+    /* !important：Naive UI 挂载时向 body 注入默认字体（v-sans 栈），压制以保证 Inter 体系生效 */
+    font-family: var(--font-sans) !important;
     -webkit-font-smoothing: antialiased;
   }
   ::selection {

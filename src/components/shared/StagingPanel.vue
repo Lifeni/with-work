@@ -193,10 +193,16 @@ function handleRuleDoubleClick(r: ReplaceRule) {
 }
 
 /** 拖拽悬停 / 落下：编辑器文本可拖入暂存区或模板区 */
+function hasDragType(types: readonly string[] | DOMStringList | undefined, type: string): boolean {
+  if (!types) return false;
+  if (Array.isArray(types)) return types.includes(type);
+  return (types as DOMStringList).contains?.(type) ?? false;
+}
+
 function handleDragOver(e: DragEvent, zone: "staging" | "templates") {
-  if (e.dataTransfer?.types.includes("text/plain")) {
+  if (hasDragType(e.dataTransfer?.types, "text/plain")) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+    e.dataTransfer!.dropEffect = "copy";
     dragOver.value = zone;
   }
 }
@@ -273,7 +279,7 @@ function setDragSource(e: DragEvent, zone: string) {
   >
     <!-- 左边缘拖拽手柄（悬停高亮，贴边显示） -->
     <div
-      class="absolute inset-y-0 left-0 z-10 w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20"
+      class="absolute inset-y-0 left-0 z-10 w-3 cursor-ew-resize touch-none select-none rounded bg-border/40 hover:bg-primary/25"
       title="拖动调节面板宽度"
       @pointerdown="startResize"
     />
@@ -461,7 +467,7 @@ function setDragSource(e: DragEvent, zone: string) {
       <!-- 上下分栏分隔条：拖动调节模板区高度 -->
       <div class="relative shrink-0 border-t border-border">
         <div
-          class="absolute -top-2 left-0 h-4 w-full cursor-row-resize touch-none select-none rounded hover:bg-primary/20"
+          class="absolute -top-2 left-0 h-4 w-full cursor-row-resize touch-none select-none rounded bg-border/30 hover:bg-primary/25"
           title="拖动调节模板区高度"
           @pointerdown="startTemplateResize"
         />

@@ -88,4 +88,31 @@ describe("EditorView 拖入", () => {
     expect(store.workspaces[0].left).toBe("你好 world");
     wrapper.unmount();
   });
+
+  it("DataTransfer.types 为 DOMStringList（无 includes）时拖入仍可用", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setLeft(id, "原始内容");
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+    const stub = wrapper.get(".monaco-editor-stub");
+    const zone = stub.element.parentElement!;
+
+    // 模拟 Chrome 行为：types 是仅含 contains 的 DOMStringList-like 对象
+    const dt = {
+      types: {
+        contains: (t: string) => t === "text/plain",
+      },
+      getData: (k: string) => (k === "text/plain" ? "拖入文本" : ""),
+    };
+    const ev = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, "dataTransfer", { value: dt });
+    zone.dispatchEvent(ev);
+    await nextTick();
+    await nextTick();
+
+    expect(store.workspaces[0].left).toContain("拖入文本");
+    wrapper.unmount();
+  });
 });
