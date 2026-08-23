@@ -176,6 +176,7 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
     createDecorationsCollection: () => ({ set: () => {}, clear: () => {} }),
     revealRangeInCenter: () => {},
     setPosition: () => {},
+    getPosition: () => ({ lineNumber: 1, column: 1 }),
     focus: () => {},
     trigger: () => {},
     // 测试辅助：模拟 @monaco-editor/react 卸载时 dispose 实例

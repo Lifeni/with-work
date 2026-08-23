@@ -81,10 +81,10 @@ describe("TitleBar 编辑操作与外观", () => {
     const settings = useSettingsStore();
     const wrapper = mountBar();
 
-    expect(wrapper.find('[title="撤销 (Ctrl+Z)"]').exists()).toBe(true);
-    expect(wrapper.find('[title="重做"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="撤销 (Ctrl+Z)"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="重做"]').exists()).toBe(true);
 
-    const wrap = wrapper.get('[title^="自动换行"]');
+    const wrap = wrapper.get('[aria-label^="自动换行"]');
     await wrap.trigger("click");
     expect(settings.wordWrap).toBe(false);
     await wrap.trigger("click");
@@ -96,7 +96,7 @@ describe("TitleBar 编辑操作与外观", () => {
     settings.setTheme("light");
     const wrapper = mountBar();
 
-    await wrapper.get('[title="切换主题"]').trigger("click");
+    await wrapper.get('[aria-label="切换主题"]').trigger("click");
     await new Promise((r) => setTimeout(r, 50));
     // n-dropdown 菜单渲染到 body，菜单项为 .n-dropdown-option
     const items = [...document.querySelectorAll(".n-dropdown-option")];
@@ -111,7 +111,7 @@ describe("TitleBar 编辑操作与外观", () => {
 
   it("设置按钮切换设置弹窗开关", async () => {
     const wrapper = mountBar();
-    const btn = wrapper.get('[title="设置"]');
+    const btn = wrapper.get('[aria-label="设置"]');
     await btn.trigger("click");
     expect(btn.attributes("aria-pressed")).toBe("true");
     await btn.trigger("click");

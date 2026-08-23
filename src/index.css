@@ -135,6 +135,14 @@
   display: none;
 }
 
+/* Naive 按钮激活态：通过 CSS 变量覆盖（Tailwind 类会被 Naive 运行时样式压过） */
+.n-button.ww-active {
+  --n-color: var(--accent);
+  --n-color-hover: var(--accent);
+  --n-color-pressed: var(--accent);
+  --n-text-color: var(--accent-foreground);
+}
+
 /* Monaco 查找高亮 */
 .ww-find-match {
   background: color-mix(in oklab, #f59e0b 30%, transparent);

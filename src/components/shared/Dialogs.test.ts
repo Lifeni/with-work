@@ -76,7 +76,7 @@ describe("RulesDialog 替换规则管理", () => {
     const wrapper = mount(RulesDialog, { props: { open: true } });
     await tick();
 
-    const editBtn = dialogButtons().find((b) => b.title === "编辑");
+    const editBtn = dialogButtons().find((b) => b.getAttribute("aria-label") === "编辑");
     editBtn!.click();
     await tick();
     const inputs = dialogInputs();
@@ -107,7 +107,7 @@ describe("RulesDialog 替换规则管理", () => {
     await tick();
 
     dialogButtons()
-      .find((b) => b.title === "删除")!
+      .find((b) => b.getAttribute("aria-label") === "删除")!
       .click();
     await tick();
     const confirm = [...document.querySelectorAll("button")].find(

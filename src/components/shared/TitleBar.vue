@@ -190,7 +190,7 @@ const onTemplatesFile = (e: Event) => {
         size="icon-sm"
         :title="settingsStore.wordWrap ? '自动换行：开启' : '自动换行：关闭'"
         @click="settingsStore.setWordWrap(!settingsStore.wordWrap)"
-        :class="cn(settingsStore.wordWrap && 'bg-accent text-accent-foreground')"
+        :class="cn(settingsStore.wordWrap && 'ww-active')"
       >
         <TextWrap class="size-3.5" />
       </Button>
@@ -283,7 +283,7 @@ const onTemplatesFile = (e: Event) => {
         title="设置"
         :aria-pressed="uiStore.settingsOpen"
         @click="uiStore.setSettingsOpen(!uiStore.settingsOpen)"
-        :class="cn(uiStore.settingsOpen && 'bg-accent text-accent-foreground')"
+        :class="cn(uiStore.settingsOpen && 'ww-active')"
       >
         <Settings class="size-3.5" />
       </Button>

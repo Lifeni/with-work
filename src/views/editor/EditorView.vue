@@ -317,9 +317,12 @@ function handleEditorDrop(e: DragEvent, side: Side) {
   // 普通文本拖入：落点插入纯文本
   const text = dt.getData("text/plain");
   if (text === undefined || text === null || text === "") return;
+  // 优先用 Monaco 坐标 API 获取落点；异常（返回 null）时退化到当前光标 / 文首，保证拖拽可用
   const target = ed.getTargetAtClientPoint(e.clientX, e.clientY);
-  if (!target?.position) return;
-  const pos = target.position;
+  const pos = target?.position ?? ed.getPosition() ?? { lineNumber: 1, column: 1 };
+  if (target?.position == null) {
+    toast("已插入到光标处");
+  }
   ed.executeEdits("ww-drop", [
     {
       range: {
@@ -439,12 +442,12 @@ function handleModelChange(side: Side, value: string) {
         class="relative flex shrink-0 items-center justify-center gap-2 px-1 lg:w-9 lg:flex-col lg:justify-start lg:px-0"
       >
         <div
-          class="absolute inset-y-0 -left-1 z-10 hidden w-2 cursor-ew-resize rounded hover:bg-primary/20 lg:block"
+          class="absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20 lg:block"
           title="拖动调节左右宽度"
           @mousedown="startSplitResize"
         />
         <div
-          class="absolute inset-y-0 -right-1 z-10 hidden w-2 cursor-ew-resize rounded hover:bg-primary/20 lg:block"
+          class="absolute inset-y-0 -right-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20 lg:block"
           title="拖动调节左右宽度"
           @mousedown="startSplitResize"
         />
@@ -469,7 +472,7 @@ function handleModelChange(side: Side, value: string) {
           size="icon-sm"
           :title="diffOpen ? '对比弹窗已打开' : '进入对比模式'"
           @click="diffOpen = true"
-          :class="cn(diffOpen && 'bg-accent text-accent-foreground')"
+          :class="cn(diffOpen && 'ww-active')"
         >
           <FileDiff />
         </Button>

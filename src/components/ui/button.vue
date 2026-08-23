@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, useAttrs } from "vue";
-import { NButton } from "naive-ui";
+import { NButton, NTooltip } from "naive-ui";
 import { cn } from "@/lib/utils";
 
 /**
  * Button：Naive UI n-button 的薄封装，保持原有 variant/size 语义。
- * 尺寸映射：default→medium、sm→small、lg→large；图标按钮使用 circle。
- * Tailwind 尺寸类对 n-button 无效（高度由 --n-height 控制），需要微调时
- * 传入 style 覆盖（如 :style="{ '--n-height': '26px' }"）。
+ * - 尺寸映射：default→medium、sm→small、lg→large；图标按钮使用 circle。
+ * - title 属性自动转为 n-tooltip（Naive 风格提示），不再透传给原生 title。
+ * - 激活态使用 ww-active 类（通过 CSS 变量覆盖 Naive 按钮色，避免被库样式覆盖）。
  */
 
 const props = withDefaults(
@@ -58,21 +58,47 @@ const naiveSize = computed(() => {
 
 const circle = computed(() => props.size === "icon" || props.size === "icon-sm");
 
-// 透传原生属性：disabled 转 n-button prop，其余（title 等）直接下发
+// 分离 title（用于 tooltip，同时转为 aria-label 透传保留可访问性与测试定位）
 const forwarding = computed(() => {
-  const { disabled, class: _cls, ...rest } = attrs as Record<string, unknown>;
-  return { disabled: Boolean(disabled), rest, className: _cls };
+  const { title, disabled, class: _cls, ...rest } = attrs as Record<string, unknown>;
+  return {
+    title: typeof title === "string" ? title : undefined,
+    ariaLabel: typeof title === "string" ? title : undefined,
+    disabled: Boolean(disabled),
+    rest,
+    className: _cls,
+  };
 });
 </script>
 
 <template>
+  <NTooltip v-if="forwarding.title" :delay="300" :disabled="false">
+    <template #trigger>
+      <NButton
+        :attr-type="props.type"
+        :type="naiveType"
+        :size="naiveSize"
+        :circle="circle"
+        :bordered="bordered"
+        :disabled="forwarding.disabled"
+        :aria-label="forwarding.ariaLabel"
+        :class="cn(forwarding.className as string, 'align-middle')"
+        v-bind="{ ...forwarding.rest }"
+      >
+        <slot />
+      </NButton>
+    </template>
+    {{ forwarding.title }}
+  </NTooltip>
   <NButton
+    v-else
     :attr-type="props.type"
     :type="naiveType"
     :size="naiveSize"
     :circle="circle"
     :bordered="bordered"
     :disabled="forwarding.disabled"
+    :aria-label="forwarding.ariaLabel"
     :class="cn(forwarding.className as string, 'align-middle')"
     v-bind="{ ...forwarding.rest }"
   >

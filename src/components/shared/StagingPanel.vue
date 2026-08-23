@@ -260,15 +260,19 @@ function setDragSource(e: DragEvent, zone: string) {
         'lg:relative lg:shrink-0 lg:overflow-hidden lg:border-l lg:border-border',
       )
     "
-    :style="{ width: uiStore.stagingOpen ? stagingWidth : 0 }"
+    :style="{
+      width: uiStore.stagingOpen ? stagingWidth : 0,
+      minWidth: uiStore.stagingOpen ? stagingWidth : 0,
+      maxWidth: uiStore.stagingOpen ? stagingWidth : 0,
+    }"
   >
     <!-- 左边缘拖拽手柄（悬停高亮，贴边显示） -->
     <div
-      class="absolute inset-y-0 left-0 z-10 w-2 cursor-ew-resize rounded hover:bg-primary/20"
+      class="absolute inset-y-0 left-0 z-10 w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20"
       title="拖动调节面板宽度"
       @mousedown="startResize"
     />
-    <div ref="panelRef" class="flex h-full flex-col" :style="{ width: stagingWidth }">
+    <div ref="panelRef" class="flex h-full min-w-0 flex-col" :style="{ width: stagingWidth }">
       <div class="flex h-9 items-center gap-2 border-b border-border px-3">
         <!-- 标题靠左：图标 + 文字 + 计数徽标 -->
         <span class="flex items-center gap-1.5 text-xs font-medium">
@@ -324,7 +328,7 @@ function setDragSource(e: DragEvent, zone: string) {
         data-testid="staging-drop-zone"
         :class="
           cn(
-            'min-h-0 flex-1 space-y-2 overflow-y-auto p-3 transition-colors',
+            'min-h-0 min-w-0 flex-1 space-y-2 overflow-y-auto p-3 transition-colors',
             dragOver === 'staging' && 'bg-accent/60',
           )
         "
@@ -457,7 +461,7 @@ function setDragSource(e: DragEvent, zone: string) {
       <!-- 上下分栏分隔条：拖动调节模板区高度 -->
       <div class="relative shrink-0 border-t border-border">
         <div
-          class="absolute -top-1.5 left-0 h-3 w-full cursor-row-resize rounded hover:bg-primary/20"
+          class="absolute -top-1.5 left-0 h-3 w-full cursor-row-resize touch-none select-none rounded hover:bg-primary/20"
           title="拖动调节模板区高度"
           @mousedown="startTemplateResize"
         />
@@ -466,7 +470,9 @@ function setDragSource(e: DragEvent, zone: string) {
       <!-- 下半部：模板区（文本模板 / 排序模板 / 替换规则，标签切换；支持拖入保存为文本模板） -->
       <div
         data-testid="template-drop-zone"
-        :class="cn('shrink-0 transition-colors', dragOver === 'templates' && 'bg-accent/60')"
+        :class="
+          cn('min-w-0 shrink-0 transition-colors', dragOver === 'templates' && 'bg-accent/60')
+        "
         :style="{ height: templateHeight }"
         @dragover="(e: DragEvent) => handleDragOver(e, 'templates')"
         @dragleave="handleDragLeave"

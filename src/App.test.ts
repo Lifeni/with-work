@@ -44,7 +44,7 @@ describe("App 整体布局", () => {
   it("点击设置按钮打开设置弹窗", async () => {
     const wrapper = mount(App, { attachTo: document.body });
     await tick();
-    await wrapper.get('[title="设置"]').trigger("click");
+    await wrapper.get('[aria-label="设置"]').trigger("click");
     await tick();
 
     const dialog = document.querySelector(".ww-dialog-content");
@@ -75,7 +75,7 @@ describe("App 底部状态栏", () => {
   it("切换主题菜单不影响布局", async () => {
     const wrapper = mount(App, { attachTo: document.body });
     await tick();
-    await wrapper.get('[title="切换主题"]').trigger("click");
+    await wrapper.get('[aria-label="切换主题"]').trigger("click");
     await tick();
     expect(document.querySelectorAll(".n-dropdown-option").length).toBeGreaterThan(0);
     wrapper.unmount();

@@ -72,7 +72,7 @@ describe("StagingPanel 全局暂存区", () => {
     staging.add("x");
     const wrapper = mountPanel();
 
-    await wrapper.get('[title="清空暂存区"]').trigger("click");
+    await wrapper.get('[aria-label="清空暂存区"]').trigger("click");
     await confirmDialog("清空");
     expect(staging.items).toHaveLength(0);
   });
@@ -82,7 +82,7 @@ describe("StagingPanel 全局暂存区", () => {
     staging.add("x");
     const wrapper = mountPanel();
 
-    await wrapper.get('[title="清空暂存区"]').trigger("click");
+    await wrapper.get('[aria-label="清空暂存区"]').trigger("click");
     await confirmDialog("取消");
     expect(staging.items).toHaveLength(1);
   });
@@ -114,7 +114,7 @@ describe("StagingPanel 模板区", () => {
 
   it("管理按钮打开对应管理对话框", async () => {
     const wrapper = mountPanel();
-    await wrapper.get('[title="管理文本模板"]').trigger("click");
+    await wrapper.get('[aria-label="管理文本模板"]').trigger("click");
     await new Promise((r) => setTimeout(r, 20));
     // n-modal 的卡片由 AppDialog 自绘（.ww-dialog-content）
     const dialog = document.querySelector(".ww-dialog-content");
