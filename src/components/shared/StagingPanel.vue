@@ -98,7 +98,8 @@ onUnmounted(() => {
   document.removeEventListener("mousedown", onDocResizeDown, { capture: true });
 });
 
-/** 拖动调节面板宽度（增量式，按下时记录起点避免突跳；记忆在设置中） */
+/** 拖动调节面板宽度（增量式，按下时记录起点避免突跳；记忆在设置中）
+ *  【诊断】onUp 时 toast 最终值，用于定位事件链是否生效 */
 function startResize(e: MouseEvent) {
   e.preventDefault();
   const startX = e.clientX;
@@ -113,6 +114,7 @@ function startResize(e: MouseEvent) {
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     document.body.style.userSelect = "";
+    toast("面板宽度 → " + stagingWidth.value + "px");
   };
   document.body.style.userSelect = "none";
   window.addEventListener("pointermove", onMove);
@@ -253,7 +255,8 @@ function handleDrop(e: DragEvent, zone: "staging" | "templates") {
   }
 }
 
-/** 拖动调节模板区高度（增量式：记录起点避免突跳；优先用面板高度限制上限，缺失时回落） */
+/** 拖动调节模板区高度（增量式：记录起点避免突跳；优先用面板高度限制上限，缺失时回落）
+ *  【诊断】onUp 时 toast 最终值 */
 function startTemplateResize(e: MouseEvent) {
   e.preventDefault();
   const startY = e.clientY;
@@ -269,6 +272,7 @@ function startTemplateResize(e: MouseEvent) {
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("pointerup", onUp);
     document.body.style.userSelect = "";
+    toast("模板高度 → " + templateHeight.value + "px");
   };
   document.body.style.userSelect = "none";
   window.addEventListener("pointermove", onMove);
@@ -287,7 +291,7 @@ function setDragSource(e: DragEvent, zone: string) {
   <div
     :class="
       cn(
-        'bg-card overflow-hidden',
+        'min-w-0 bg-card overflow-hidden',
         uiStore.stagingOpen
           ? 'fixed inset-y-0 right-0 z-40 shadow-2xl lg:z-auto lg:shadow-none'
           : 'hidden lg:block',
@@ -481,13 +485,13 @@ function setDragSource(e: DragEvent, zone: string) {
         暂存区为全局共用，所有工作区共享；拖拽条目到编辑器可快速插入
       </div>
 
-      <!-- 上下分栏分隔条：拖动调节模板区高度（命中区带 data 标记，由 document 捕获代理接管） -->
+      <!-- 上下分栏分隔条：拖动调节模板区高度（热区加大，命中由 document 捕获代理接管） -->
       <div
-        class="shrink-0 cursor-row-resize touch-none select-none border-t border-border pt-2"
+        class="shrink-0 cursor-row-resize touch-none select-none border-t border-border pb-2 pt-3"
         :data-resize-height="true"
         title="拖动调节模板区高度"
       >
-        <div class="h-1 w-full rounded bg-border/40 hover:bg-primary/25" />
+        <div class="h-1.5 w-full rounded bg-border/50 hover:bg-primary/25" />
       </div>
 
       <!-- 下半部：模板区（文本模板 / 排序模板 / 替换规则，标签切换；支持拖入保存为文本模板） -->
