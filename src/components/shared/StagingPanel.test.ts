@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import StagingPanel from "@/components/shared/StagingPanel.vue";
 import { resetStores } from "@/test/resetStores";
+import { useSettingsStore } from "@/stores/settings";
 import { useStagingStore } from "@/stores/staging";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
@@ -158,5 +159,20 @@ describe("StagingPanel 收起与悬浮按钮", () => {
     expect(fab.element.tagName).toBe("BUTTON");
     await fab.trigger("click");
     expect(ui.stagingOpen).toBe(true);
+  });
+
+  it("拖动左边缘手柄可调节面板宽度（记忆到设置）", async () => {
+    const settings = useSettingsStore();
+    const wrapper = mountPanel();
+    const handle = wrapper.find('[title="拖动调节面板宽度"]');
+    expect(handle.exists()).toBe(true);
+
+    // 向右拖 40px：宽度 320 → 360（设置同步）
+    await handle.trigger("mousedown", { clientX: 400 });
+    window.dispatchEvent(new MouseEvent("mousemove", { clientX: 360 }));
+    window.dispatchEvent(new MouseEvent("mouseup"));
+    await wrapper.vm.$nextTick();
+    expect(settings.stagingWidth).toBe(360);
+    wrapper.unmount();
   });
 });

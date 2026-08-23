@@ -31,7 +31,7 @@ const emit = defineEmits<{ "update:open": [value: boolean] }>();
     <div
       :class="
         cn(
-          'ww-dialog-content fixed left-1/2 top-1/2 z-[95] flex max-h-[85vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-card p-5 text-card-foreground shadow-xl',
+          'ww-dialog-content relative flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-card p-5 text-card-foreground shadow-xl',
           props.contentClass,
         )
       "

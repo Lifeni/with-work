@@ -8,6 +8,12 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  /* xicons 等 svg 图标无内置尺寸，兜底为 1em（有 size-* 工具类时由工具类覆盖） */
+  svg {
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+  }
 }
 
 :root {

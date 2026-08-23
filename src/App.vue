@@ -45,6 +45,18 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
   const dark = resolveTheme(settingsStore.theme) === "dark";
   return {
     common: {
+      // 覆盖 Naive 注入到 body 的默认字体，与项目 Inter 字体栈保持一致
+      fontFamily: [
+        "Inter",
+        "MiSans",
+        "HarmonyOS Sans SC",
+        "Source Han Sans SC",
+        "Noto Sans SC",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "sans-serif",
+      ].join(","),
       primaryColor: dark ? "#a78bfa" : "#6d28d9",
       primaryColorHover: dark ? "#c4b5fd" : "#7c3aed",
       primaryColorPressed: dark ? "#a78bfa" : "#5b21b6",
