@@ -163,7 +163,7 @@ const onRulesFile = (e: Event) => {
             <img :src="favicon" alt="一点微小的工作" class="h-12 w-12 rounded-full" />
             <div class="text-xs text-muted-foreground">
               <p class="text-sm font-semibold text-foreground">一点微小的工作</p>
-              <p>版本 100.0.0{{ BUILD_MODE === "single" ? " 单文件版" : "" }} 🕯️</p>
+              <p>版本 100.1.0{{ BUILD_MODE === "single" ? " 单文件版" : "" }} 🕯️</p>
               <p>
                 构建时间
                 {{
