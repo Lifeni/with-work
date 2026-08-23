@@ -6,7 +6,6 @@ import { useSettingsStore } from "@/stores/settings";
 import { useStagingStore } from "@/stores/staging";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
-import { useUiStore } from "@/stores/ui";
 
 beforeEach(() => {
   resetStores();
@@ -193,20 +192,7 @@ describe("StagingPanel 模板区", () => {
   });
 });
 
-describe("StagingPanel 收起与悬浮按钮", () => {
-  it("暂存区关闭后显示悬浮按钮，点击重新打开", async () => {
-    const ui = useUiStore();
-    ui.setStagingOpen(false);
-    mountPanel();
-
-    // 悬浮按钮 Teleport 到 body
-    const fab = document.querySelector('[title="打开暂存区"]');
-    expect(fab).not.toBeNull();
-    (fab as HTMLElement).click();
-    await new Promise((r) => setTimeout(r, 20));
-    expect(ui.stagingOpen).toBe(true);
-  });
-
+describe("StagingPanel 收起与尺寸调节", () => {
   it("拖动右缘手柄可调节面板宽度（记忆到设置）", async () => {
     const settings = useSettingsStore();
     const wrapper = mountPanel();

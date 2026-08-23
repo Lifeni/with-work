@@ -7,7 +7,6 @@ import {
   FileDiff,
   FileText,
   LayoutSidebarLeftCollapse,
-  LayoutSidebarLeftExpand,
   ListNumbers,
   Pencil,
   Plus,
@@ -979,17 +978,4 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
     />
     </div>
   </div>
-
-  <!-- 悬浮按钮：暂存区关闭时显示（宽窄屏统一），点击打开抽屉/面板；Teleport 到 body 避免被遮挡 -->
-  <Teleport to="body">
-    <button
-      v-if="!uiStore.stagingOpen"
-      type="button"
-      @click="uiStore.setStagingOpen(true)"
-      title="打开暂存区"
-      class="fixed bottom-9 right-3 z-[400] flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
-    >
-      <LayoutSidebarLeftExpand class="size-4" />
-    </button>
-  </Teleport>
 </template>
