@@ -19,7 +19,7 @@ const cache = new Map<string, WorkspaceModels>();
 export function getWorkspaceModels(wsId: string): WorkspaceModels | null {
   const cached = cache.get(wsId);
   if (cached) return cached;
-  const ws = useWorkspaceStore.getState().workspaces.find((w) => w.id === wsId);
+  const ws = useWorkspaceStore().workspaces.find((w) => w.id === wsId);
   if (!ws) return null;
   const left = monaco.editor.createModel(ws.left ?? "", detectLanguage(ws.left ?? ""));
   const right = monaco.editor.createModel(ws.right ?? "", detectLanguage(ws.right ?? ""));

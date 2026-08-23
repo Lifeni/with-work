@@ -16,11 +16,11 @@ import { useWorkspaceStore } from "@/stores/workspace";
 // 每个用例前重置所有 store，避免 persist 恢复的旧状态串扰
 beforeEach(() => {
   localStorage.clear();
-  useWorkspaceStore.getState().replaceAll([]);
-  useStagingStore.getState().replaceAll([]);
-  useRulesStore.getState().replaceAll([]);
-  useTemplatesStore.getState().replaceAll([]);
-  useTextTemplatesStore.getState().replaceAll([]);
+  useWorkspaceStore().replaceAll([]);
+  useStagingStore().replaceAll([]);
+  useRulesStore().replaceAll([]);
+  useTemplatesStore().replaceAll([]);
+  useTextTemplatesStore().replaceAll([]);
 });
 
 const BASE_BACKUP = {
@@ -90,9 +90,9 @@ describe("parseBackup", () => {
 
 describe("collectBackup", () => {
   it("收集全部数据且版本为 3", () => {
-    useWorkspaceStore.getState().createWorkspace();
-    useStagingStore.getState().add("hello");
-    useRulesStore.getState().addRule({
+    useWorkspaceStore().createWorkspace();
+    useStagingStore().add("hello");
+    useRulesStore().addRule({
       id: "r1",
       name: "规则",
       find: "a",
@@ -100,8 +100,8 @@ describe("collectBackup", () => {
       isRegex: false,
       matchCase: false,
     });
-    useTemplatesStore.getState().addTemplate({ id: "t1", name: "模板", items: ["x"] });
-    useTextTemplatesStore.getState().addTemplate({ id: "tt1", name: "文本", text: "hi" });
+    useTemplatesStore().addTemplate({ id: "t1", name: "模板", items: ["x"] });
+    useTextTemplatesStore().addTemplate({ id: "tt1", name: "文本", text: "hi" });
 
     const d = collectBackup();
     expect(d.app).toBe("with-work");
@@ -119,9 +119,9 @@ describe("collectBackup", () => {
   });
 
   it("diff 反映当前激活工作区的左右内容", () => {
-    const id = useWorkspaceStore.getState().createWorkspace();
-    useWorkspaceStore.getState().setLeft(id, "左");
-    useWorkspaceStore.getState().setRight(id, "右");
+    const id = useWorkspaceStore().createWorkspace();
+    useWorkspaceStore().setLeft(id, "左");
+    useWorkspaceStore().setRight(id, "右");
     const d = collectBackup();
     expect(d.diff).toEqual({ left: "左", right: "右" });
   });

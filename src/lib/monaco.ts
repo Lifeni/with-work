@@ -4,14 +4,11 @@
 // （LSP 集成前的最后版本，语言服务走 MonacoEnvironment.getWorker 分发）。
 // 文本工具场景只需要编辑器能力与词法高亮，0.52 完整满足且单文件完全自包含。
 import * as monaco from "monaco-editor";
-import { loader } from "@monaco-editor/react";
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker&inline";
 
 (self as unknown as { MonacoEnvironment: unknown }).MonacoEnvironment = {
   getWorker: () => new editorWorker(),
 };
-
-loader.config({ monaco });
 
 export { monaco };
 

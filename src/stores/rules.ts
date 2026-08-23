@@ -1,32 +1,29 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 import type { ReplaceRule } from "@/types";
 
-interface RulesState {
-  rules: ReplaceRule[];
-  addRule: (rule: ReplaceRule) => void;
-  updateRule: (rule: ReplaceRule) => void;
-  removeRule: (id: string) => void;
-  clearRules: () => void;
-  replaceAll: (rules: ReplaceRule[]) => void;
-}
+export const useRulesStore = defineStore("rules", () => {
+  const rules = ref<ReplaceRule[]>([]);
 
-export const useRulesStore = create<RulesState>()(
-  persist(
-    (set) => ({
-      rules: [],
+  function addRule(rule: ReplaceRule) {
+    rules.value = [...rules.value, rule];
+  }
 
-      addRule: (rule) => set((s) => ({ rules: [...s.rules, rule] })),
+  function updateRule(rule: ReplaceRule) {
+    rules.value = rules.value.map((r) => (r.id === rule.id ? rule : r));
+  }
 
-      updateRule: (rule) =>
-        set((s) => ({ rules: s.rules.map((r) => (r.id === rule.id ? rule : r)) })),
+  function removeRule(id: string) {
+    rules.value = rules.value.filter((r) => r.id !== id);
+  }
 
-      removeRule: (id) => set((s) => ({ rules: s.rules.filter((r) => r.id !== id) })),
+  function clearRules() {
+    rules.value = [];
+  }
 
-      clearRules: () => set({ rules: [] }),
+  function replaceAll(next: ReplaceRule[]) {
+    rules.value = next;
+  }
 
-      replaceAll: (rules) => set({ rules }),
-    }),
-    { name: "ww:rules" },
-  ),
-);
+  return { rules, addRule, updateRule, removeRule, clearRules, replaceAll };
+});

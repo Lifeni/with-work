@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { VitePWA } from "vite-plugin-pwa";
@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
       __BUILD_MODE__: JSON.stringify(isSingle ? "single" : "deploy"),
     },
     plugins: [
-      react(),
+      vue(),
       tailwindcss(),
       ...(isSingle ? [viteSingleFile()] : []),
       ...(isPwa
@@ -89,7 +89,7 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 10000,
     },
     test: {
-      // jsdom 环境：自带 DOM/window，供 zustand persist 与组件测试使用
+      // jsdom 环境：自带 DOM/window，供持久化与组件测试使用
       environment: "jsdom",
       setupFiles: ["src/test/setup.ts"],
       include: ["src/**/*.test.{ts,tsx}"],

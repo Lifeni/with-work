@@ -1,29 +1,25 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 import type { SortTemplate } from "@/types";
 
-interface TemplatesState {
-  templates: SortTemplate[];
-  addTemplate: (t: SortTemplate) => void;
-  updateTemplate: (t: SortTemplate) => void;
-  removeTemplate: (id: string) => void;
-  replaceAll: (templates: SortTemplate[]) => void;
-}
+export const useTemplatesStore = defineStore("templates", () => {
+  const templates = ref<SortTemplate[]>([]);
 
-export const useTemplatesStore = create<TemplatesState>()(
-  persist(
-    (set) => ({
-      templates: [],
+  function addTemplate(t: SortTemplate) {
+    templates.value = [...templates.value, t];
+  }
 
-      addTemplate: (t) => set((s) => ({ templates: [...s.templates, t] })),
+  function updateTemplate(t: SortTemplate) {
+    templates.value = templates.value.map((x) => (x.id === t.id ? t : x));
+  }
 
-      updateTemplate: (t) =>
-        set((s) => ({ templates: s.templates.map((x) => (x.id === t.id ? t : x)) })),
+  function removeTemplate(id: string) {
+    templates.value = templates.value.filter((x) => x.id !== id);
+  }
 
-      removeTemplate: (id) => set((s) => ({ templates: s.templates.filter((x) => x.id !== id) })),
+  function replaceAll(next: SortTemplate[]) {
+    templates.value = next;
+  }
 
-      replaceAll: (templates) => set({ templates }),
-    }),
-    { name: "ww:templates" },
-  ),
-);
+  return { templates, addTemplate, updateTemplate, removeTemplate, replaceAll };
+});

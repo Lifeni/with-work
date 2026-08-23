@@ -1,95 +1,90 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 import type { Workspace } from "@/types";
 
 let seq = 0;
 const nextId = () => `ws-${Date.now().toString(36)}-${(seq++).toString(36)}`;
 
-interface WorkspaceState {
-  workspaces: Workspace[];
-  activeId: string | null;
-  createWorkspace: () => string;
-  deleteWorkspace: (id: string) => void;
-  renameWorkspace: (id: string, name: string) => void;
-  setActive: (id: string) => void;
-  setContent: (id: string, content: string) => void;
-  setLanguage: (id: string, language: string) => void;
-  setLeft: (id: string, left: string) => void;
-  setRight: (id: string, right: string) => void;
-  swapSides: (id: string) => void;
-  replaceAll: (workspaces: Workspace[]) => void;
-}
+export const useWorkspaceStore = defineStore("workspace", () => {
+  const workspaces = ref<Workspace[]>([]);
+  const activeId = ref<string | null>(null);
 
-export const useWorkspaceStore = create<WorkspaceState>()(
-  persist(
-    (set, get) => ({
-      workspaces: [],
-      activeId: null,
+  function createWorkspace(): string {
+    const id = nextId();
+    const ws: Workspace = {
+      id,
+      name: `工作区 ${workspaces.value.length + 1}`,
+      content: "",
+      language: "auto",
+      editorMode: "single",
+      left: "",
+      right: "",
+      view: "editor",
+    };
+    workspaces.value = [...workspaces.value, ws];
+    activeId.value = id;
+    return id;
+  }
 
-      createWorkspace: () => {
-        const id = nextId();
-        const ws: Workspace = {
-          id,
-          name: `工作区 ${get().workspaces.length + 1}`,
-          content: "",
-          language: "auto",
-          editorMode: "single",
-          left: "",
-          right: "",
-          view: "editor",
-        };
-        set((s) => ({ workspaces: [...s.workspaces, ws], activeId: id }));
-        return id;
-      },
+  function deleteWorkspace(id: string) {
+    const next = workspaces.value.filter((w) => w.id !== id);
+    if (activeId.value === id) {
+      const idx = workspaces.value.findIndex((w) => w.id === id);
+      const after = next[Math.min(idx, next.length - 1)] ?? null;
+      activeId.value = after ? after.id : null;
+    }
+    workspaces.value = next;
+  }
 
-      deleteWorkspace: (id) =>
-        set((s) => {
-          const workspaces = s.workspaces.filter((w) => w.id !== id);
-          let activeId = s.activeId;
-          if (activeId === id) {
-            const idx = s.workspaces.findIndex((w) => w.id === id);
-            const next = workspaces[Math.min(idx, workspaces.length - 1)] ?? null;
-            activeId = next ? next.id : null;
-          }
-          return { workspaces, activeId };
-        }),
+  function renameWorkspace(id: string, name: string) {
+    workspaces.value = workspaces.value.map((w) =>
+      w.id === id ? { ...w, name: name || w.name } : w,
+    );
+  }
 
-      renameWorkspace: (id, name) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, name: name || w.name } : w)),
-        })),
+  function setActive(id: string) {
+    activeId.value = id;
+  }
 
-      setActive: (id) => set({ activeId: id }),
+  function setContent(id: string, content: string) {
+    workspaces.value = workspaces.value.map((w) => (w.id === id ? { ...w, content } : w));
+  }
 
-      setContent: (id, content) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, content } : w)),
-        })),
+  function setLanguage(id: string, language: string) {
+    workspaces.value = workspaces.value.map((w) => (w.id === id ? { ...w, language } : w));
+  }
 
-      setLanguage: (id, language) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, language } : w)),
-        })),
+  function setLeft(id: string, left: string) {
+    workspaces.value = workspaces.value.map((w) => (w.id === id ? { ...w, left } : w));
+  }
 
-      setLeft: (id, left) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, left } : w)),
-        })),
+  function setRight(id: string, right: string) {
+    workspaces.value = workspaces.value.map((w) => (w.id === id ? { ...w, right } : w));
+  }
 
-      setRight: (id, right) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, right } : w)),
-        })),
+  function swapSides(id: string) {
+    workspaces.value = workspaces.value.map((w) =>
+      w.id === id ? { ...w, left: w.right ?? "", right: w.left ?? "" } : w,
+    );
+  }
 
-      swapSides: (id) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) =>
-            w.id === id ? { ...w, left: w.right ?? "", right: w.left ?? "" } : w,
-          ),
-        })),
+  function replaceAll(next: Workspace[]) {
+    workspaces.value = next;
+    activeId.value = next[0]?.id ?? null;
+  }
 
-      replaceAll: (workspaces) => set({ workspaces, activeId: workspaces[0]?.id ?? null }),
-    }),
-    { name: "ww:workspaces" },
-  ),
-);
+  return {
+    workspaces,
+    activeId,
+    createWorkspace,
+    deleteWorkspace,
+    renameWorkspace,
+    setActive,
+    setContent,
+    setLanguage,
+    setLeft,
+    setRight,
+    swapSides,
+    replaceAll,
+  };
+});

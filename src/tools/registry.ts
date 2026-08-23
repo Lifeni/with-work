@@ -10,7 +10,7 @@ import {
   SortAsc,
   SortDesc,
   type LucideIcon,
-} from "lucide-react";
+} from "@lucide/vue";
 import { applyReplacements } from "@/lib/replace";
 import { splitText, type SplitDelimiter } from "@/lib/split";
 import { useRulesStore } from "@/stores/rules";
@@ -129,7 +129,7 @@ export const tools: GlobalTool[] = [
     needsConfig: true,
     hideFromRail: true,
     run: (i, cfg) => {
-      const rule = useRulesStore.getState().rules.find((r) => r.id === cfg?.ruleId);
+      const rule = useRulesStore().rules.find((r) => r.id === cfg?.ruleId);
       if (!rule) return i;
       return applyReplacements(i, rule.find, rule.replace, rule.isRegex, rule.matchCase);
     },

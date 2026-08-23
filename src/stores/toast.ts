@@ -1,27 +1,26 @@
-import { create } from "zustand";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 import { uid } from "@/lib/utils";
 
-interface ToastItem {
+export interface ToastItem {
   id: string;
   message: string;
 }
 
-interface ToastState {
-  toasts: ToastItem[];
-  push: (message: string) => void;
-  remove: (id: string) => void;
-}
+export const useToastStore = defineStore("toast", () => {
+  const toasts = ref<ToastItem[]>([]);
 
-export const useToastStore = create<ToastState>((set) => ({
-  toasts: [],
-
-  push: (message) => {
+  function push(message: string) {
     const id = uid();
-    set((s) => ({ toasts: [...s.toasts, { id, message }] }));
+    toasts.value = [...toasts.value, { id, message }];
     setTimeout(() => {
-      set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
+      toasts.value = toasts.value.filter((t) => t.id !== id);
     }, 2400);
-  },
+  }
 
-  remove: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
-}));
+  function remove(id: string) {
+    toasts.value = toasts.value.filter((t) => t.id !== id);
+  }
+
+  return { toasts, push, remove };
+});

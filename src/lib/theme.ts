@@ -18,6 +18,6 @@ export function applyTheme(mode: ThemeMode) {
 export function initTheme(mode: ThemeMode) {
   applyTheme(mode);
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    if (useSettingsStore.getState().theme === "system") applyTheme("system");
+    if (useSettingsStore().theme === "system") applyTheme("system");
   });
 }
