@@ -53,7 +53,7 @@ function runTool(tool: GlobalTool) {
             @click="runTool(t)"
             class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <component :is="t.icon" class="size-5" />
+            <component :is="t.icon" class="size-[22px]" />
           </button>
         </template>
         {{ t.name }}

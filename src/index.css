@@ -136,6 +136,16 @@
   display: none;
 }
 
+/* 按钮内图标统一尺寸（按钮字号已收紧，svg 由类控制时易过小，这里兜底） */
+.n-button .n-button__content svg {
+  width: 16px;
+  height: 16px;
+}
+.n-button--medium-type.n-button--medium-size:not(.n-button--small-type) .n-button__content svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Monaco 查找高亮 */
 .ww-find-match {
   background: color-mix(in oklab, #f59e0b 30%, transparent);

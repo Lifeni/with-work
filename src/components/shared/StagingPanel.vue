@@ -76,11 +76,11 @@ onMounted(() => {
 });
 
 /** 拖动调节面板宽度（增量式，按下时记录起点避免突跳；记忆在设置中） */
-function startResize(e: PointerEvent) {
+function startResize(e: MouseEvent) {
   e.preventDefault();
   const startX = e.clientX;
   const startWidth = stagingWidth.value;
-  const onMove = (ev: PointerEvent) => {
+  const onMove = (ev: MouseEvent) => {
     const w = startWidth + (startX - ev.clientX);
     const next = Math.min(560, Math.max(240, w));
     stagingWidth.value = next;
@@ -231,11 +231,11 @@ function handleDrop(e: DragEvent, zone: "staging" | "templates") {
 }
 
 /** 拖动调节模板区高度（增量式：记录起点避免突跳；优先用面板高度限制上限，缺失时回落） */
-function startTemplateResize(e: PointerEvent) {
+function startTemplateResize(e: MouseEvent) {
   e.preventDefault();
   const startY = e.clientY;
   const startHeight = templateHeight.value;
-  const onMove = (ev: PointerEvent) => {
+  const onMove = (ev: MouseEvent) => {
     const h = startHeight + (startY - ev.clientY);
     const max = panelRef.value?.getBoundingClientRect().height;
     const next = Math.min(max ? max * 0.7 : 640, Math.max(160, h));
@@ -279,9 +279,10 @@ function setDragSource(e: DragEvent, zone: string) {
   >
     <!-- 左边缘拖拽手柄（悬停高亮，贴边显示） -->
     <div
-      class="absolute inset-y-0 left-0 z-10 w-3 cursor-ew-resize touch-none select-none rounded bg-border/40 hover:bg-primary/25"
+      class="absolute inset-y-0 left-0 z-30 w-4 cursor-ew-resize touch-none select-none rounded bg-border/50 hover:bg-primary/25"
       title="拖动调节面板宽度"
       @pointerdown="startResize"
+      @mousedown="startResize"
     />
     <div ref="panelRef" class="flex h-full min-w-0 flex-col" :style="{ width: stagingWidth }">
       <div class="flex h-9 items-center gap-2 border-b border-border px-3">
@@ -464,12 +465,12 @@ function setDragSource(e: DragEvent, zone: string) {
         暂存区为全局共用，所有工作区共享；拖拽条目到编辑器可快速插入
       </div>
 
-      <!-- 上下分栏分隔条：拖动调节模板区高度 -->
-      <div class="relative shrink-0 border-t border-border">
+      <div class="relative z-20 shrink-0 border-t border-border">
         <div
-          class="absolute -top-2 left-0 h-4 w-full cursor-row-resize touch-none select-none rounded bg-border/30 hover:bg-primary/25"
+          class="absolute -top-2 left-0 h-5 w-full cursor-row-resize touch-none select-none rounded bg-border/40 hover:bg-primary/25"
           title="拖动调节模板区高度"
           @pointerdown="startTemplateResize"
+          @mousedown="startTemplateResize"
         />
       </div>
 
@@ -856,14 +857,16 @@ function setDragSource(e: DragEvent, zone: string) {
     </div>
   </div>
 
-  <!-- 悬浮按钮：暂存区关闭时显示（宽窄屏统一），点击打开抽屉/面板 -->
-  <button
-    v-if="!uiStore.stagingOpen"
-    type="button"
-    @click="uiStore.setStagingOpen(true)"
-    title="打开暂存区"
-    class="fixed bottom-9 right-3 z-30 flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
-  >
-    <LayoutSidebarRight class="size-4" />
-  </button>
+  <!-- 悬浮按钮：暂存区关闭时显示（宽窄屏统一），点击打开抽屉/面板；Teleport 到 body 避免被遮挡 -->
+  <Teleport to="body">
+    <button
+      v-if="!uiStore.stagingOpen"
+      type="button"
+      @click="uiStore.setStagingOpen(true)"
+      title="打开暂存区"
+      class="fixed bottom-9 right-3 z-[400] flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+    >
+      <LayoutSidebarRight class="size-4" />
+    </button>
+  </Teleport>
 </template>

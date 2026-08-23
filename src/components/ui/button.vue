@@ -81,10 +81,13 @@ const activeStyle = computed(() =>
     : undefined,
 );
 
-/** 合并激活态与尺寸样式 */
-const mergedStyle = computed(() =>
-  props.active ? { ...activeStyle.value, ...sizeStyle.value } : sizeStyle.value,
-);
+/** 合并激活态与尺寸样式（数字按钮统一紧凑字号） */
+const mergedStyle = computed(() => {
+  const base = { "--n-font-size": "12px" } as Record<string, string>;
+  if (props.active) Object.assign(base, activeStyle.value);
+  if (sizeStyle.value) Object.assign(base, sizeStyle.value);
+  return base;
+});
 
 // 分离 title（用于 tooltip，同时转为 aria-label 透传保留可访问性与测试定位）
 const forwarding = computed(() => {

@@ -153,11 +153,13 @@ describe("StagingPanel 收起与悬浮按钮", () => {
   it("暂存区关闭后显示悬浮按钮，点击重新打开", async () => {
     const ui = useUiStore();
     ui.setStagingOpen(false);
-    const wrapper = mountPanel();
+    mountPanel();
 
-    const fab = wrapper.get('[title="打开暂存区"]');
-    expect(fab.element.tagName).toBe("BUTTON");
-    await fab.trigger("click");
+    // 悬浮按钮 Teleport 到 body
+    const fab = document.querySelector('[title="打开暂存区"]');
+    expect(fab).not.toBeNull();
+    (fab as HTMLElement).click();
+    await new Promise((r) => setTimeout(r, 20));
     expect(ui.stagingOpen).toBe(true);
   });
 
