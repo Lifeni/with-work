@@ -2,20 +2,20 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import * as monaco from "monaco-editor";
 import {
-  ArrowLeftRight,
-  ArrowUpDown,
+  ArrowsLeftRight,
+  ArrowsUpDown,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  ClipboardPaste,
+  ClipboardCheck,
   Copy,
   FileDiff,
   FileText,
   Inbox,
-  ListOrdered,
-  Trash2,
-} from "@lucide/vue";
+  ListNumbers,
+  Trash,
+} from "@vicons/tabler";
 import MonacoEditor from "@/components/shared/MonacoEditor.vue";
 import DiffEditor from "@/components/shared/DiffEditor.vue";
 import AppDialog from "@/components/ui/dialog.vue";
@@ -462,7 +462,7 @@ function handleModelChange(side: Side, value: string) {
           title="从剪贴板粘贴到聚焦编辑器"
           @click="pasteToFocused"
         >
-          <ClipboardPaste />
+          <ClipboardCheck />
         </Button>
         <Button
           variant="ghost"
@@ -475,8 +475,8 @@ function handleModelChange(side: Side, value: string) {
         </Button>
         <Button variant="ghost" size="icon-sm" title="交换内容" @click="wsStore.swapSides(ws!.id)">
           <!-- 窄屏上下堆叠时用上下交换图标，宽屏左右并排用左右交换图标 -->
-          <ArrowUpDown class="lg:hidden" />
-          <ArrowLeftRight class="hidden lg:block" />
+          <ArrowsUpDown class="lg:hidden" />
+          <ArrowsLeftRight class="hidden lg:block" />
         </Button>
         <Button variant="ghost" size="icon-sm" title="复制到另一侧" @click="copyLeftToRight">
           <ChevronDown class="lg:hidden" />
@@ -510,7 +510,7 @@ function handleModelChange(side: Side, value: string) {
           title="聚焦编辑器 → 排序模板"
           @click="importFromFocused('sort-template')"
         >
-          <ListOrdered />
+          <ListNumbers />
         </Button>
 
         <!-- 宽屏竖排时把清空按钮推到底部（窄屏横排自动居中，不占位） -->
@@ -523,7 +523,7 @@ function handleModelChange(side: Side, value: string) {
           class="text-destructive hover:text-destructive"
           @click="clearFocusedContent"
         >
-          <Trash2 />
+          <Trash />
         </Button>
       </div>
 

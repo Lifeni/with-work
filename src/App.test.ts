@@ -47,7 +47,7 @@ describe("App 整体布局", () => {
     await wrapper.get('[title="设置"]').trigger("click");
     await tick();
 
-    const dialog = document.querySelector("[role=dialog]");
+    const dialog = document.querySelector(".ww-dialog-content");
     expect(dialog?.textContent).toContain("设置");
     expect(dialog?.textContent).toContain("外观");
     wrapper.unmount();
@@ -77,7 +77,7 @@ describe("App 底部状态栏", () => {
     await tick();
     await wrapper.get('[title="切换主题"]').trigger("click");
     await tick();
-    expect(document.querySelectorAll("[role=menuitem]").length).toBeGreaterThan(0);
+    expect(document.querySelectorAll(".n-dropdown-option").length).toBeGreaterThan(0);
     wrapper.unmount();
   });
 });

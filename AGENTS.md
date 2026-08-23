@@ -7,7 +7,7 @@
 
 - **项目名**：with-work（中文名：一点微小的工作）
 - **定位**：工作辅助类 Web 应用，核心是文本处理（查找/替换、分割/排序、对比）
-- **技术栈**：Vue 3 + Vite 8 + TypeScript（strict）+ Tailwind CSS v4 + shadcn 风格组件（reka-ui）+ Monaco Editor（锁 0.52.x）+ Pinia + Vitest
+- **技术栈**：Vue 3 + Vite 8 + TypeScript（strict）+ Tailwind CSS v4 + Naive UI（主题经 `n-config-provider` 与自身主题联动）+ Monaco Editor（锁 0.52.x）+ Pinia + Vitest
 - **包管理器**：pnpm（勿混用其他包管理器，依赖变更通过 `pnpm add <pkg>` 完成，勿手动改 lockfile）
 - **部署**：Vercel（`vercel.json` 已配置，构建输出 `dist/`）
 - **双构建模式**：`pnpm run build`（Vercel 静态部署，启用 PWA；构建时额外执行单文件构建并复制为 `dist/with-work-single.html`，设置页关于在部署版提供下载、单文件版标注「单文件版」）与 `pnpm run build:single`（单文件 HTML，输出 `dist-single/`，所有资源内嵌、favicon 亦内联，双击可离线运行）
@@ -37,7 +37,7 @@ with-work/
 │   ├── App.vue / main.ts    # 应用入口与布局壳
 │   ├── index.css             # Tailwind 入口 + 主题变量（浅色/深色）
 │   ├── components/
-│   │   ├── ui/               # 通用基础组件（shadcn 风格：Button、Dialog 等）
+│   │   ├── ui/               # 通用基础组件（Naive UI 薄封装：Button、Dialog、DropdownMenu、Badge；Input/Textarea/Toggle 为原生实现）
 │   │   └── shared/           # 业务共享组件（TitleBar、StagingPanel、SettingsDialog、RulesDialog 等）
 │   ├── views/                # 功能视图（editor/ 编辑器与工具面板、settings/ 设置内容）
 │   ├── stores/               # Pinia stores（workspace/staging/rules/templates/textTemplates/settings/ui/status/toast，自动持久化）
@@ -60,7 +60,8 @@ with-work/
 - **工作区模型**：每个工作区持有独立的 Monaco Model（`lib/workspaceModels.ts` 缓存），切换工作区时换绑 Model，撤销/重做历史按工作区独立保留；store ↔ Model 双向同步（`ww-sync`）。
 - **查找替换面板**（`views/editor/FindReplacePanel.vue`）：编辑器顶部一体面板，包含查找（正则/大小写/计数高亮）、替换（全部替换/规则下拉）、分割、排序四个功能；排序支持开头匹配（模板属性或工具栏开关），作用于聚焦编辑器，替换/分割结果写入另一侧。
 - **暂存区**（`StagingPanel.vue`）：右侧面板，多工作区共用；包含全局暂存区（文本条目）、文本模板、排序模板、替换规则四个模块，条目可拖动到编辑器（规则拖入 = 按规则替换全文），双击编辑，支持分组与导入/导出。
-- **图标**：界面图标用 @lucide/vue；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联；PWA 图标由 `pnpm run icons` 生成到 `public/`）。
+- **图标**：界面图标用 @vicons/tabler（无 Icon 前缀命名）；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联；PWA 图标由 `pnpm run icons` 生成到 `public/`）。
+- **主题**：CSS 变量（oklch）+ `.dark` 类切换（Tailwind 语义色），Naive 主题在 `App.vue` 通过 `n-config-provider` 跟随同一设置（themeOverrides 主色对齐品牌色）。
 - **路径别名**：`@/` 指向 `src/`。
 - **主题**：CSS 变量（oklch）+ `.dark` 类切换，Monaco 主题跟随（`lib/theme.ts`）。
 - **全局工具**：`src/tools/registry.ts` 注册表 + 左侧竖向工具栏（Photoshop 式）入口；工具是纯函数（输入文本 → 输出文本），作用于聚焦编辑器（选区优先，无选区时处理全文），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。

@@ -1,34 +1,25 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import {
-  Check,
   Download,
-  FileCode2,
+  FileCode,
   FileText,
-  FolderOpen,
-  HardDrive,
+  Folder,
+  DeviceFloppy,
   Moon,
   Plus,
-  Redo2,
+  ArrowForwardUp,
   Settings,
   Sun,
-  Trash2,
-  Undo2,
+  Trash,
+  ArrowBackUp,
   Upload,
-  WrapText,
+  TextWrap,
   X,
-} from "@lucide/vue";
+} from "@vicons/tabler";
 import Button from "@/components/ui/button.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  dropdownContentClass,
-  dropdownItemClass,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, type DropdownItem } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { getActiveEditor } from "@/lib/editorBridge";
 import { useWorkspaceStore } from "@/stores/workspace";
@@ -55,6 +46,60 @@ const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: "dark", label: "深色" },
   { value: "system", label: "跟随系统" },
 ];
+
+/** 主题菜单项（当前主题打勾） */
+const themeMenuOptions = computed<DropdownItem[]>(() =>
+  THEME_OPTIONS.map((opt) => ({
+    key: opt.value,
+    label: opt.label,
+    checked: settingsStore.theme === opt.value,
+  })),
+);
+
+/** 数据菜单项（导入 / 导出 / 备份 / 清空） */
+const dataMenuOptions: DropdownItem[] = [
+  { key: "export-backup", label: "导出全部备份", icon: Download },
+  { key: "import-backup", label: "导入备份", icon: Upload },
+  { key: "sep1", divider: true },
+  { key: "export-rules", label: "导出替换规则", icon: FileCode },
+  { key: "import-rules", label: "导入替换规则", icon: Folder },
+  { key: "sep2", divider: true },
+  { key: "export-templates", label: "导出排序模板", icon: FileCode },
+  { key: "import-templates", label: "导入排序模板", icon: Folder },
+  { key: "sep3", divider: true },
+  { key: "export-workspace", label: "导出当前工作区", icon: FileText },
+  { key: "sep4", divider: true },
+  { key: "clear-all", label: "清空所有数据", icon: Trash, danger: true },
+];
+
+function onDataMenuSelect(key: string) {
+  switch (key) {
+    case "export-backup":
+      exportBackup();
+      break;
+    case "import-backup":
+      backupRef.value?.click();
+      break;
+    case "export-rules":
+      exportRules();
+      break;
+    case "import-rules":
+      rulesRef.value?.click();
+      break;
+    case "export-templates":
+      exportTemplates();
+      break;
+    case "import-templates":
+      templatesRef.value?.click();
+      break;
+    case "export-workspace":
+      exportCurrentWorkspace();
+      break;
+    case "clear-all":
+      confirmClearAll.value = true;
+      break;
+  }
+}
 
 const wsStore = useWorkspaceStore();
 const settingsStore = useSettingsStore();
@@ -135,10 +180,10 @@ const onTemplatesFile = (e: Event) => {
     <!-- 编辑操作：撤销 / 重做 / 自动换行（作用于聚焦编辑器） -->
     <div class="flex shrink-0 items-center gap-0.5 border-b border-r border-border px-1.5">
       <Button variant="ghost" size="icon-sm" title="撤销 (Ctrl+Z)" @click="undoFocused">
-        <Undo2 />
+        <ArrowBackUp />
       </Button>
       <Button variant="ghost" size="icon-sm" title="重做" @click="redoFocused">
-        <Redo2 />
+        <ArrowForwardUp />
       </Button>
       <Button
         variant="ghost"
@@ -147,7 +192,7 @@ const onTemplatesFile = (e: Event) => {
         @click="settingsStore.setWordWrap(!settingsStore.wordWrap)"
         :class="cn(settingsStore.wordWrap && 'bg-accent text-accent-foreground')"
       >
-        <WrapText class="size-3.5" />
+        <TextWrap class="size-3.5" />
       </Button>
     </div>
 
@@ -216,65 +261,20 @@ const onTemplatesFile = (e: Event) => {
     </div>
 
     <div class="flex shrink-0 items-center gap-1 border-b border-l border-border px-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon-sm" title="切换主题">
-            <Moon v-if="settingsStore.theme === 'dark'" class="size-3.5" />
-            <Sun v-else class="size-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" :class="cn(dropdownContentClass, 'w-32')">
-          <DropdownMenuItem
-            v-for="opt in THEME_OPTIONS"
-            :key="opt.value"
-            @select="settingsStore.setTheme(opt.value)"
-            :class="dropdownItemClass"
-          >
-            <span class="flex-1">{{ opt.label }}</span>
-            <Check v-if="settingsStore.theme === opt.value" class="size-3.5" />
-          </DropdownMenuItem>
-        </DropdownMenuContent>
+      <DropdownMenu
+        :options="themeMenuOptions"
+        @select="settingsStore.setTheme($event as ThemeMode)"
+      >
+        <Button variant="ghost" size="icon-sm" title="切换主题">
+          <Moon v-if="settingsStore.theme === 'dark'" class="size-3.5" />
+          <Sun v-else class="size-3.5" />
+        </Button>
       </DropdownMenu>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon-sm" title="数据（导入 / 导出 / 备份）">
-            <HardDrive />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" :class="cn(dropdownContentClass, 'w-48')">
-          <DropdownMenuItem :class="dropdownItemClass" @select="exportBackup">
-            <Download /> 导出全部备份
-          </DropdownMenuItem>
-          <DropdownMenuItem :class="dropdownItemClass" @select="backupRef?.click()">
-            <Upload /> 导入备份
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem :class="dropdownItemClass" @select="exportRules">
-            <FileCode2 /> 导出替换规则
-          </DropdownMenuItem>
-          <DropdownMenuItem :class="dropdownItemClass" @select="rulesRef?.click()">
-            <FolderOpen /> 导入替换规则
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem :class="dropdownItemClass" @select="exportTemplates">
-            <FileCode2 /> 导出排序模板
-          </DropdownMenuItem>
-          <DropdownMenuItem :class="dropdownItemClass" @select="templatesRef?.click()">
-            <FolderOpen /> 导入排序模板
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem :class="dropdownItemClass" @select="exportCurrentWorkspace">
-            <FileText /> 导出当前工作区
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            :class="cn(dropdownItemClass, 'text-destructive focus:text-destructive')"
-            @select="confirmClearAll = true"
-          >
-            <Trash2 /> 清空所有数据
-          </DropdownMenuItem>
-        </DropdownMenuContent>
+      <DropdownMenu :options="dataMenuOptions" @select="onDataMenuSelect">
+        <Button variant="ghost" size="icon-sm" title="数据（导入 / 导出 / 备份）">
+          <DeviceFloppy />
+        </Button>
       </DropdownMenu>
 
       <Button

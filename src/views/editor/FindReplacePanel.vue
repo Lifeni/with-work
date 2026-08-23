@@ -2,17 +2,17 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import * as monaco from "monaco-editor";
 import {
-  AArrowUp,
+  ArrowBigUpLine,
   ArrowDown,
   ArrowUp,
-  CaseSensitive,
-  Highlighter,
-  ListOrdered,
-  Regex,
-  ReplaceAll,
+  LetterCase,
+  Highlight,
+  ListNumbers,
+  Braces,
+  Replace,
   Scissors,
-  Settings2,
-} from "@lucide/vue";
+  Settings,
+} from "@vicons/tabler";
 import Badge from "@/components/ui/badge.vue";
 import Button from "@/components/ui/button.vue";
 import Input from "@/components/ui/input.vue";
@@ -383,7 +383,7 @@ defineExpose({ open });
         @click="isRegex = !isRegex"
         class="h-6.5 px-1.5 text-[10px]"
       >
-        <Regex />
+        <Braces />
       </Toggle>
       <Toggle
         :active="matchCase"
@@ -391,7 +391,7 @@ defineExpose({ open });
         @click="matchCase = !matchCase"
         class="h-6.5 px-1.5 text-[10px]"
       >
-        <CaseSensitive />
+        <LetterCase />
       </Toggle>
       <Toggle
         :active="highlightAll"
@@ -399,7 +399,7 @@ defineExpose({ open });
         @click="highlightAll = !highlightAll"
         class="h-6.5 px-1.5 text-[10px]"
       >
-        <Highlighter />
+        <Highlight />
       </Toggle>
       <Button
         variant="ghost"
@@ -455,7 +455,7 @@ defineExpose({ open });
         替换
       </Button>
       <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="replaceAll">
-        <ReplaceAll class="size-3" />
+        <Replace class="size-3" />
         全部替换
       </Button>
       <Button
@@ -470,7 +470,7 @@ defineExpose({ open });
           }
         "
       >
-        <Settings2 />
+        <Settings />
       </Button>
 
       <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
@@ -528,10 +528,10 @@ defineExpose({ open });
         title="开头匹配：文本以模板列表项开头即算匹配"
         class="h-6.5 w-6.5 px-0"
       >
-        <AArrowUp class="size-3.5" />
+        <ArrowBigUpLine class="size-3.5" />
       </Toggle>
       <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSort">
-        <ListOrdered class="size-3" />
+        <ListNumbers class="size-3" />
         排序
       </Button>
       <Button
@@ -541,7 +541,7 @@ defineExpose({ open });
         title="管理排序规则"
         @click="templatesOpen = true"
       >
-        <Settings2 />
+        <Settings />
       </Button>
     </div>
 

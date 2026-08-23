@@ -5,14 +5,14 @@ import {
   Database,
   Download,
   ExternalLink,
-  FileCode2,
-  FileDown,
+  FileCode,
+  FileDownload,
   FileText,
-  Info,
+  InfoCircle,
   Palette,
-  Trash2,
+  Trash,
   Upload,
-} from "@lucide/vue";
+} from "@vicons/tabler";
 import Button from "@/components/ui/button.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import Input from "@/components/ui/input.vue";
@@ -157,7 +157,7 @@ const onRulesFile = (e: Event) => {
 
         <section class="rounded-lg border border-border bg-card p-4">
           <h2 class="mb-3 flex items-center gap-1.5 text-sm font-semibold">
-            <Info class="size-4 text-muted-foreground" />
+            <InfoCircle class="size-4 text-muted-foreground" />
             关于
           </h2>
           <div class="flex items-center gap-3">
@@ -189,7 +189,7 @@ const onRulesFile = (e: Event) => {
               title="下载单文件版本（离线可运行）"
               class="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-transparent px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              <FileDown class="size-3.5" />
+              <FileDownload class="size-3.5" />
               下载单文件版
             </a>
             <a
@@ -226,7 +226,7 @@ const onRulesFile = (e: Event) => {
               导入备份
             </Button>
             <Button size="sm" variant="outline" class="h-7 text-xs" @click="exportRules">
-              <FileCode2 class="size-3.5" />
+              <FileCode class="size-3.5" />
               导出替换规则
             </Button>
             <Button size="sm" variant="outline" class="h-7 text-xs" @click="rulesRef?.click()">
@@ -243,7 +243,7 @@ const onRulesFile = (e: Event) => {
               class="h-7 text-xs text-destructive hover:text-destructive"
               @click="confirmClearStaging = true"
             >
-              <Trash2 class="size-3.5" />
+              <Trash class="size-3.5" />
               清空暂存区
             </Button>
             <Button
@@ -252,7 +252,7 @@ const onRulesFile = (e: Event) => {
               class="h-7 text-xs"
               @click="confirmClearAll = true"
             >
-              <Trash2 class="size-3.5" />
+              <Trash class="size-3.5" />
               清空所有数据
             </Button>
           </div>

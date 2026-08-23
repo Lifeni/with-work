@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { Check, Inbox } from "@lucide/vue";
+import { Check, Inbox } from "@vicons/tabler";
 import { cn, formatTime } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useStatusStore } from "@/stores/status";

@@ -1,16 +1,16 @@
+import type { Component } from "vue";
 import {
   AlignLeft,
-  CaseLower,
-  CaseUpper,
+  LetterCaseLower,
+  LetterCaseUpper,
   Eraser,
   Filter,
-  FlipVertical2,
+  FlipVertical,
   List,
   Replace,
-  SortAsc,
-  SortDesc,
-  type LucideIcon,
-} from "@lucide/vue";
+  SortAscending,
+  SortDescending,
+} from "@vicons/tabler";
 import { applyReplacements } from "@/lib/replace";
 import { splitText, type SplitDelimiter } from "@/lib/split";
 import { useRulesStore } from "@/stores/rules";
@@ -28,7 +28,7 @@ export interface GlobalTool {
   id: string;
   name: string;
   description: string;
-  icon: LucideIcon;
+  icon: Component;
   /** 需要配置参数时置为 true，点击后弹出配置对话框 */
   needsConfig?: boolean;
   /** 不在左侧工具栏显示（功能已融入查找替换面板等位置） */
@@ -51,21 +51,21 @@ export const tools: GlobalTool[] = [
     id: "lines-sort-asc",
     name: "行排序 · 升序",
     description: "按字母顺序升序排列每一行",
-    icon: SortAsc,
+    icon: SortAscending,
     run: (i) => join([...lines(i)].sort(compare)),
   },
   {
     id: "lines-sort-desc",
     name: "行排序 · 降序",
     description: "按字母顺序降序排列每一行",
-    icon: SortDesc,
+    icon: SortDescending,
     run: (i) => join([...lines(i)].sort((a, b) => -compare(a, b))),
   },
   {
     id: "lines-reverse",
     name: "反转行序",
     description: "把每一行的顺序颠倒",
-    icon: FlipVertical2,
+    icon: FlipVertical,
     run: (i) => join([...lines(i)].reverse()),
   },
   {
@@ -93,14 +93,14 @@ export const tools: GlobalTool[] = [
     id: "text-upper",
     name: "转大写",
     description: "全部转为大写字母",
-    icon: CaseUpper,
+    icon: LetterCaseUpper,
     run: (i) => i.toUpperCase(),
   },
   {
     id: "text-lower",
     name: "转小写",
     description: "全部转为小写字母",
-    icon: CaseLower,
+    icon: LetterCaseLower,
     run: (i) => i.toLowerCase(),
   },
   {

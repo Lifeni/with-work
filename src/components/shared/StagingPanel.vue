@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import {
-  ArrowRightLeft,
-  ClipboardPaste,
+  ArrowsLeftRight,
+  ClipboardCheck,
   Copy,
   FileDiff,
   FileText,
   Inbox,
-  ListOrdered,
-  PanelRightOpen,
+  ListNumbers,
+  LayoutSidebarRight,
   Pencil,
   Plus,
-  Settings2,
-  Trash2,
+  Settings,
+  Trash,
   X,
-} from "@lucide/vue";
+} from "@vicons/tabler";
 import Badge from "@/components/ui/badge.vue";
 import Button from "@/components/ui/button.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
@@ -278,7 +278,7 @@ function setDragSource(e: DragEvent, zone: string) {
         </span>
         <div class="flex-1" />
         <Button variant="ghost" size="icon-sm" title="清空暂存区" @click="confirmClear = true">
-          <Trash2 />
+          <Trash />
         </Button>
         <Button variant="ghost" size="icon-sm" title="收起" @click="uiStore.setStagingOpen(false)">
           <X />
@@ -314,7 +314,7 @@ function setDragSource(e: DragEvent, zone: string) {
             title="从剪贴板粘贴到暂存区"
             @click="pasteFromClipboard"
           >
-            <ClipboardPaste class="size-3.5" />
+            <ClipboardCheck class="size-3.5" />
             从剪贴板粘贴
           </Button>
         </div>
@@ -438,7 +438,7 @@ function setDragSource(e: DragEvent, zone: string) {
                     "
                     class="rounded p-0.5 text-destructive hover:bg-accent"
                   >
-                    <Trash2 class="size-3" />
+                    <Trash class="size-3" />
                   </button>
                 </div>
               </div>
@@ -450,7 +450,7 @@ function setDragSource(e: DragEvent, zone: string) {
       <div
         class="flex items-center gap-1 border-t border-border px-3 py-1.5 text-[10px] text-muted-foreground"
       >
-        <ArrowRightLeft class="size-3" />
+        <ArrowsLeftRight class="size-3" />
         暂存区为全局共用，所有工作区共享；拖拽条目到编辑器可快速插入
       </div>
 
@@ -553,7 +553,7 @@ function setDragSource(e: DragEvent, zone: string) {
                 }
               "
             >
-              <Settings2 />
+              <Settings />
             </Button>
           </div>
 
@@ -619,7 +619,7 @@ function setDragSource(e: DragEvent, zone: string) {
                         @click="pendingDelete = { kind: 'text-template', id: t.id, name: t.name }"
                         class="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                       >
-                        <Trash2 class="size-3" />
+                        <Trash class="size-3" />
                       </button>
                     </div>
                     <p
@@ -680,7 +680,7 @@ function setDragSource(e: DragEvent, zone: string) {
                         @click="applyTemplate(t)"
                         class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
-                        <ListOrdered class="size-3" />
+                        <ListNumbers class="size-3" />
                       </button>
                       <button
                         type="button"
@@ -696,7 +696,7 @@ function setDragSource(e: DragEvent, zone: string) {
                         @click="pendingDelete = { kind: 'sort-template', id: t.id, name: t.name }"
                         class="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                       >
-                        <Trash2 class="size-3" />
+                        <Trash class="size-3" />
                       </button>
                     </div>
                     <p class="mt-0.5 truncate text-[10px] text-muted-foreground">
@@ -752,7 +752,7 @@ function setDragSource(e: DragEvent, zone: string) {
                     @click.stop="pendingDelete = { kind: 'rule', id: r.id, name: r.name }"
                     class="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                   >
-                    <Trash2 class="size-3" />
+                    <Trash class="size-3" />
                   </button>
                 </div>
                 <p
@@ -852,6 +852,6 @@ function setDragSource(e: DragEvent, zone: string) {
     title="打开暂存区"
     class="fixed bottom-9 right-3 z-30 flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
   >
-    <PanelRightOpen class="size-4" />
+    <LayoutSidebarRight class="size-4" />
   </button>
 </template>

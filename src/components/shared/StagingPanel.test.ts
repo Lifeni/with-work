@@ -115,7 +115,8 @@ describe("StagingPanel 模板区", () => {
     const wrapper = mountPanel();
     await wrapper.get('[title="管理文本模板"]').trigger("click");
     await new Promise((r) => setTimeout(r, 20));
-    const dialog = document.querySelector('[role="dialog"]');
+    // n-modal 的卡片由 AppDialog 自绘（.ww-dialog-content）
+    const dialog = document.querySelector(".ww-dialog-content");
     expect(dialog?.textContent).toContain("自定义文本模板");
   });
 

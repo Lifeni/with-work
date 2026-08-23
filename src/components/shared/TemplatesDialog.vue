@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { AArrowUp, FolderOpen, ListOrdered, Pencil, Plus, Trash2, Upload } from "@lucide/vue";
+import { ArrowBigUpLine, Folder, ListNumbers, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
 import Badge from "@/components/ui/badge.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import AppDialog from "@/components/ui/dialog.vue";
@@ -135,7 +135,7 @@ const onImportFile = (e: Event) => {
           title="开头匹配：文本以列表项开头即算匹配"
           class="h-7 text-xs"
         >
-          <AArrowUp class="size-3.5" />
+          <ArrowBigUpLine class="size-3.5" />
           开头匹配
         </Toggle>
         <div class="flex-1" />
@@ -161,12 +161,12 @@ const onImportFile = (e: Event) => {
         :key="t.id"
         class="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5"
       >
-        <ListOrdered class="size-3.5 shrink-0 text-muted-foreground" />
+        <ListNumbers class="size-3.5 shrink-0 text-muted-foreground" />
         <span class="w-32 shrink-0 truncate text-xs font-medium" :title="t.name">{{ t.name }}</span>
         <Badge v-if="t.group" variant="secondary" class="shrink-0 text-[9px]">{{ t.group }}</Badge>
         <Badge variant="secondary">{{ t.items.length }} 条</Badge>
         <Badge v-if="t.prefixMatch" variant="outline" class="shrink-0 gap-0.5 text-[9px]">
-          <AArrowUp class="size-2.5" />
+          <ArrowBigUpLine class="size-2.5" />
           开头匹配
         </Badge>
         <span
@@ -185,7 +185,7 @@ const onImportFile = (e: Event) => {
           class="text-destructive hover:text-destructive"
           @click="pendingDeleteId = t.id"
         >
-          <Trash2 class="size-3" />
+          <Trash class="size-3" />
         </Button>
       </div>
     </div>
@@ -196,7 +196,7 @@ const onImportFile = (e: Event) => {
         导入模板
       </Button>
       <Button variant="outline" size="sm" @click="exportTemplates">
-        <FolderOpen class="size-3.5" />
+        <Folder class="size-3.5" />
         导出模板
       </Button>
     </template>

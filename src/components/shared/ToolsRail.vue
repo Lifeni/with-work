@@ -1,13 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { NTooltip } from "naive-ui";
 import favicon from "@/assets/favicon.svg";
 import ToolDialog from "@/components/shared/ToolDialog.vue";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  tooltipContentClass,
-} from "@/components/ui/tooltip";
 import { applyTool } from "@/lib/applyTool";
 import { useToastStore } from "@/stores/toast";
 import { tools, type GlobalTool } from "@/tools/registry";
@@ -50,8 +45,8 @@ function runTool(tool: GlobalTool) {
 
     <!-- 常用工具（有选区处理选区，否则处理全文；Ctrl+Z 可撤销） -->
     <div class="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto pb-2">
-      <Tooltip v-for="t in tools.filter((x) => !x.hideFromRail)" :key="t.id">
-        <TooltipTrigger as-child>
+      <NTooltip v-for="t in tools.filter((x) => !x.hideFromRail)" :key="t.id" :delay="300">
+        <template #trigger>
           <button
             type="button"
             :title="t.name"
@@ -60,9 +55,9 @@ function runTool(tool: GlobalTool) {
           >
             <component :is="t.icon" class="size-5" />
           </button>
-        </TooltipTrigger>
-        <TooltipContent :class="tooltipContentClass" side="right">{{ t.name }}</TooltipContent>
-      </Tooltip>
+        </template>
+        {{ t.name }}
+      </NTooltip>
     </div>
 
     <ToolDialog :key="dialogTool?.id ?? 'none'" :tool="dialogTool" @close="dialogTool = null" />

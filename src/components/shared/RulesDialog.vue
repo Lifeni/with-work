@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { FolderOpen, Pencil, Plus, Trash2, Upload } from "@lucide/vue";
+import { Folder, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
 import Badge from "@/components/ui/badge.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import AppDialog from "@/components/ui/dialog.vue";
@@ -188,7 +188,7 @@ const onImportFile = (e: Event) => {
           class="text-destructive hover:text-destructive"
           @click="pendingDeleteId = r.id"
         >
-          <Trash2 class="size-3" />
+          <Trash class="size-3" />
         </Button>
       </div>
     </div>
@@ -199,7 +199,7 @@ const onImportFile = (e: Event) => {
         导入规则
       </Button>
       <Button variant="outline" size="sm" @click="exportRules">
-        <FolderOpen class="size-3.5" />
+        <Folder class="size-3.5" />
         导出规则
       </Button>
     </template>
