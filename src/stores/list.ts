@@ -1,31 +1,28 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 
-interface ListState {
-  source: string;
-  reference: string;
-  compare: string;
-  setSource: (v: string) => void;
-  setReference: (v: string) => void;
-  setCompare: (v: string) => void;
-  replaceAll: (d: { source: string; reference: string; compare: string }) => void;
-}
+export const useListStore = defineStore("list", () => {
+  const source = ref("");
+  const reference = ref("");
+  const compare = ref("");
 
-export const useListStore = create<ListState>()(
-  persist(
-    (set) => ({
-      source: "",
-      reference: "",
-      compare: "",
+  function setSource(v: string) {
+    source.value = v;
+  }
 
-      setSource: (source) => set({ source }),
+  function setReference(v: string) {
+    reference.value = v;
+  }
 
-      setReference: (reference) => set({ reference }),
+  function setCompare(v: string) {
+    compare.value = v;
+  }
 
-      setCompare: (compare) => set({ compare }),
+  function replaceAll(d: { source: string; reference: string; compare: string }) {
+    source.value = d.source;
+    reference.value = d.reference;
+    compare.value = d.compare;
+  }
 
-      replaceAll: (d) => set(d),
-    }),
-    { name: "ww:list" },
-  ),
-);
+  return { source, reference, compare, setSource, setReference, setCompare, replaceAll };
+});

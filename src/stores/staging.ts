@@ -1,44 +1,34 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 import type { StagingItem } from "@/types";
 import { uid } from "@/lib/utils";
 
-interface StagingState {
-  items: StagingItem[];
-  add: (text: string) => void;
-  updateItem: (id: string, text: string) => void;
-  remove: (id: string) => void;
-  clear: () => void;
-  replaceAll: (items: StagingItem[]) => void;
-}
+export const useStagingStore = defineStore("staging", () => {
+  const items = ref<StagingItem[]>([]);
 
-export const useStagingStore = create<StagingState>()(
-  persist(
-    (set) => ({
-      items: [],
+  function add(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    items.value = [{ id: uid(), text: trimmed, createdAt: Date.now() }, ...items.value];
+  }
 
-      add: (text) => {
-        const trimmed = text.trim();
-        if (!trimmed) return;
-        set((s) => ({
-          items: [{ id: uid(), text: trimmed, createdAt: Date.now() }, ...s.items],
-        }));
-      },
+  function remove(id: string) {
+    items.value = items.value.filter((i) => i.id !== id);
+  }
 
-      remove: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
+  function updateItem(id: string, text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    items.value = items.value.map((i) => (i.id === id ? { ...i, text: trimmed } : i));
+  }
 
-      updateItem: (id, text) => {
-        const trimmed = text.trim();
-        if (!trimmed) return;
-        set((s) => ({
-          items: s.items.map((i) => (i.id === id ? { ...i, text: trimmed } : i)),
-        }));
-      },
+  function clear() {
+    items.value = [];
+  }
 
-      clear: () => set({ items: [] }),
+  function replaceAll(next: StagingItem[]) {
+    items.value = next;
+  }
 
-      replaceAll: (items) => set({ items }),
-    }),
-    { name: "ww:staging" },
-  ),
-);
+  return { items, add, remove, updateItem, clear, replaceAll };
+});

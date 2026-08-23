@@ -1,48 +1,75 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 import type { AppSettings, ThemeMode } from "@/types";
 import { applyTheme } from "@/lib/theme";
 
-interface SettingsState extends AppSettings {
-  setTheme: (theme: ThemeMode) => void;
-  setFontSize: (fontSize: number) => void;
-  setWordWrap: (wordWrap: boolean) => void;
-  setEditorFontFamily: (editorFontFamily: string) => void;
-  setStagingWidth: (stagingWidth: number) => void;
-  setEditorSplit: (editorSplit: number) => void;
-  setStagingTemplateHeight: (stagingTemplateHeight: number) => void;
-  replaceAll: (partial: AppSettings) => void;
-}
-
 export const DEFAULT_FONT_FAMILY = "ui-monospace, SF Mono, Cascadia Code, Consolas, monospace";
 
-export const useSettingsStore = create<SettingsState>()(
-  persist(
-    (set) => ({
-      theme: "system",
-      fontSize: 14,
-      wordWrap: true,
-      editorFontFamily: DEFAULT_FONT_FAMILY,
+export const useSettingsStore = defineStore("settings", () => {
+  const theme = ref<ThemeMode>("system");
+  const fontSize = ref(14);
+  const wordWrap = ref(true);
+  const editorFontFamily = ref(DEFAULT_FONT_FAMILY);
+  const stagingWidth = ref<number | undefined>(undefined);
+  const editorSplit = ref<number | undefined>(undefined);
+  const stagingTemplateHeight = ref<number | undefined>(undefined);
 
-      setTheme: (theme) => {
-        set({ theme });
-        applyTheme(theme);
-      },
+  function setTheme(mode: ThemeMode) {
+    theme.value = mode;
+    applyTheme(mode);
+  }
 
-      setFontSize: (fontSize) => set({ fontSize }),
+  function setFontSize(size: number) {
+    fontSize.value = size;
+  }
 
-      setWordWrap: (wordWrap) => set({ wordWrap }),
+  function setWordWrap(v: boolean) {
+    wordWrap.value = v;
+  }
 
-      setEditorFontFamily: (editorFontFamily) => set({ editorFontFamily }),
+  function setEditorFontFamily(family: string) {
+    editorFontFamily.value = family;
+  }
 
-      setStagingWidth: (stagingWidth) => set({ stagingWidth }),
+  function setStagingWidth(w: number) {
+    stagingWidth.value = w;
+  }
 
-      setEditorSplit: (editorSplit) => set({ editorSplit }),
+  function setEditorSplit(ratio: number) {
+    editorSplit.value = ratio;
+  }
 
-      setStagingTemplateHeight: (stagingTemplateHeight) => set({ stagingTemplateHeight }),
+  function setStagingTemplateHeight(h: number) {
+    stagingTemplateHeight.value = h;
+  }
 
-      replaceAll: (partial) => set((s) => ({ ...s, ...partial })),
-    }),
-    { name: "ww:settings" },
-  ),
-);
+  function replaceAll(partial: AppSettings) {
+    if (partial.theme !== undefined) theme.value = partial.theme;
+    if (partial.fontSize !== undefined) fontSize.value = partial.fontSize;
+    if (partial.wordWrap !== undefined) wordWrap.value = partial.wordWrap;
+    if (partial.editorFontFamily !== undefined) editorFontFamily.value = partial.editorFontFamily;
+    if (partial.stagingWidth !== undefined) stagingWidth.value = partial.stagingWidth;
+    if (partial.editorSplit !== undefined) editorSplit.value = partial.editorSplit;
+    if (partial.stagingTemplateHeight !== undefined) {
+      stagingTemplateHeight.value = partial.stagingTemplateHeight;
+    }
+  }
+
+  return {
+    theme,
+    fontSize,
+    wordWrap,
+    editorFontFamily,
+    stagingWidth,
+    editorSplit,
+    stagingTemplateHeight,
+    setTheme,
+    setFontSize,
+    setWordWrap,
+    setEditorFontFamily,
+    setStagingWidth,
+    setEditorSplit,
+    setStagingTemplateHeight,
+    replaceAll,
+  };
+});

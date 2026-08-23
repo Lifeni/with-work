@@ -97,10 +97,7 @@ function removeDeprecated<T extends { id: string }>(existing: T[]): T[] {
 }
 
 /** 补齐内置项的默认属性（如 prefixMatch）：仅当旧数据缺失该字段时写入，不覆盖用户改动 */
-function syncBuiltinDefaults(
-  existing: SortTemplate[],
-  defaults: SortTemplate[],
-): SortTemplate[] {
+function syncBuiltinDefaults(existing: SortTemplate[], defaults: SortTemplate[]): SortTemplate[] {
   const defaultsById = new Map(defaults.map((d) => [d.id, d]));
   let changed = false;
   const next = existing.map((t) => {
@@ -117,31 +114,34 @@ function syncBuiltinDefaults(
 /** 增量注入内置数据：新增内置项对老用户可见，已删除的不复活，编辑过的不覆盖，下架的自动移除 */
 export function seedDefaultData() {
   const seeded = readSeeded();
+  const rulesStore = useRulesStore();
+  const templatesStore = useTemplatesStore();
+  const textTemplatesStore = useTextTemplatesStore();
 
-  const rules = removeDeprecated(useRulesStore.getState().rules);
-  if (rules.length !== useRulesStore.getState().rules.length) {
-    useRulesStore.getState().replaceAll(rules);
+  const rules = removeDeprecated(rulesStore.rules);
+  if (rules.length !== rulesStore.rules.length) {
+    rulesStore.replaceAll(rules);
   }
-  const templates = removeDeprecated(useTemplatesStore.getState().templates);
-  if (templates.length !== useTemplatesStore.getState().templates.length) {
-    useTemplatesStore.getState().replaceAll(templates);
+  const templates = removeDeprecated(templatesStore.templates);
+  if (templates.length !== templatesStore.templates.length) {
+    templatesStore.replaceAll(templates);
   }
   const syncedTemplates = syncBuiltinDefaults(templates, DEFAULT_SORT_TEMPLATES);
   if (syncedTemplates !== templates) {
-    useTemplatesStore.getState().replaceAll(syncedTemplates);
+    templatesStore.replaceAll(syncedTemplates);
   }
-  const textTemplates = removeDeprecated(useTextTemplatesStore.getState().templates);
-  if (textTemplates.length !== useTextTemplatesStore.getState().templates.length) {
-    useTextTemplatesStore.getState().replaceAll(textTemplates);
+  const textTemplates = removeDeprecated(textTemplatesStore.templates);
+  if (textTemplates.length !== textTemplatesStore.templates.length) {
+    textTemplatesStore.replaceAll(textTemplates);
   }
 
   const rulesResult = injectMissing(rules, DEFAULT_RULES, seeded);
-  if (rulesResult.injected.length) useRulesStore.getState().replaceAll(rulesResult.items);
+  if (rulesResult.injected.length) rulesStore.replaceAll(rulesResult.items);
   const templatesResult = injectMissing(syncedTemplates, DEFAULT_SORT_TEMPLATES, seeded);
-  if (templatesResult.injected.length) useTemplatesStore.getState().replaceAll(templatesResult.items);
+  if (templatesResult.injected.length) templatesStore.replaceAll(templatesResult.items);
   const textTemplatesResult = injectMissing(textTemplates, DEFAULT_TEXT_TEMPLATES, seeded);
   if (textTemplatesResult.injected.length) {
-    useTextTemplatesStore.getState().replaceAll(textTemplatesResult.items);
+    textTemplatesStore.replaceAll(textTemplatesResult.items);
   }
 
   for (const d of [...DEFAULT_RULES, ...DEFAULT_SORT_TEMPLATES, ...DEFAULT_TEXT_TEMPLATES]) {

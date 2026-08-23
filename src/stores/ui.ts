@@ -1,17 +1,21 @@
-import { create } from "zustand";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 
-interface UiState {
-  stagingOpen: boolean;
-  settingsOpen: boolean;
-  toggleStaging: () => void;
-  setStagingOpen: (v: boolean) => void;
-  setSettingsOpen: (v: boolean) => void;
-}
+export const useUiStore = defineStore("ui", () => {
+  const stagingOpen = ref(true);
+  const settingsOpen = ref(false);
 
-export const useUiStore = create<UiState>((set) => ({
-  stagingOpen: true,
-  settingsOpen: false,
-  toggleStaging: () => set((s) => ({ stagingOpen: !s.stagingOpen })),
-  setStagingOpen: (stagingOpen) => set({ stagingOpen }),
-  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
-}));
+  function toggleStaging() {
+    stagingOpen.value = !stagingOpen.value;
+  }
+
+  function setStagingOpen(v: boolean) {
+    stagingOpen.value = v;
+  }
+
+  function setSettingsOpen(v: boolean) {
+    settingsOpen.value = v;
+  }
+
+  return { stagingOpen, settingsOpen, toggleStaging, setStagingOpen, setSettingsOpen };
+});

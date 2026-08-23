@@ -1,19 +1,34 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { createPinia, setActivePinia } from "pinia";
 import { afterEach, vi } from "vitest";
 
 // lib/theme 依赖 monaco（浏览器专用），组件测试统一拦截，避免加载 monaco 与 worker 模块
 vi.mock("@/lib/theme", () => ({
   applyTheme: () => {},
   initTheme: () => {},
+  resolveTheme: () => "light",
 }));
 
-// vitest 未开启 globals，@testing-library/react 不会自动清理，手动在每个用例后卸载组件
+// 每个测试文件使用独立的 pinia 实例（store 状态隔离）
+setActivePinia(createPinia());
+
+// jsdom 缺失的浏览器 API
+if (typeof window !== "undefined" && typeof window.ResizeObserver === "undefined") {
+  class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+}
+
+// Teleport 等渲染到 body 的内容在用例间清理
 afterEach(() => {
-  cleanup();
+  document.body.innerHTML = "";
 });
 
-/** 测试环境基础能力：
+/**
+ * 测试环境基础能力：
  *  - localStorage：Node 22 实验性实现未配置时不可用，jsdom 注入可能被其遮挡，显式覆盖
  *  - matchMedia / URL.createObjectURL / navigator.clipboard：jsdom 缺失的浏览器 API */
 
@@ -81,5 +96,5 @@ if (typeof URL.createObjectURL === "undefined") {
 
 Object.defineProperty(navigator, "clipboard", {
   configurable: true,
-  value: { writeText: async () => {} },
+  value: { writeText: async () => {}, readText: async () => "mock-clipboard" },
 });

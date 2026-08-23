@@ -11,8 +11,8 @@ export function getToolInput(): string {
     if (selection && !selection.isEmpty()) return model.getValueInRange(selection);
     return model.getValue();
   }
-  const s = useWorkspaceStore.getState();
-  const ws = s.workspaces.find((w) => w.id === s.activeId);
+  const wsStore = useWorkspaceStore();
+  const ws = wsStore.workspaces.find((w) => w.id === wsStore.activeId);
   return ws?.left ?? ws?.content ?? "";
 }
 
@@ -21,8 +21,8 @@ export function applyTool(
   tool: GlobalTool,
   run: (input: string) => string,
 ): { message: string } | null {
-  const wsState = useWorkspaceStore.getState();
-  const activeId = wsState.activeId;
+  const wsStore = useWorkspaceStore();
+  const activeId = wsStore.activeId;
   if (!activeId) return null;
 
   const editor = getActiveEditor();
@@ -35,7 +35,7 @@ export function applyTool(
       )
     : editor && model
       ? model.getValue()
-      : (wsState.workspaces.find((w) => w.id === activeId)?.left ?? "");
+      : (wsStore.workspaces.find((w) => w.id === activeId)?.left ?? "");
 
   const output = run(input);
   if (input === output) {
@@ -46,7 +46,7 @@ export function applyTool(
     const range = hasSelection && selection ? selection : model.getFullModelRange();
     editor.executeEdits("ww-tool", [{ range, text: output }]);
   } else {
-    wsState.setLeft(activeId, output);
+    wsStore.setLeft(activeId, output);
   }
   return { message: `已执行「${tool.name}」，Ctrl+Z 可撤销` };
 }

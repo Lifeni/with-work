@@ -21,30 +21,32 @@ export const STORAGE_KEYS = [
 ];
 
 export function collectBackup(): BackupData {
-  const wsState = useWorkspaceStore.getState();
-  const activeWs = wsState.workspaces.find((w) => w.id === wsState.activeId);
+  const wsStore = useWorkspaceStore();
+  const activeWs = wsStore.workspaces.find((w) => w.id === wsStore.activeId);
+  const settings = useSettingsStore();
+  const list = useListStore();
   return {
     app: "with-work",
     version: 3,
     exportedAt: new Date().toISOString(),
-    workspaces: wsState.workspaces,
-    staging: useStagingStore.getState().items,
-    rules: useRulesStore.getState().rules,
-    templates: useTemplatesStore.getState().templates,
-    textTemplates: useTextTemplatesStore.getState().templates,
+    workspaces: wsStore.workspaces,
+    staging: useStagingStore().items,
+    rules: useRulesStore().rules,
+    templates: useTemplatesStore().templates,
+    textTemplates: useTextTemplatesStore().templates,
     settings: {
-      theme: useSettingsStore.getState().theme,
-      fontSize: useSettingsStore.getState().fontSize,
-      wordWrap: useSettingsStore.getState().wordWrap,
-      editorFontFamily: useSettingsStore.getState().editorFontFamily,
-      stagingWidth: useSettingsStore.getState().stagingWidth,
-      editorSplit: useSettingsStore.getState().editorSplit,
+      theme: settings.theme,
+      fontSize: settings.fontSize,
+      wordWrap: settings.wordWrap,
+      editorFontFamily: settings.editorFontFamily,
+      stagingWidth: settings.stagingWidth,
+      editorSplit: settings.editorSplit,
     },
     diff: { left: activeWs?.left ?? "", right: activeWs?.right ?? "" },
     list: {
-      source: useListStore.getState().source,
-      reference: useListStore.getState().reference,
-      compare: useListStore.getState().compare,
+      source: list.source,
+      reference: list.reference,
+      compare: list.compare,
     },
   };
 }
@@ -87,18 +89,18 @@ export function parseBackup(
 }
 
 export function applyBackup(d: BackupData) {
-  useWorkspaceStore.getState().replaceAll(d.workspaces);
-  useStagingStore.getState().replaceAll(d.staging);
-  useRulesStore.getState().replaceAll(d.rules);
-  useTemplatesStore.getState().replaceAll(d.templates);
-  useTextTemplatesStore.getState().replaceAll(d.textTemplates);
-  useSettingsStore.getState().replaceAll(d.settings);
-  useListStore.getState().replaceAll(d.list);
+  useWorkspaceStore().replaceAll(d.workspaces);
+  useStagingStore().replaceAll(d.staging);
+  useRulesStore().replaceAll(d.rules);
+  useTemplatesStore().replaceAll(d.templates);
+  useTextTemplatesStore().replaceAll(d.textTemplates);
+  useSettingsStore().replaceAll(d.settings);
+  useListStore().replaceAll(d.list);
   // 旧版备份的工作区没有 left/right，把备份的 diff 合并到当前工作区
-  const wsState = useWorkspaceStore.getState();
-  if (wsState.activeId && (d.diff.left || d.diff.right)) {
-    wsState.setLeft(wsState.activeId, d.diff.left);
-    wsState.setRight(wsState.activeId, d.diff.right);
+  const wsStore = useWorkspaceStore();
+  if (wsStore.activeId && (d.diff.left || d.diff.right)) {
+    wsStore.setLeft(wsStore.activeId, d.diff.left);
+    wsStore.setRight(wsStore.activeId, d.diff.right);
   }
   applyTheme(d.settings.theme);
 }
@@ -106,7 +108,7 @@ export function applyBackup(d: BackupData) {
 export function exportRules() {
   downloadText(
     "with-work-rules.json",
-    JSON.stringify(useRulesStore.getState().rules, null, 2),
+    JSON.stringify(useRulesStore().rules, null, 2),
     "application/json",
   );
 }
@@ -128,7 +130,7 @@ export function parseRules(
 export function exportTemplates() {
   downloadText(
     "with-work-templates.json",
-    JSON.stringify(useTemplatesStore.getState().templates, null, 2),
+    JSON.stringify(useTemplatesStore().templates, null, 2),
     "application/json",
   );
 }
@@ -150,7 +152,7 @@ export function parseTemplates(
 export function exportTextTemplates() {
   downloadText(
     "with-work-text-templates.json",
-    JSON.stringify(useTextTemplatesStore.getState().templates, null, 2),
+    JSON.stringify(useTextTemplatesStore().templates, null, 2),
     "application/json",
   );
 }
@@ -170,7 +172,7 @@ export function parseTextTemplates(
 }
 
 export function exportCurrentWorkspace() {
-  const s = useWorkspaceStore.getState();
+  const s = useWorkspaceStore();
   const ws: Workspace | undefined = s.workspaces.find((w) => w.id === s.activeId);
   if (!ws) return;
   downloadText(`${ws.name}.txt`, ws.content);

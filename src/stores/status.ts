@@ -1,13 +1,14 @@
-import { create } from "zustand";
+import { ref } from "vue";
+import { defineStore } from "pinia";
 
-interface StatusState {
-  line: number;
-  col: number;
-  setCursor: (line: number, col: number) => void;
-}
+export const useStatusStore = defineStore("status", () => {
+  const line = ref(1);
+  const col = ref(1);
 
-export const useStatusStore = create<StatusState>((set) => ({
-  line: 1,
-  col: 1,
-  setCursor: (line, col) => set({ line, col }),
-}));
+  function setCursor(l: number, c: number) {
+    line.value = l;
+    col.value = c;
+  }
+
+  return { line, col, setCursor };
+});

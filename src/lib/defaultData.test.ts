@@ -21,9 +21,9 @@ describe("内置模板与规则", () => {
     localStorage.clear();
     seedDefaultData();
 
-    expect(useRulesStore.getState().rules).toEqual(DEFAULT_RULES);
-    expect(useTemplatesStore.getState().templates).toEqual(DEFAULT_SORT_TEMPLATES);
-    expect(useTextTemplatesStore.getState().templates).toEqual([]);
+    expect(useRulesStore().rules).toEqual(DEFAULT_RULES);
+    expect(useTemplatesStore().templates).toEqual(DEFAULT_SORT_TEMPLATES);
+    expect(useTextTemplatesStore().templates).toEqual([]);
     // 注入后记录已注入 id，防止重复注入
     expect(JSON.parse(localStorage.getItem(SEEDED_KEY) ?? "[]")).toHaveLength(
       DEFAULT_RULES.length + DEFAULT_SORT_TEMPLATES.length + DEFAULT_TEXT_TEMPLATES.length,
@@ -34,7 +34,7 @@ describe("内置模板与规则", () => {
     localStorage.clear();
     seedDefaultData();
 
-    const rule = useRulesStore.getState().rules[0];
+    const rule = useRulesStore().rules[0];
     expect(rule.name).toBe("单书名号替换");
     expect(rule.find).toBe("<(.+?)>");
     expect(rule.replace).toBe("〈$1〉");
@@ -45,7 +45,7 @@ describe("内置模板与规则", () => {
     localStorage.clear();
     seedDefaultData();
 
-    const t = useTemplatesStore.getState().templates[0];
+    const t = useTemplatesStore().templates[0];
     expect(t.name).toBe("山东 16 市");
     expect(t.prefixMatch).toBe(true);
     expect(t.items).toEqual([
@@ -72,34 +72,34 @@ describe("内置模板与规则", () => {
     localStorage.clear();
     seedDefaultData();
     // 用户清空
-    useRulesStore.getState().replaceAll([]);
-    useTemplatesStore.getState().replaceAll([]);
-    useTextTemplatesStore.getState().replaceAll([]);
+    useRulesStore().replaceAll([]);
+    useTemplatesStore().replaceAll([]);
+    useTextTemplatesStore().replaceAll([]);
 
     seedDefaultData();
 
-    expect(useRulesStore.getState().rules).toEqual([]);
-    expect(useTemplatesStore.getState().templates).toEqual([]);
-    expect(useTextTemplatesStore.getState().templates).toEqual([]);
+    expect(useRulesStore().rules).toEqual([]);
+    expect(useTemplatesStore().templates).toEqual([]);
+    expect(useTextTemplatesStore().templates).toEqual([]);
   });
 
   it("用户删除的内置项不会复活", () => {
     localStorage.clear();
     seedDefaultData();
-    const store = useRulesStore.getState();
+    const store = useRulesStore();
     const first = store.rules[0];
     expect(first).toBeDefined();
 
     store.removeRule(first.id);
     seedDefaultData();
 
-    expect(useRulesStore.getState().rules.some((r) => r.id === first.id)).toBe(false);
+    expect(useRulesStore().rules.some((r) => r.id === first.id)).toBe(false);
   });
 
   it("历史版本注入过的旧内置项会从用户数据中自动移除", () => {
     localStorage.clear();
     // 模拟老用户：旧内置项已在数据中且 seeded 已记录
-    useRulesStore.getState().replaceAll([
+    useRulesStore().replaceAll([
       {
         id: "builtin-rule-trailing-space",
         name: "清理行尾空格",
@@ -110,30 +110,30 @@ describe("内置模板与规则", () => {
       },
       ...DEFAULT_RULES,
     ]);
-    useTemplatesStore.getState().replaceAll([
+    useTemplatesStore().replaceAll([
       { id: "builtin-sort-weekday", name: "星期顺序", items: ["周一"], group: "内置" },
       ...DEFAULT_SORT_TEMPLATES,
     ]);
-    useTextTemplatesStore.getState().replaceAll([
+    useTextTemplatesStore().replaceAll([
       { id: "builtin-text-codeblock", name: "Markdown 代码块", text: "```", group: "内置" },
     ]);
     localStorage.setItem(SEEDED_KEY, JSON.stringify([...DEPRECATED_BUILTIN_IDS]));
 
     seedDefaultData();
 
-    const rules = useRulesStore.getState().rules;
+    const rules = useRulesStore().rules;
     expect(rules.some((r) => r.id === "builtin-rule-trailing-space")).toBe(false);
     expect(rules).toEqual(DEFAULT_RULES);
-    const templates = useTemplatesStore.getState().templates;
+    const templates = useTemplatesStore().templates;
     expect(templates.some((t) => t.id === "builtin-sort-weekday")).toBe(false);
     expect(templates).toEqual(DEFAULT_SORT_TEMPLATES);
-    expect(useTextTemplatesStore.getState().templates).toEqual([]);
+    expect(useTextTemplatesStore().templates).toEqual([]);
   });
 
   it("老用户已有的内置模板自动补齐开头匹配属性", () => {
     localStorage.clear();
     // 模拟老用户：山东 16 市已存在但缺 prefixMatch 字段（旧版本注入）
-    useTemplatesStore.getState().addTemplate({
+    useTemplatesStore().addTemplate({
       id: "builtin-sort-shandong-cities",
       name: "山东 16 市",
       items: ["济南", "青岛"],
@@ -143,17 +143,11 @@ describe("内置模板与规则", () => {
 
     seedDefaultData();
 
-    const t = useTemplatesStore.getState().templates.find(
-      (x) => x.id === "builtin-sort-shandong-cities",
-    );
+    const t = useTemplatesStore().templates.find((x) => x.id === "builtin-sort-shandong-cities");
     expect(t?.prefixMatch).toBe(true);
     // 用户显式关闭过（prefixMatch 非 undefined）不会被覆盖
-    useTemplatesStore
-      .getState()
-      .updateTemplate({ ...t!, prefixMatch: false });
+    useTemplatesStore().updateTemplate({ ...t!, prefixMatch: false });
     seedDefaultData();
-    expect(
-      useTemplatesStore.getState().templates.find((x) => x.id === t!.id)?.prefixMatch,
-    ).toBe(false);
+    expect(useTemplatesStore().templates.find((x) => x.id === t!.id)?.prefixMatch).toBe(false);
   });
 });
