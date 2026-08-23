@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, type Component } from "vue";
 import {
   Download,
   FileCode,
@@ -19,7 +19,16 @@ import {
 } from "@vicons/tabler";
 import Button from "@/components/ui/button.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
-import { DropdownMenu, type DropdownItem } from "@/components/ui/dropdown-menu";
+import DropdownMenu from "@/components/ui/dropdown-menu.vue";
+
+interface MenuItem {
+  key: string;
+  label?: string;
+  icon?: Component;
+  danger?: boolean;
+  checked?: boolean;
+  divider?: boolean;
+}
 import { cn } from "@/lib/utils";
 import { getActiveEditor } from "@/lib/editorBridge";
 import { useWorkspaceStore } from "@/stores/workspace";
@@ -48,7 +57,7 @@ const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
 ];
 
 /** 主题菜单项（当前主题打勾） */
-const themeMenuOptions = computed<DropdownItem[]>(() =>
+const themeMenuOptions = computed<MenuItem[]>(() =>
   THEME_OPTIONS.map((opt) => ({
     key: opt.value,
     label: opt.label,
@@ -57,7 +66,7 @@ const themeMenuOptions = computed<DropdownItem[]>(() =>
 );
 
 /** 数据菜单项（导入 / 导出 / 备份 / 清空） */
-const dataMenuOptions: DropdownItem[] = [
+const dataMenuOptions: MenuItem[] = [
   { key: "export-backup", label: "导出全部备份", icon: Download },
   { key: "import-backup", label: "导入备份", icon: Upload },
   { key: "sep1", divider: true },
@@ -190,7 +199,7 @@ const onTemplatesFile = (e: Event) => {
         size="icon-sm"
         :title="settingsStore.wordWrap ? '自动换行：开启' : '自动换行：关闭'"
         @click="settingsStore.setWordWrap(!settingsStore.wordWrap)"
-        :class="cn(settingsStore.wordWrap && 'ww-active')"
+        :active="settingsStore.wordWrap"
       >
         <TextWrap class="size-3.5" />
       </Button>
@@ -265,16 +274,24 @@ const onTemplatesFile = (e: Event) => {
         :options="themeMenuOptions"
         @select="settingsStore.setTheme($event as ThemeMode)"
       >
-        <Button variant="ghost" size="icon-sm" title="切换主题">
+        <button
+          type="button"
+          aria-label="切换主题"
+          class="flex h-7 w-7 items-center justify-center rounded-md bg-transparent text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
           <Moon v-if="settingsStore.theme === 'dark'" class="size-3.5" />
           <Sun v-else class="size-3.5" />
-        </Button>
+        </button>
       </DropdownMenu>
 
       <DropdownMenu :options="dataMenuOptions" @select="onDataMenuSelect">
-        <Button variant="ghost" size="icon-sm" title="数据（导入 / 导出 / 备份）">
+        <button
+          type="button"
+          aria-label="数据（导入 / 导出 / 备份）"
+          class="flex h-7 w-7 items-center justify-center rounded-md bg-transparent text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
           <DeviceFloppy />
-        </Button>
+        </button>
       </DropdownMenu>
 
       <Button
@@ -283,7 +300,7 @@ const onTemplatesFile = (e: Event) => {
         title="设置"
         :aria-pressed="uiStore.settingsOpen"
         @click="uiStore.setSettingsOpen(!uiStore.settingsOpen)"
-        :class="cn(uiStore.settingsOpen && 'ww-active')"
+        :active="uiStore.settingsOpen"
       >
         <Settings class="size-3.5" />
       </Button>

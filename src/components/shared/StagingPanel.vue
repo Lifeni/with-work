@@ -76,22 +76,24 @@ onMounted(() => {
 });
 
 /** 拖动调节面板宽度（增量式，按下时记录起点避免突跳；记忆在设置中） */
-function startResize(e: MouseEvent) {
+function startResize(e: PointerEvent) {
   e.preventDefault();
   const startX = e.clientX;
   const startWidth = stagingWidth.value;
-  const onMove = (ev: MouseEvent) => {
+  const onMove = (ev: PointerEvent) => {
     const w = startWidth + (startX - ev.clientX);
     const next = Math.min(560, Math.max(240, w));
     stagingWidth.value = next;
     settingsStore.setStagingWidth(next);
   };
   const onUp = () => {
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    document.body.style.userSelect = "";
   };
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mouseup", onUp);
+  document.body.style.userSelect = "none";
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
 }
 
 /** 从剪贴板读取文本并添加到暂存区 */
@@ -222,23 +224,26 @@ function handleDrop(e: DragEvent, zone: "staging" | "templates") {
   }
 }
 
-/** 拖动调节模板区高度（记忆在设置中） */
-function startTemplateResize(e: MouseEvent) {
+/** 拖动调节模板区高度（增量式：记录起点避免突跳；优先用面板高度限制上限，缺失时回落） */
+function startTemplateResize(e: PointerEvent) {
   e.preventDefault();
-  const onMove = (ev: MouseEvent) => {
-    const rect = panelRef.value?.getBoundingClientRect();
-    if (!rect) return;
-    const h = rect.bottom - ev.clientY;
-    const next = Math.min(rect.height * 0.7, Math.max(160, h));
+  const startY = e.clientY;
+  const startHeight = templateHeight.value;
+  const onMove = (ev: PointerEvent) => {
+    const h = startHeight + (startY - ev.clientY);
+    const max = panelRef.value?.getBoundingClientRect().height;
+    const next = Math.min(max ? max * 0.7 : 640, Math.max(160, h));
     templateHeight.value = next;
     settingsStore.setStagingTemplateHeight(next);
   };
   const onUp = () => {
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    document.body.style.userSelect = "";
   };
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mouseup", onUp);
+  document.body.style.userSelect = "none";
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
 }
 
 /** 拖拽来源标记：拖出暂存区 / 模板区时写入，防止拖回时重复添加 */
@@ -253,11 +258,11 @@ function setDragSource(e: DragEvent, zone: string) {
   <div
     :class="
       cn(
-        'bg-card',
+        'bg-card overflow-hidden',
         uiStore.stagingOpen
           ? 'fixed inset-y-0 right-0 z-40 shadow-2xl lg:z-auto lg:shadow-none'
           : 'hidden lg:block',
-        'lg:relative lg:shrink-0 lg:overflow-hidden lg:border-l lg:border-border',
+        'lg:relative lg:shrink-0 lg:border-l lg:border-border',
       )
     "
     :style="{
@@ -270,7 +275,7 @@ function setDragSource(e: DragEvent, zone: string) {
     <div
       class="absolute inset-y-0 left-0 z-10 w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20"
       title="拖动调节面板宽度"
-      @mousedown="startResize"
+      @pointerdown="startResize"
     />
     <div ref="panelRef" class="flex h-full min-w-0 flex-col" :style="{ width: stagingWidth }">
       <div class="flex h-9 items-center gap-2 border-b border-border px-3">
@@ -290,12 +295,7 @@ function setDragSource(e: DragEvent, zone: string) {
       </div>
 
       <div class="space-y-1.5 border-b border-border p-3">
-        <Textarea
-          v-model="draft"
-          rows="2"
-          placeholder="粘贴或输入文本，暂存后供各工具取用…"
-          class="min-h-12 text-xs"
-        />
+        <Textarea v-model="draft" :rows="2" placeholder="粘贴或输入文本，暂存后供各工具取用…" />
         <div class="flex gap-1.5">
           <Button
             size="sm"
@@ -461,9 +461,9 @@ function setDragSource(e: DragEvent, zone: string) {
       <!-- 上下分栏分隔条：拖动调节模板区高度 -->
       <div class="relative shrink-0 border-t border-border">
         <div
-          class="absolute -top-1.5 left-0 h-3 w-full cursor-row-resize touch-none select-none rounded hover:bg-primary/20"
+          class="absolute -top-2 left-0 h-4 w-full cursor-row-resize touch-none select-none rounded hover:bg-primary/20"
           title="拖动调节模板区高度"
-          @mousedown="startTemplateResize"
+          @pointerdown="startTemplateResize"
         />
       </div>
 

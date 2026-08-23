@@ -13,6 +13,7 @@ import {
   Trash,
   Upload,
 } from "@vicons/tabler";
+import { NInputNumber } from "naive-ui";
 import Button from "@/components/ui/button.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import Input from "@/components/ui/input.vue";
@@ -113,15 +114,13 @@ const onRulesFile = (e: Event) => {
             </div>
             <div class="flex items-center gap-2">
               <span class="w-24 shrink-0 text-xs text-muted-foreground">编辑器字号</span>
-              <Input
-                type="number"
-                min="10"
-                max="24"
+              <NInputNumber
                 :value="settingsStore.fontSize"
-                @input="
-                  settingsStore.setFontSize(Number(($event.target as HTMLInputElement).value) || 14)
-                "
-                class="h-7 w-20 text-xs"
+                :min="10"
+                :max="24"
+                size="small"
+                class="w-24"
+                @update:value="(v: number | null) => settingsStore.setFontSize(v ?? 14)"
               />
               <span class="text-xs text-muted-foreground">10 – 24 px</span>
             </div>
@@ -141,7 +140,7 @@ const onRulesFile = (e: Event) => {
                 @input="
                   settingsStore.setEditorFontFamily(($event.target as HTMLInputElement).value)
                 "
-                class="h-7 flex-1 font-mono text-xs"
+                class="flex-1 font-mono"
               />
               <Button
                 variant="outline"

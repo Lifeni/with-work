@@ -360,7 +360,7 @@ defineExpose({ open });
         ref="findInputRef"
         v-model="find"
         placeholder="查找"
-        class="h-6.5 min-w-28 flex-1 basis-40 text-xs"
+        class="min-w-28 flex-1 basis-40"
       />
       <Badge
         :variant="findError ? 'destructive' : 'secondary'"
@@ -404,7 +404,7 @@ defineExpose({ open });
       <Button
         variant="ghost"
         size="icon-sm"
-        class="h-6.5 w-6.5"
+        class="w-6.5"
         title="上一个"
         :disabled="matches.length === 0"
         @click="navigate(current - 1)"
@@ -414,7 +414,7 @@ defineExpose({ open });
       <Button
         variant="ghost"
         size="icon-sm"
-        class="h-6.5 w-6.5"
+        class="w-6.5"
         title="下一个"
         :disabled="matches.length === 0"
         @click="navigate(current + 1)"
@@ -424,11 +424,7 @@ defineExpose({ open });
 
       <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
 
-      <Input
-        v-model="replace"
-        placeholder="替换为"
-        class="h-6.5 min-w-24 flex-1 basis-32 text-xs"
-      />
+      <Input v-model="replace" placeholder="替换为" class="min-w-24 flex-1 basis-32" />
       <select
         :value="ruleSelect"
         @change="
@@ -461,7 +457,7 @@ defineExpose({ open });
       <Button
         variant="ghost"
         size="icon-sm"
-        class="h-6.5 w-6.5"
+        class="w-6.5"
         title="管理替换规则"
         @click="
           () => {
@@ -495,7 +491,7 @@ defineExpose({ open });
         v-if="delimiter === 'custom'"
         v-model="customRegex"
         placeholder="分隔正则"
-        class="h-6.5 w-28 font-mono text-xs"
+        class="w-28 font-mono"
       />
       <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSplit">
         <Scissors class="size-3" />
@@ -537,7 +533,7 @@ defineExpose({ open });
       <Button
         variant="ghost"
         size="icon-sm"
-        class="h-6.5 w-6.5"
+        class="w-6.5"
         title="管理排序规则"
         @click="templatesOpen = true"
       >

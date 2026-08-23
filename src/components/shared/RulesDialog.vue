@@ -132,7 +132,7 @@ const onImportFile = (e: Event) => {
   >
     <div class="space-y-2 rounded-md border border-border p-2.5">
       <div class="grid grid-cols-3 gap-2">
-        <Input v-model="name" placeholder="规则名称（可选）" class="h-8 text-xs" />
+        <Input v-model="name" placeholder="规则名称（可选）" class="" />
         <Input v-model="find" placeholder="查找内容" class="h-8 font-mono text-xs" />
         <Input v-model="replace" placeholder="替换为" class="h-8 font-mono text-xs" />
       </div>

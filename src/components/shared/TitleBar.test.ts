@@ -98,13 +98,11 @@ describe("TitleBar 编辑操作与外观", () => {
 
     await wrapper.get('[aria-label="切换主题"]').trigger("click");
     await new Promise((r) => setTimeout(r, 50));
-    // n-dropdown 菜单渲染到 body，菜单项为 .n-dropdown-option
-    const items = [...document.querySelectorAll(".n-dropdown-option")];
+    // 自绘菜单项（data-dropdown-item）
+    const items = [...document.querySelectorAll("[data-dropdown-item]")];
     const dark = items.find((el) => el.textContent?.includes("深色"));
     expect(dark).toBeDefined();
-    // Naive 的 onClick 绑定在内层 .n-dropdown-option-body 上
-    const body = dark!.querySelector(".n-dropdown-option-body") ?? dark!;
-    body.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    (dark as HTMLElement).click();
     await new Promise((r) => setTimeout(r, 50));
     expect(settings.theme).toBe("dark");
   });

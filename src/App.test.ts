@@ -77,7 +77,7 @@ describe("App 底部状态栏", () => {
     await tick();
     await wrapper.get('[aria-label="切换主题"]').trigger("click");
     await tick();
-    expect(document.querySelectorAll(".n-dropdown-option").length).toBeGreaterThan(0);
+    expect(document.querySelectorAll("[data-dropdown-item]").length).toBeGreaterThan(0);
     wrapper.unmount();
   });
 });

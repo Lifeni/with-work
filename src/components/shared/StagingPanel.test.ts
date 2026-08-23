@@ -167,10 +167,11 @@ describe("StagingPanel 收起与悬浮按钮", () => {
     const handle = wrapper.find('[title="拖动调节面板宽度"]');
     expect(handle.exists()).toBe(true);
 
-    // 向右拖 40px：宽度 320 → 360（设置同步）
-    await handle.trigger("mousedown", { clientX: 400 });
-    window.dispatchEvent(new MouseEvent("mousemove", { clientX: 360 }));
-    window.dispatchEvent(new MouseEvent("mouseup"));
+    // jsdom 无 PointerEvent，用 MouseEvent 构造 pointer 系列事件
+    const down = new MouseEvent("pointerdown", { clientX: 400, bubbles: true, cancelable: true });
+    handle.element.dispatchEvent(down);
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 360 }));
+    window.dispatchEvent(new MouseEvent("pointerup"));
     await wrapper.vm.$nextTick();
     expect(settings.stagingWidth).toBe(360);
     wrapper.unmount();

@@ -378,22 +378,24 @@ function importFromFocused(target: "staging" | "text-template" | "sort-template"
 
 // 左右宽度比例（可拖动，记忆在设置中；增量式避免按下时突跳）
 const split = computed(() => settingsStore.editorSplit ?? 0.5);
-function startSplitResize(e: MouseEvent) {
+function startSplitResize(e: PointerEvent) {
   e.preventDefault();
   const startX = e.clientX;
   const startRatio = split.value;
-  const onMove = (ev: MouseEvent) => {
+  const onMove = (ev: PointerEvent) => {
     const rect = editorAreaRef.value?.getBoundingClientRect();
     if (!rect) return;
     const ratio = startRatio + (ev.clientX - startX) / rect.width;
     settingsStore.setEditorSplit(Math.min(0.75, Math.max(0.25, ratio)));
   };
   const onUp = () => {
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    document.body.style.userSelect = "";
   };
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mouseup", onUp);
+  document.body.style.userSelect = "none";
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
 }
 
 /** 编辑器内容变化：写入 store（Model 变化事件，工作区切换/撤销重做同样触发） */
@@ -444,12 +446,12 @@ function handleModelChange(side: Side, value: string) {
         <div
           class="absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20 lg:block"
           title="拖动调节左右宽度"
-          @mousedown="startSplitResize"
+          @pointerdown="startSplitResize"
         />
         <div
           class="absolute inset-y-0 -right-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded hover:bg-primary/20 lg:block"
           title="拖动调节左右宽度"
-          @mousedown="startSplitResize"
+          @pointerdown="startSplitResize"
         />
         <Button
           variant="ghost"
@@ -472,7 +474,7 @@ function handleModelChange(side: Side, value: string) {
           size="icon-sm"
           :title="diffOpen ? '对比弹窗已打开' : '进入对比模式'"
           @click="diffOpen = true"
-          :class="cn(diffOpen && 'ww-active')"
+          :active="diffOpen"
         >
           <FileDiff />
         </Button>

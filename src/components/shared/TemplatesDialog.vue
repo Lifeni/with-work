@@ -119,14 +119,14 @@ const onImportFile = (e: Event) => {
   >
     <div class="space-y-2 rounded-md border border-border p-2.5">
       <div class="grid grid-cols-[1fr_180px] gap-2">
-        <Input v-model="name" placeholder="模板名称（可选）" class="h-8 text-xs" />
-        <Input v-model="group" placeholder="分组（可选）" class="h-8 text-xs" />
+        <Input v-model="name" placeholder="模板名称（可选）" class="" />
+        <Input v-model="group" placeholder="分组（可选）" class="" />
       </div>
       <Textarea
         v-model="content"
-        rows="4"
+        :rows="4"
         placeholder="模板条目，每行一条（按从上到下顺序排列）"
-        class="min-h-20 font-mono text-xs"
+        class="font-mono"
       />
       <div class="flex items-center gap-2">
         <Toggle

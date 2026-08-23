@@ -1,24 +1,35 @@
 <script setup lang="ts">
+import { useAttrs } from "vue";
+import { NInput } from "naive-ui";
 import { cn } from "@/lib/utils";
 
-const props = withDefaults(defineProps<{ modelValue?: string }>(), { modelValue: "" });
+/** Textarea：Naive n-input type=textarea 封装 */
+const props = withDefaults(defineProps<{ modelValue?: string; rows?: number }>(), {
+  modelValue: "",
+  rows: 3,
+});
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
-function onInput(e: Event) {
-  emit("update:modelValue", (e.target as HTMLTextAreaElement).value);
+// 分离 attrs：rows 由 prop 管理，避免与 v-bind 重复
+const attrs = useAttrs();
+const rest = (() => {
+  const { class: _c, rows: _r, ...remain } = attrs as Record<string, unknown>;
+  return remain;
+})();
+
+function onUpdate(value: string) {
+  emit("update:modelValue", value);
 }
 </script>
 
 <template>
-  <textarea
+  <NInput
+    type="textarea"
     :value="props.modelValue"
-    @input="onInput"
-    :class="
-      cn(
-        'flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-        $attrs.class as string,
-      )
-    "
-    v-bind="{ ...$attrs, class: undefined }"
+    :rows="props.rows"
+    :class="cn(attrs.class as string)"
+    v-bind="rest"
+    size="small"
+    @update:value="onUpdate"
   />
 </template>

@@ -15,8 +15,10 @@ const props = withDefaults(
     type?: "button" | "submit" | "reset";
     variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm";
+    /** 激活态：通过内联 CSS 变量覆盖按钮底色（Naive 按钮样式是内联变量，CSS 类无法覆盖） */
+    active?: boolean;
   }>(),
-  { type: "button", variant: "default", size: "default" },
+  { type: "button", variant: "default", size: "default", active: false },
 );
 
 const attrs = useAttrs();
@@ -58,6 +60,21 @@ const naiveSize = computed(() => {
 
 const circle = computed(() => props.size === "icon" || props.size === "icon-sm");
 
+const activeStyle = computed(() =>
+  props.active
+    ? {
+        "--n-color": "var(--accent)",
+        "--n-color-hover": "var(--accent)",
+        "--n-color-pressed": "var(--accent)",
+        "--n-color-focus": "var(--accent)",
+        "--n-text-color": "var(--accent-foreground)",
+        "--n-text-color-hover": "var(--accent-foreground)",
+        "--n-text-color-pressed": "var(--accent-foreground)",
+        "--n-ripple-color": "var(--accent-foreground)",
+      }
+    : undefined,
+);
+
 // 分离 title（用于 tooltip，同时转为 aria-label 透传保留可访问性与测试定位）
 const forwarding = computed(() => {
   const { title, disabled, class: _cls, ...rest } = attrs as Record<string, unknown>;
@@ -82,6 +99,7 @@ const forwarding = computed(() => {
         :bordered="bordered"
         :disabled="forwarding.disabled"
         :aria-label="forwarding.ariaLabel"
+        :style="activeStyle"
         :class="cn(forwarding.className as string, 'align-middle')"
         v-bind="{ ...forwarding.rest }"
       >
@@ -99,6 +117,7 @@ const forwarding = computed(() => {
     :bordered="bordered"
     :disabled="forwarding.disabled"
     :aria-label="forwarding.ariaLabel"
+    :style="activeStyle"
     :class="cn(forwarding.className as string, 'align-middle')"
     v-bind="{ ...forwarding.rest }"
   >
