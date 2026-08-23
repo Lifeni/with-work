@@ -277,13 +277,6 @@ function setDragSource(e: DragEvent, zone: string) {
       maxWidth: uiStore.stagingOpen ? stagingWidth : 0,
     }"
   >
-    <!-- 左边缘拖拽手柄（悬停高亮，贴边显示） -->
-    <div
-      class="absolute inset-y-0 left-0 z-30 w-4 cursor-ew-resize touch-none select-none rounded bg-border/50 hover:bg-primary/25"
-      title="拖动调节面板宽度"
-      @pointerdown="startResize"
-      @mousedown="startResize"
-    />
     <div ref="panelRef" class="flex h-full min-w-0 flex-col" :style="{ width: stagingWidth }">
       <div class="flex h-9 items-center gap-2 border-b border-border px-3">
         <!-- 标题靠左：图标 + 文字 + 计数徽标 -->
@@ -465,13 +458,14 @@ function setDragSource(e: DragEvent, zone: string) {
         暂存区为全局共用，所有工作区共享；拖拽条目到编辑器可快速插入
       </div>
 
-      <div class="relative z-20 shrink-0 border-t border-border">
-        <div
-          class="absolute -top-2 left-0 h-5 w-full cursor-row-resize touch-none select-none rounded bg-border/40 hover:bg-primary/25"
-          title="拖动调节模板区高度"
-          @pointerdown="startTemplateResize"
-          @mousedown="startTemplateResize"
-        />
+      <!-- 上下分栏分隔条：拖动调节模板区高度（普通流元素，不依赖绝对定位） -->
+      <div
+        class="shrink-0 cursor-row-resize touch-none select-none border-t border-border pt-2"
+        title="拖动调节模板区高度"
+        @pointerdown="startTemplateResize"
+        @mousedown="startTemplateResize"
+      >
+        <div class="h-1 w-full rounded bg-border/40 hover:bg-primary/25" />
       </div>
 
       <!-- 下半部：模板区（文本模板 / 排序模板 / 替换规则，标签切换；支持拖入保存为文本模板） -->
@@ -869,4 +863,14 @@ function setDragSource(e: DragEvent, zone: string) {
       <LayoutSidebarRight class="size-4" />
     </button>
   </Teleport>
+
+  <!-- 面板左缘宽度手柄：fixed 独立层（脱离面板内部一切层级，事件必定可达） -->
+  <div
+    v-if="uiStore.stagingOpen"
+    class="fixed bottom-0 top-0 z-[300] w-4 cursor-ew-resize touch-none select-none bg-border/50 hover:bg-primary/25"
+    :style="{ left: `calc(100vw - ${stagingWidth}px)` }"
+    title="拖动调节面板宽度"
+    @pointerdown="startResize"
+    @mousedown="startResize"
+  />
 </template>
