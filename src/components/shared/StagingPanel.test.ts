@@ -169,13 +169,29 @@ describe("StagingPanel 收起与悬浮按钮", () => {
     const handle = wrapper.find('[title="拖动调节面板宽度"]');
     expect(handle.exists()).toBe(true);
 
-    // jsdom 无 PointerEvent，用 MouseEvent 构造 pointer 系列事件
+    // jsdom 无 PointerEvent，用 MouseEvent 构造 pointer 系列事件（由 document 捕获代理接管）
     const down = new MouseEvent("pointerdown", { clientX: 400, bubbles: true, cancelable: true });
     handle.element.dispatchEvent(down);
     window.dispatchEvent(new MouseEvent("pointermove", { clientX: 360 }));
     window.dispatchEvent(new MouseEvent("pointerup"));
     await wrapper.vm.$nextTick();
     expect(settings.stagingWidth).toBe(360);
+    wrapper.unmount();
+  });
+
+  it("拖动模板区上方分隔条可调节模板区高度（记忆到设置）", async () => {
+    const settings = useSettingsStore();
+    const wrapper = mountPanel();
+    const handle = wrapper.find('[title="拖动调节模板区高度"]');
+    expect(handle.exists()).toBe(true);
+
+    // 增量式：起点高 240，向上拖 40px → 280
+    const down = new MouseEvent("pointerdown", { clientY: 300, bubbles: true, cancelable: true });
+    handle.element.dispatchEvent(down);
+    window.dispatchEvent(new MouseEvent("pointermove", { clientY: 260 }));
+    window.dispatchEvent(new MouseEvent("pointerup"));
+    await wrapper.vm.$nextTick();
+    expect(settings.stagingTemplateHeight).toBe(280);
     wrapper.unmount();
   });
 });

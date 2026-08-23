@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import {
   ArrowsLeftRight,
   ClipboardCheck,
@@ -70,9 +70,32 @@ const editRuleId = ref<string | null>(null);
 const tplTab = ref<"text" | "sort" | "rules">("text");
 const dragOver = ref<"staging" | "templates" | null>(null);
 
-// 窄屏（<lg）下暂存区默认收起，通过右下角悬浮按钮打开
+// 面板内部手柄命中数据标记：宽度 = 暂存区↔编辑器，高度 = 暂存区↔模板区
+const RESIZE_WIDTH_MARK = "data-resize-width";
+const RESIZE_HEIGHT_MARK = "data-resize-height";
+
+/**
+ * 手柄事件代理：在 document 捕获阶段拦截 pointerdown/mousedown，
+ * 绕过面板内部可能存在的任何层级拦截，保证手柄必定可拖。
+ */
+function onDocResizeDown(e: Event) {
+  const target = e.target as HTMLElement | null;
+  if (!target?.closest) return;
+  if (target.closest(`[${RESIZE_WIDTH_MARK}]`)) {
+    startResize(e as MouseEvent);
+  } else if (target.closest(`[${RESIZE_HEIGHT_MARK}]`)) {
+    startTemplateResize(e as MouseEvent);
+  }
+}
+
 onMounted(() => {
+  document.addEventListener("pointerdown", onDocResizeDown, { capture: true });
+  document.addEventListener("mousedown", onDocResizeDown, { capture: true });
   if (window.matchMedia("(max-width: 1023px)").matches) uiStore.setStagingOpen(false);
+});
+onUnmounted(() => {
+  document.removeEventListener("pointerdown", onDocResizeDown, { capture: true });
+  document.removeEventListener("mousedown", onDocResizeDown, { capture: true });
 });
 
 /** 拖动调节面板宽度（增量式，按下时记录起点避免突跳；记忆在设置中） */
@@ -458,12 +481,11 @@ function setDragSource(e: DragEvent, zone: string) {
         暂存区为全局共用，所有工作区共享；拖拽条目到编辑器可快速插入
       </div>
 
-      <!-- 上下分栏分隔条：拖动调节模板区高度（普通流元素，不依赖绝对定位） -->
+      <!-- 上下分栏分隔条：拖动调节模板区高度（命中区带 data 标记，由 document 捕获代理接管） -->
       <div
         class="shrink-0 cursor-row-resize touch-none select-none border-t border-border pt-2"
+        :data-resize-height="true"
         title="拖动调节模板区高度"
-        @pointerdown="startTemplateResize"
-        @mousedown="startTemplateResize"
       >
         <div class="h-1 w-full rounded bg-border/40 hover:bg-primary/25" />
       </div>
@@ -864,13 +886,12 @@ function setDragSource(e: DragEvent, zone: string) {
     </button>
   </Teleport>
 
-  <!-- 面板左缘宽度手柄：fixed 独立层（脱离面板内部一切层级，事件必定可达） -->
+  <!-- 面板左缘宽度手柄：fixed 独立层；命中由 document 捕获代理接管 -->
   <div
     v-if="uiStore.stagingOpen"
     class="fixed bottom-0 top-0 z-[300] w-4 cursor-ew-resize touch-none select-none bg-border/50 hover:bg-primary/25"
     :style="{ left: `calc(100vw - ${stagingWidth}px)` }"
+    :data-resize-width="true"
     title="拖动调节面板宽度"
-    @pointerdown="startResize"
-    @mousedown="startResize"
   />
 </template>
