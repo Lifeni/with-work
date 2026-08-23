@@ -45,6 +45,8 @@ export function applyTool(
   if (editor && model) {
     const range = hasSelection && selection ? selection : model.getFullModelRange();
     editor.executeEdits("ww-tool", [{ range, text: output }]);
+    // 恢复焦点：点击悬浮工具栏按钮会使 Monaco 失焦，失焦状态下 Ctrl+Z 不响应
+    editor.focus();
   } else {
     wsStore.setLeft(activeId, output);
   }

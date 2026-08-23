@@ -42,10 +42,12 @@ function openMenu() {
     const t = triggerRef.value?.getBoundingClientRect();
     const m = menuRef.value?.getBoundingClientRect();
     if (!t || !m) return;
-    pos.value = {
-      top: t.bottom + 4,
-      left: props.align === "end" ? Math.max(8, t.right - m.width) : t.left,
-    };
+    // 钳制在视口内（8px 边距），避免菜单出现在窗口外无法点击
+    const top = Math.max(8, Math.min(t.bottom + 4, window.innerHeight - m.height - 8));
+    const rawLeft =
+      props.align === "end" ? t.right - m.width : t.left;
+    const left = Math.max(8, Math.min(rawLeft, window.innerWidth - m.width - 8));
+    pos.value = { top, left };
   });
 }
 

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import TitleBar from "@/components/shared/TitleBar.vue";
 import { resetStores } from "@/test/resetStores";
-import { useSettingsStore } from "@/stores/settings";
 import { useWorkspaceStore } from "@/stores/workspace";
 
 beforeEach(() => {
@@ -33,7 +32,7 @@ describe("TitleBar 工作区标签", () => {
     store.createWorkspace();
     const wrapper = mountBar();
 
-    await wrapper.get('[title="新建工作区"]').trigger("click");
+    await wrapper.get('[aria-label="新建工作区"]').trigger("click");
     expect(store.workspaces).toHaveLength(2);
     expect(store.activeId).toBe(store.workspaces[1].id);
     // 新增 tab 出现在列表中
@@ -76,43 +75,18 @@ describe("TitleBar 工作区标签", () => {
   });
 });
 
-describe("TitleBar 编辑操作与外观", () => {
-  it("撤销 / 重做 / 自动换行按钮存在且可切换换行", async () => {
-    const settings = useSettingsStore();
+describe("TitleBar 暂存区开关", () => {
+  it("点击按钮切换暂存区展开/收起", async () => {
+    const { useUiStore } = await import("@/stores/ui");
+    const ui = useUiStore();
+    ui.setStagingOpen(false);
     const wrapper = mountBar();
 
-    expect(wrapper.find('[aria-label="撤销 (Ctrl+Z)"]').exists()).toBe(true);
-    expect(wrapper.find('[aria-label="重做"]').exists()).toBe(true);
-
-    const wrap = wrapper.get('[aria-label^="自动换行"]');
-    await wrap.trigger("click");
-    expect(settings.wordWrap).toBe(false);
-    await wrap.trigger("click");
-    expect(settings.wordWrap).toBe(true);
-  });
-
-  it("主题菜单：点击切换主题选项", async () => {
-    const settings = useSettingsStore();
-    settings.setTheme("light");
-    const wrapper = mountBar();
-
-    await wrapper.get('[aria-label="切换主题"]').trigger("click");
-    await new Promise((r) => setTimeout(r, 50));
-    // 自绘菜单项（data-dropdown-item）
-    const items = [...document.querySelectorAll("[data-dropdown-item]")];
-    const dark = items.find((el) => el.textContent?.includes("深色"));
-    expect(dark).toBeDefined();
-    (dark as HTMLElement).click();
-    await new Promise((r) => setTimeout(r, 50));
-    expect(settings.theme).toBe("dark");
-  });
-
-  it("设置按钮切换设置弹窗开关", async () => {
-    const wrapper = mountBar();
-    const btn = wrapper.get('[aria-label="设置"]');
+    const btn = wrapper.get("[aria-label=\"展开暂存区\"]");
     await btn.trigger("click");
-    expect(btn.attributes("aria-pressed")).toBe("true");
-    await btn.trigger("click");
-    expect(btn.attributes("aria-pressed")).toBe("false");
+    expect(ui.stagingOpen).toBe(true);
+    // 收起状态图标语义切换
+    expect(wrapper.find("[aria-label=\"收起暂存区\"]").exists()).toBe(true);
+    wrapper.unmount();
   });
 });

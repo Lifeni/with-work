@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { ArrowBigUpLine, Folder, ListNumbers, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
-import Badge from "@/components/ui/badge.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import AppDialog from "@/components/ui/dialog.vue";
 import Button from "@/components/ui/button.vue";
@@ -163,12 +162,22 @@ const onImportFile = (e: Event) => {
       >
         <ListNumbers class="size-3.5 shrink-0 text-muted-foreground" />
         <span class="w-32 shrink-0 truncate text-xs font-medium" :title="t.name">{{ t.name }}</span>
-        <Badge v-if="t.group" variant="secondary" class="shrink-0 text-[9px]">{{ t.group }}</Badge>
-        <Badge variant="secondary">{{ t.items.length }} 条</Badge>
-        <Badge v-if="t.prefixMatch" variant="outline" class="shrink-0 gap-0.5 text-[9px]">
-          <ArrowBigUpLine class="size-2.5" />
+        <span
+          v-if="t.group"
+          class="shrink-0 text-xs font-medium text-muted-foreground"
+        >
+          {{ t.group }}
+        </span>
+        <span class="shrink-0 text-xs font-medium text-muted-foreground">
+          {{ t.items.length }} 条
+        </span>
+        <span
+          v-if="t.prefixMatch"
+          class="flex shrink-0 items-center gap-0.5 text-xs font-medium text-muted-foreground"
+        >
+          <ArrowBigUpLine class="size-3" />
           开头匹配
-        </Badge>
+        </span>
         <span
           class="min-w-0 flex-1 truncate text-xs text-muted-foreground"
           :title="t.items.join('、')"

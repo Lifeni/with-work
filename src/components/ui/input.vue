@@ -14,6 +14,7 @@ function onUpdate(value: string) {
 <template>
   <NInput
     :value="props.modelValue"
+    :style="{ '--n-font-size': '12px' }"
     :class="cn($attrs.class as string)"
     v-bind="{ ...$attrs, class: undefined, ...{ 'aria-label': undefined } }"
     size="small"

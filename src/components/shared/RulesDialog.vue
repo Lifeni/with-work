@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { Folder, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
-import Badge from "@/components/ui/badge.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import AppDialog from "@/components/ui/dialog.vue";
 import Button from "@/components/ui/button.vue";
@@ -176,8 +175,13 @@ const onImportFile = (e: Event) => {
         >
           {{ r.replace }}
         </span>
-        <Badge v-if="r.isRegex" variant="secondary">正则</Badge>
-        <Badge v-if="r.matchCase" variant="outline">Aa</Badge>
+        <span
+          v-if="r.isRegex"
+          class="shrink-0 text-xs font-medium text-muted-foreground"
+        >
+          正则
+        </span>
+        <span v-if="r.matchCase" class="shrink-0 text-xs font-medium text-muted-foreground">Aa</span>
         <Button variant="ghost" size="icon-sm" title="编辑" @click="startEdit(r)">
           <Pencil class="size-3" />
         </Button>

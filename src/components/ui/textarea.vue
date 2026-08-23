@@ -27,6 +27,7 @@ function onUpdate(value: string) {
     type="textarea"
     :value="props.modelValue"
     :rows="props.rows"
+    :style="{ '--n-font-size': '12px' }"
     :class="cn(attrs.class as string)"
     v-bind="rest"
     size="small"

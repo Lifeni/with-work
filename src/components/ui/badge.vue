@@ -30,7 +30,7 @@ const tagType = computed(() => {
     size="small"
     :type="tagType"
     :bordered="props.variant !== 'outline'"
-    :class="cn('!m-0', $attrs.class as string)"
+    :class="cn('!m-0 !rounded-full !px-1 !py-0 !text-[10px] leading-3.5', $attrs.class as string)"
     v-bind="{ ...$attrs, class: undefined }"
   >
     <slot />

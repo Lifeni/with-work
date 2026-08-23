@@ -16,6 +16,9 @@ vi.mock("@/components/shared/DiffEditor.vue", async () => {
 vi.mock("@/views/editor/FindReplacePanel.vue", () => ({
   default: { name: "FindReplacePanelStub", template: "<div />" },
 }));
+vi.mock("@/components/shared/FloatingEditorToolbar.vue", () => ({
+  default: { name: "FloatingEditorToolbarStub", template: "<div />" },
+}));
 
 beforeEach(() => {
   resetStores();
@@ -113,6 +116,108 @@ describe("EditorView 拖入", () => {
     await nextTick();
 
     expect(store.workspaces[0].left).toContain("拖入文本");
+    wrapper.unmount();
+  });
+});
+
+describe("EditorView 自绘拖拽（ww-card-drop）", () => {
+  it("卡片文本拖入左编辑器：落点退化到光标处插入", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setLeft(id, "原始内容");
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+    const leftZone = wrapper.get('[data-ww-editor="left"]');
+    // 模拟 StagingPanel pointerup 时派发的自定义事件
+    leftZone.element.dispatchEvent(
+      new CustomEvent("ww-card-drop", {
+        bubbles: true,
+        detail: { kind: "staging", text: "卡片文本", clientX: 0, clientY: 0 },
+      }),
+    );
+    await nextTick();
+    await nextTick();
+
+    // mock 的 getTargetAtClientPoint 返回 null → 插入到光标（1:1）
+    expect(store.workspaces[0].left).toBe("卡片文本原始内容");
+    wrapper.unmount();
+  });
+
+  it("卡片规则拖入右编辑器：按规则替换全文", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setRight(id, "foo bar");
+    const { useRulesStore } = await import("@/stores/rules");
+    useRulesStore().addRule({
+      id: "r2",
+      name: "规则二",
+      find: "foo",
+      replace: "福",
+      isRegex: false,
+      matchCase: false,
+    });
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+    const rightZone = wrapper.get('[data-ww-editor="right"]');
+    rightZone.element.dispatchEvent(
+      new CustomEvent("ww-card-drop", {
+        bubbles: true,
+        detail: { kind: "rule", ruleId: "r2", text: "规则二：foo → 福" },
+      }),
+    );
+    await nextTick();
+    await nextTick();
+
+    expect(store.workspaces[0].right).toBe("福 bar");
+    wrapper.unmount();
+  });
+});
+
+describe("EditorView 设置联动", () => {
+  it("修改字号/自动换行设置会实时更新编辑器选项", async () => {
+    const { useSettingsStore } = await import("@/stores/settings");
+    const settings = useSettingsStore();
+    useWorkspaceStore().createWorkspace();
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+
+    const stub = wrapper.findComponent({ name: "MonacoEditorStub" });
+    expect(stub.props("options")).toMatchObject({ fontSize: 14, wordWrap: "on" });
+
+    settings.setFontSize(18);
+    settings.setWordWrap(false);
+    await nextTick();
+
+    const opts = stub.props("options") as Record<string, unknown>;
+    expect(opts.fontSize).toBe(18);
+    expect(opts.wordWrap).toBe("off");
+    wrapper.unmount();
+  });
+});
+
+describe("EditorView 工作区切换防串写", () => {
+  it("切换工作区时不会把旧编辑器内容串入新工作区", async () => {
+    const store = useWorkspaceStore();
+    const id1 = store.createWorkspace();
+    store.setLeft(id1, "工作区1内容");
+    const id2 = store.createWorkspace();
+    store.setLeft(id2, "工作区2内容");
+    store.setActive(id2);
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+    await nextTick();
+
+    // 切换到工作区 1：换绑滞后窗口内编辑器仍持有工作区 2 的 Model，
+    // 双向同步必须跳过（不得把 store 值写入旧 Model、也不得把旧 Model 内容写回 store）
+    store.setActive(id1);
+    await nextTick();
+    await nextTick();
+
+    expect(store.workspaces.find((w) => w.id === id1)!.left).toBe("工作区1内容");
+    expect(store.workspaces.find((w) => w.id === id2)!.left).toBe("工作区2内容");
     wrapper.unmount();
   });
 });

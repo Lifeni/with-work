@@ -18,6 +18,7 @@ import {
 } from "@vicons/tabler";
 import MonacoEditor from "@/components/shared/MonacoEditor.vue";
 import DiffEditor from "@/components/shared/DiffEditor.vue";
+import FloatingEditorToolbar from "@/components/shared/FloatingEditorToolbar.vue";
 import AppDialog from "@/components/ui/dialog.vue";
 import Button from "@/components/ui/button.vue";
 import FindReplacePanel from "@/views/editor/FindReplacePanel.vue";
@@ -26,7 +27,11 @@ import { getActiveEditor, setActiveEditor } from "@/lib/editorBridge";
 import { applyReplacements } from "@/lib/replace";
 import { splitLines } from "@/lib/split";
 import { cn, downloadText, uid } from "@/lib/utils";
-import { cleanupWorkspaceModels, getWorkspaceModels } from "@/lib/workspaceModels";
+import {
+  cleanupWorkspaceModels,
+  findWorkspaceIdByModel,
+  getWorkspaceModels,
+} from "@/lib/workspaceModels";
 import { useRulesStore } from "@/stores/rules";
 import { useSettingsStore } from "@/stores/settings";
 import { useStagingStore } from "@/stores/staging";
@@ -37,6 +42,15 @@ import { useToastStore } from "@/stores/toast";
 import { useWorkspaceStore } from "@/stores/workspace";
 
 type Side = "left" | "right";
+
+/** 自绘拖拽（暂存区/模板卡片 → 编辑器）的事件载荷 */
+type CardDropDetail = {
+  kind: "staging" | "text-template" | "sort-template" | "rule";
+  text: string;
+  ruleId?: string;
+  clientX?: number;
+  clientY?: number;
+};
 
 /**
  * DataTransfer.types 在部分浏览器（Chrome/Edge）为 DOMStringList（无 includes 方法）。
@@ -148,7 +162,8 @@ const theme = computed<string>(() =>
         : "light",
 );
 
-const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
+// 编辑器选项：computed 响应设置变化（字号/字体/换行修改后实时推给 Monaco updateOptions）
+const editorOptions = computed<monaco.editor.IStandaloneEditorConstructionOptions>(() => ({
   minimap: { enabled: true, scale: 1 },
   fontSize: settingsStore.fontSize,
   fontFamily: settingsStore.editorFontFamily,
@@ -166,7 +181,7 @@ const editorOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
   // 全部拖放由包裹层的捕获事件接管
   dragAndDrop: false,
   dropIntoEditor: { enabled: false },
-};
+}));
 
 // VS Code 风格快捷键：多光标 / 行操作 / 文本转换 / 行处理（作用于当前编辑器）
 function mountEditor(ed: monaco.editor.IStandaloneCodeEditor, side: Side) {
@@ -215,19 +230,22 @@ watch(
 );
 
 // store 内容变化（交换/复制到另一侧/备份导入等直接改 store 的操作）时同步到 Model，
-// 保证 Model 与 store 一致（否则切回工作区时会显示陈旧内容）；executeEdits 保留可撤销
-// 对比用编辑器当前 Model（真实场景与 workspaceModels 缓存为同一对象，且范围基于实时内容）
+// 保证 Model 与 store 一致（否则切回工作区时会显示陈旧内容）；executeEdits 保留可撤销。
+// 注意：仅当编辑器当前挂载的 Model 正是目标工作区的 Model 时才同步——
+// 切换工作区的换绑滞后窗口内编辑器仍挂着旧 Model，盲目写入会把内容串到其他地方。
 watch([left, right], () => {
-  const leftModel = leftEditor.value?.getModel();
-  if (leftEditor.value && leftModel && leftModel.getValue() !== left.value) {
+  const wsId = ws.value?.id;
+  const target = wsId ? getWorkspaceModels(wsId) : null;
+  const lm = leftEditor.value?.getModel();
+  if (leftEditor.value && target && lm === target.left && lm.getValue() !== left.value) {
     leftEditor.value.executeEdits("ww-sync", [
-      { range: leftModel.getFullModelRange(), text: left.value },
+      { range: lm.getFullModelRange(), text: left.value },
     ]);
   }
-  const rightModel = rightEditor.value?.getModel();
-  if (rightEditor.value && rightModel && rightModel.getValue() !== right.value) {
+  const rm = rightEditor.value?.getModel();
+  if (rightEditor.value && target && rm === target.right && rm.getValue() !== right.value) {
     rightEditor.value.executeEdits("ww-sync", [
-      { range: rightModel.getFullModelRange(), text: right.value },
+      { range: rm.getFullModelRange(), text: right.value },
     ]);
   }
 });
@@ -304,34 +322,30 @@ function handleEditorDragOver(e: DragEvent) {
   }
 }
 
-/** 拖拽放下：规则拖入 → 按规则替换；普通文本拖入 → 落点插入纯文本（$0 原样保留） */
-function handleEditorDrop(e: DragEvent, side: Side) {
-  const dt = e.dataTransfer;
-  if (!dt) return;
-  e.preventDefault();
-  e.stopPropagation();
-  const ed = side === "left" ? leftEditor.value : rightEditor.value;
-  if (!ed) return;
+/** 规则拖入：按规则对编辑器全文执行替换（可撤销） */
+function applyRuleDrop(ed: monaco.editor.IStandaloneCodeEditor, ruleId: string) {
+  const rule = useRulesStore().rules.find((x) => x.id === ruleId);
+  const model = ed.getModel();
+  if (!rule || !model) return;
+  const text = model.getValue();
+  const result = applyReplacements(text, rule.find, rule.replace, rule.isRegex, rule.matchCase);
+  ed.executeEdits("ww-rule-drop", [{ range: model.getFullModelRange(), text: result }]);
+  toast(`已按规则「${rule.name}」替换`);
+}
 
-  // 替换规则拖入：按规则对编辑器全部内容执行替换（可撤销）
-  if (hasDragType(dt.types, "application/x-with-work-rule")) {
-    const ruleId = dt.getData("application/x-with-work-rule");
-    const rule = useRulesStore().rules.find((x) => x.id === ruleId);
-    const model = ed.getModel();
-    if (rule && model) {
-      const text = model.getValue();
-      const result = applyReplacements(text, rule.find, rule.replace, rule.isRegex, rule.matchCase);
-      ed.executeEdits("ww-rule-drop", [{ range: model.getFullModelRange(), text: result }]);
-      toast(`已按规则「${rule.name}」替换`);
-    }
-    return;
-  }
-
-  // 普通文本拖入：落点插入纯文本
-  const text = dt.getData("text/plain");
-  if (text === undefined || text === null || text === "") return;
+/** 文本拖入：落点插入纯文本（优先坐标 API，退化到光标处，$0 原样保留） */
+function applyTextDrop(
+  ed: monaco.editor.IStandaloneCodeEditor,
+  text: string,
+  clientX: number,
+  clientY: number,
+) {
+  if (!text) return;
   // 优先用 Monaco 坐标 API 获取落点；异常（返回 null）时退化到当前光标 / 文首，保证拖拽可用
-  const target = ed.getTargetAtClientPoint(e.clientX, e.clientY);
+  const target =
+    typeof ed.getTargetAtClientPoint === "function"
+      ? ed.getTargetAtClientPoint(clientX, clientY)
+      : null;
   const pos = target?.position ?? ed.getPosition() ?? { lineNumber: 1, column: 1 };
   if (target?.position == null) {
     toast("已插入到光标处");
@@ -348,6 +362,39 @@ function handleEditorDrop(e: DragEvent, side: Side) {
     },
   ]);
   ed.focus();
+}
+
+/** 拖拽放下：规则拖入 → 按规则替换；普通文本拖入 → 落点插入纯文本 */
+function handleEditorDrop(e: DragEvent, side: Side) {
+  const dt = e.dataTransfer;
+  if (!dt) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const ed = side === "left" ? leftEditor.value : rightEditor.value;
+  if (!ed) return;
+
+  // 替换规则拖入：按规则对编辑器全部内容执行替换（可撤销）
+  if (hasDragType(dt.types, "application/x-with-work-rule")) {
+    applyRuleDrop(ed, dt.getData("application/x-with-work-rule"));
+    return;
+  }
+
+  // 普通文本拖入：落点插入纯文本
+  applyTextDrop(ed, dt.getData("text/plain") ?? "", e.clientX, e.clientY);
+}
+
+/** 自绘拖拽（暂存区/模板卡片 → 编辑器）：由卡片 dispatch 的 ww-card-drop 事件驱动 */
+function handleCardDrop(e: Event) {
+  const wrapper = e.target as HTMLElement;
+  const side = wrapper.dataset.wwEditor as Side | undefined;
+  const ed = side === "left" ? leftEditor.value : side === "right" ? rightEditor.value : null;
+  const detail = (e as CustomEvent<CardDropDetail>).detail;
+  if (!ed || !detail) return;
+  if (detail.kind === "rule" && detail.ruleId) {
+    applyRuleDrop(ed, detail.ruleId);
+  } else {
+    applyTextDrop(ed, detail.text, detail.clientX ?? 0, detail.clientY ?? 0);
+  }
 }
 
 /** 把聚焦编辑器内容（选区优先）导出到暂存区 / 模板 */
@@ -412,10 +459,13 @@ function startSplitResize(e: PointerEvent) {
 }
 
 /** 编辑器内容变化：写入 store（Model 变化事件，工作区切换/撤销重做同样触发） */
-function handleModelChange(side: Side, value: string) {
-  if (!ws.value) return;
-  if (side === "left") wsStore.setLeft(ws.value.id, value);
-  else wsStore.setRight(ws.value.id, value);
+function handleModelChange(side: Side, value: string, model: monaco.editor.ITextModel | null) {
+  // 换绑滞后窗口内编辑器可能仍挂着其他工作区的 Model：按 Model 归属写入它的工作区，
+  // 避免把旧内容串进当前激活的工作区；非缓存 Model（如测试替身）回落当前激活。
+  const wsId = (model ? findWorkspaceIdByModel(model) : null) ?? ws.value?.id;
+  if (!wsId) return;
+  if (side === "left") wsStore.setLeft(wsId, value);
+  else wsStore.setRight(wsId, value);
 }
 </script>
 
@@ -433,36 +483,39 @@ function handleModelChange(side: Side, value: string) {
     <!-- 双编辑器区（窄屏纵向堆叠，宽屏左右并排） -->
     <div ref="editorAreaRef" class="flex min-h-0 flex-1 flex-col gap-1.5 p-2 lg:flex-row">
       <div
+        data-ww-editor="left"
+        :style="{ '--ww-split': split }"
         :class="
           cn(
-            'min-h-0 flex-1 overflow-hidden rounded-md transition-shadow lg:min-w-0 lg:flex-none',
+            'relative min-h-0 flex-1 overflow-hidden rounded-md transition-shadow lg:min-w-0 lg:flex-[0_0_calc(var(--ww-split)*100%-18px)]',
             focused === 'left' ? 'ring-2 ring-primary/70' : 'ring-1 ring-border',
           )
         "
-        :style="{ flexBasis: `calc(${split * 100}% - 18px)` }"
         @dragover.capture="handleEditorDragOver"
         @drop.capture="(e: DragEvent) => handleEditorDrop(e, 'left')"
+        @ww-card-drop="handleCardDrop"
       >
         <MonacoEditor
           :model="leftModel"
           :theme="theme"
           :options="editorOptions"
           @mount="(ed: monaco.editor.IStandaloneCodeEditor) => mountEditor(ed, 'left')"
-          @model-change="(v: string) => handleModelChange('left', v)"
+          @model-change="(v: string, m: monaco.editor.ITextModel | null) => handleModelChange('left', v, m)"
         />
+        <FloatingEditorToolbar v-if="focused === 'left'" />
       </div>
 
-      <!-- 中间操作区：交换 / 复制 / 导出等（宽屏顶部对齐，窄屏居中） -->
+      <!-- 中间操作区：交换 / 复制 / 导出等（按钮组整体居中对齐） -->
       <div
-        class="relative flex shrink-0 items-center justify-center gap-2 px-1 lg:w-9 lg:flex-col lg:justify-start lg:px-0"
+        class="relative flex shrink-0 items-center justify-center gap-2 px-1 lg:w-9 lg:flex-col lg:justify-center lg:px-0"
       >
         <div
-          class="absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-border/40 hover:bg-primary/25 lg:block"
+          class="absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-transparent hover:bg-primary/25 lg:block"
           title="拖动调节左右宽度"
           @pointerdown="startSplitResize"
         />
         <div
-          class="absolute inset-y-0 -right-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-border/40 hover:bg-primary/25 lg:block"
+          class="absolute inset-y-0 -right-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-transparent hover:bg-primary/25 lg:block"
           title="拖动调节左右宽度"
           @pointerdown="startSplitResize"
         />
@@ -531,9 +584,6 @@ function handleModelChange(side: Side, value: string) {
           <ListNumbers />
         </Button>
 
-        <!-- 宽屏竖排时把清空按钮推到底部（窄屏横排自动居中，不占位） -->
-        <div class="hidden lg:block lg:flex-1" />
-
         <Button
           variant="ghost"
           size="icon-sm"
@@ -546,22 +596,25 @@ function handleModelChange(side: Side, value: string) {
       </div>
 
       <div
+        data-ww-editor="right"
         :class="
           cn(
-            'min-h-0 flex-1 overflow-hidden rounded-md transition-shadow lg:min-w-0',
+            'relative min-h-0 flex-1 overflow-hidden rounded-md transition-shadow lg:min-w-0',
             focused === 'right' ? 'ring-2 ring-primary/70' : 'ring-1 ring-border',
           )
         "
         @dragover.capture="handleEditorDragOver"
         @drop.capture="(e: DragEvent) => handleEditorDrop(e, 'right')"
+        @ww-card-drop="handleCardDrop"
       >
         <MonacoEditor
           :model="rightModel"
           :theme="theme"
           :options="editorOptions"
           @mount="(ed: monaco.editor.IStandaloneCodeEditor) => mountEditor(ed, 'right')"
-          @model-change="(v: string) => handleModelChange('right', v)"
+          @model-change="(v: string, m: monaco.editor.ITextModel | null) => handleModelChange('right', v, m)"
         />
+        <FloatingEditorToolbar v-if="focused === 'right'" />
       </div>
     </div>
 

@@ -13,7 +13,6 @@ import {
   Scissors,
   Settings,
 } from "@vicons/tabler";
-import Badge from "@/components/ui/badge.vue";
 import Button from "@/components/ui/button.vue";
 import Input from "@/components/ui/input.vue";
 import Toggle from "@/components/ui/toggle.vue";
@@ -356,27 +355,26 @@ defineExpose({ open });
   <div class="bg-background p-0">
     <!-- 单行四功能：查找 → 替换 → 分割 → 排序（窄屏自动换行） -->
     <div class="flex flex-wrap items-center gap-1.5">
-      <Input
-        ref="findInputRef"
-        v-model="find"
-        placeholder="查找"
-        class="min-w-28 flex-1 basis-40"
-      />
-      <Badge
-        :variant="findError ? 'destructive' : 'secondary'"
-        title="匹配数（当前 / 总数）"
-        class="min-w-9 shrink-0 justify-center px-1 font-mono text-[10px]"
-      >
-        {{
-          findError
-            ? "无效"
-            : matches.length > 0
-              ? `${current + 1}/${matches.length}`
-              : find
-                ? "0"
-                : "—"
-        }}
-      </Badge>
+      <div class="relative min-w-28 flex-1 basis-40">
+        <Input
+          ref="findInputRef"
+          v-model="find"
+          placeholder="查找"
+          class="w-full"
+          :style="{ '--n-padding-right': '48px' }"
+        />
+        <!-- 匹配数：显示在查找输入框内部右对齐（有输入才显示） -->
+        <span
+          v-if="find.trim()"
+          title="匹配数（当前 / 总数）"
+          :class="[
+            'pointer-events-none absolute inset-y-0 right-2.5 flex items-center font-mono text-[10px]',
+            findError ? 'text-destructive' : 'text-muted-foreground',
+          ]"
+        >
+          {{ findError ? "无效" : matches.length > 0 ? `${current + 1}/${matches.length}` : "0" }}
+        </span>
+      </div>
       <Toggle
         :active="isRegex"
         title="正则表达式"
@@ -491,7 +489,7 @@ defineExpose({ open });
         v-if="delimiter === 'custom'"
         v-model="customRegex"
         placeholder="分隔正则"
-        class="w-28 font-mono"
+        class="min-w-24 flex-1 basis-32 font-mono"
       />
       <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSplit">
         <Scissors class="size-3" />

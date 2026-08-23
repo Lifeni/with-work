@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   cleanupWorkspaceModels,
+  findWorkspaceIdByModel,
   getWorkspaceModels,
   resetWorkspaceModels,
 } from "./workspaceModels";
@@ -36,6 +37,23 @@ describe("getWorkspaceModels", () => {
 
   it("不存在的工作区返回 null", () => {
     expect(getWorkspaceModels("不存在的id")).toBeNull();
+  });
+});
+
+describe("findWorkspaceIdByModel", () => {
+  it("反查左右 Model 所属的工作区", () => {
+    const id = useWorkspaceStore().createWorkspace();
+    const pair = getWorkspaceModels(id)!;
+    expect(findWorkspaceIdByModel(pair.left)).toBe(id);
+    expect(findWorkspaceIdByModel(pair.right)).toBe(id);
+  });
+
+  it("不属于任何缓存的 Model 返回 null", () => {
+    const pair = getWorkspaceModels(useWorkspaceStore().createWorkspace())!;
+    const foreign = pair.left;
+    cleanupWorkspaceModels(new Set());
+    // 清理后该 model 已解除缓存归属
+    expect(findWorkspaceIdByModel(foreign)).toBeNull();
   });
 });
 

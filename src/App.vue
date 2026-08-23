@@ -77,6 +77,8 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
     <div class="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <div class="flex min-h-0 flex-1">
         <ToolsRail />
+        <!-- 暂存区（全局共用）在编辑器左侧；窄屏降级为左侧悬浮抽屉 -->
+        <StagingPanel />
         <div class="flex min-w-0 flex-1 flex-col">
           <TitleBar />
           <div class="flex min-h-0 flex-1">
@@ -86,7 +88,6 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
             </main>
           </div>
         </div>
-        <StagingPanel />
       </div>
       <StatusBar />
       <SettingsDialog :open="uiStore.settingsOpen" @update:open="uiStore.setSettingsOpen($event)" />

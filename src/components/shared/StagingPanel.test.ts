@@ -42,13 +42,15 @@ describe("StagingPanel 全局暂存区", () => {
     expect((wrapper.get("textarea").element as HTMLTextAreaElement).value).toBe("");
   });
 
-  it("计数徽标反映条目数量", async () => {
+  it("条目数量反映在列表内容中", async () => {
     const staging = useStagingStore();
     staging.add("a");
     staging.add("b");
     const wrapper = mountPanel();
     expect(wrapper.text()).toContain("全局暂存区");
-    expect(wrapper.get(".text-xs.font-medium").text()).toContain("2");
+    expect(wrapper.text()).toContain("a");
+    expect(wrapper.text()).toContain("b");
+    wrapper.unmount();
   });
 
   it("双击条目进入行内编辑，保存后更新文本", async () => {
@@ -56,7 +58,7 @@ describe("StagingPanel 全局暂存区", () => {
     staging.add("原始文本");
     const wrapper = mountPanel();
 
-    await wrapper.get("[draggable]").trigger("dblclick");
+    await wrapper.get(".cursor-grab").trigger("dblclick");
     // 编辑态 textarea 是页面上的第二个（第一个是草稿输入框）
     const editArea = wrapper.findAll("textarea")[1];
     expect(editArea.exists()).toBe(true);
@@ -95,6 +97,48 @@ describe("StagingPanel 全局暂存区", () => {
     await wrapper.get('[title="删除此条目"]').trigger("click");
     await confirmDialog("删除");
     expect(staging.items).toHaveLength(0);
+  });
+
+  it("自绘拖拽：按下后移动超过阈值出现幽灵层，松手清除", async () => {
+    const staging = useStagingStore();
+    staging.add("拖拽内容");
+    const wrapper = mountPanel();
+    const card = wrapper.get(".cursor-grab");
+
+    // jsdom 无 PointerEvent，用 MouseEvent 构造 pointer 系列事件（window 层监听）
+    card.element.dispatchEvent(
+      new MouseEvent("pointerdown", { clientX: 100, clientY: 100, bubbles: true, cancelable: true }),
+    );
+    // 未达阈值：不出现幽灵
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 102, clientY: 100 }));
+    expect(document.querySelector(".ww-drag-ghost")).toBeNull();
+    // 超过阈值：出现幽灵
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 180, clientY: 140 }));
+    const ghost = document.querySelector(".ww-drag-ghost");
+    expect(ghost).not.toBeNull();
+    expect(ghost?.textContent).toContain("拖拽内容");
+    // 未命中编辑器（jsdom 无 elementFromPoint）：松手后无插入，幽灵清除
+    window.dispatchEvent(new MouseEvent("pointerup", { clientX: 180, clientY: 140 }));
+    await wrapper.vm.$nextTick();
+    expect(document.querySelector(".ww-drag-ghost")).toBeNull();
+    expect(staging.items).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it("自绘拖拽：点击（未超过阈值）不产生拖拽副作用", async () => {
+    const staging = useStagingStore();
+    staging.add("条目文本");
+    const wrapper = mountPanel();
+    const card = wrapper.get(".cursor-grab");
+
+    card.element.dispatchEvent(
+      new MouseEvent("pointerdown", { clientX: 50, clientY: 50, bubbles: true, cancelable: true }),
+    );
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 51, clientY: 51 }));
+    window.dispatchEvent(new MouseEvent("pointerup", { clientX: 51, clientY: 51 }));
+    await wrapper.vm.$nextTick();
+    expect(document.querySelector(".ww-drag-ghost")).toBeNull();
+    wrapper.unmount();
   });
 });
 
@@ -163,19 +207,23 @@ describe("StagingPanel 收起与悬浮按钮", () => {
     expect(ui.stagingOpen).toBe(true);
   });
 
-  it("拖动左边缘手柄可调节面板宽度（记忆到设置）", async () => {
+  it("拖动右缘手柄可调节面板宽度（记忆到设置）", async () => {
     const settings = useSettingsStore();
     const wrapper = mountPanel();
     const handle = wrapper.find('[title="拖动调节面板宽度"]');
     expect(handle.exists()).toBe(true);
 
     // jsdom 无 PointerEvent，用 MouseEvent 构造 pointer 系列事件（由 document 捕获代理接管）
-    const down = new MouseEvent("pointerdown", { clientX: 400, bubbles: true, cancelable: true });
+    // 手柄在面板右缘：向右拖 40px → 宽度 320 + 40 = 360
+    const down = new MouseEvent("pointerdown", { clientX: 360, bubbles: true, cancelable: true });
     handle.element.dispatchEvent(down);
-    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 360 }));
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 400 }));
     window.dispatchEvent(new MouseEvent("pointerup"));
     await wrapper.vm.$nextTick();
     expect(settings.stagingWidth).toBe(360);
+    // 拖动时直接写 DOM 样式：面板根元素宽度跟随（wrapper.element 是挂载容器，需向下查找）
+    const root = wrapper.find("div.bg-card").element as HTMLElement;
+    expect(root.style.width).toBe("360px");
     wrapper.unmount();
   });
 
@@ -192,6 +240,9 @@ describe("StagingPanel 收起与悬浮按钮", () => {
     window.dispatchEvent(new MouseEvent("pointerup"));
     await wrapper.vm.$nextTick();
     expect(settings.stagingTemplateHeight).toBe(280);
+    // 模板区根元素高度直接写入 DOM
+    const zone = wrapper.get('[data-testid="template-drop-zone"]').element as HTMLElement;
+    expect(zone.style.height).toBe("280px");
     wrapper.unmount();
   });
 });

@@ -19,7 +19,8 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   mount: [editor: monaco.editor.IStandaloneCodeEditor];
-  "model-change": [value: string];
+  /** 内容变化：同时携带当前 Model 引用，供上层按归属写入对应工作区（防换绑滞后串写） */
+  "model-change": [value: string, model: monaco.editor.ITextModel | null];
 }>();
 
 const host = ref<HTMLDivElement | null>(null);
@@ -35,7 +36,7 @@ onMounted(() => {
     }),
   );
   editor.onDidChangeModelContent(() => {
-    emit("model-change", editor?.getValue() ?? "");
+    emit("model-change", editor?.getValue() ?? "", editor?.getModel() ?? null);
   });
   emit("mount", editor);
 });
