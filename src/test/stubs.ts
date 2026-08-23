@@ -21,7 +21,7 @@ export const monacoEditorStub = defineComponent({
       const initial = (props.model as { getValue?: () => string } | null)?.getValue?.() ?? "";
       mock = createMockEditor(initial);
       mock.model.onDidChangeContent(() => {
-        emit("model-change", mock?.getValue() ?? "");
+        emit("model-change", mock?.getValue() ?? "", mock?.model ?? null);
       });
       emit("mount", mock.editor);
     });

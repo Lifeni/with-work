@@ -1,24 +1,23 @@
 <script setup lang="ts">
+import { NInput } from "naive-ui";
 import { cn } from "@/lib/utils";
 
+/** Input：Naive n-input 封装（默认 small 尺寸，紧凑工具栏排版） */
 const props = withDefaults(defineProps<{ modelValue?: string }>(), { modelValue: "" });
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
-function onInput(e: Event) {
-  emit("update:modelValue", (e.target as HTMLInputElement).value);
+function onUpdate(value: string) {
+  emit("update:modelValue", value);
 }
 </script>
 
 <template>
-  <input
+  <NInput
     :value="props.modelValue"
-    @input="onInput"
-    :class="
-      cn(
-        'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-        $attrs.class as string,
-      )
-    "
-    v-bind="{ ...$attrs, class: undefined }"
+    :style="{ '--n-font-size': '12px' }"
+    :class="cn($attrs.class as string)"
+    v-bind="{ ...$attrs, class: undefined, ...{ 'aria-label': undefined } }"
+    size="small"
+    @update:value="onUpdate"
   />
 </template>

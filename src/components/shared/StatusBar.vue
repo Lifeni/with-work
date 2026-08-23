@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { Check, Inbox } from "@lucide/vue";
-import { cn, formatTime } from "@/lib/utils";
+import { Check } from "@vicons/tabler";
+import { formatTime } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useStatusStore } from "@/stores/status";
-import { useStagingStore } from "@/stores/staging";
 import { useUiStore } from "@/stores/ui";
 
 const wsStore = useWorkspaceStore();
 const statusStore = useStatusStore();
-const stagingStore = useStagingStore();
 const uiStore = useUiStore();
 
 const ws = computed(() => wsStore.workspaces.find((w) => w.id === wsStore.activeId));
@@ -41,23 +39,9 @@ watch(contentKey, () => {
       <span class="font-medium text-foreground/80">{{ ws?.name ?? "—" }}</span>
     </template>
     <span class="hidden md:inline">行 {{ statusStore.line }} · 列 {{ statusStore.col }}</span>
-    <span class="hidden sm:inline">左 {{ left.length }} · 右 {{ right.length }} 字符</span>
+    <span class="hidden sm:inline">左 {{ left.length }} 字符 · 右 {{ right.length }} 字符</span>
 
     <div class="flex-1" />
-
-    <button
-      type="button"
-      @click="uiStore.toggleStaging()"
-      :class="
-        cn(
-          'flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-accent',
-          uiStore.stagingOpen && 'bg-accent text-accent-foreground',
-        )
-      "
-    >
-      <Inbox class="size-3" />
-      暂存区 ({{ stagingStore.items.length }})
-    </button>
     <span class="flex items-center gap-1">
       <Check class="size-3" />
       已自动保存 {{ formatTime(savedAt.getTime()) }}

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { FileText, FolderOpen, Pencil, Plus, Trash2, Upload } from "@lucide/vue";
+import { FileText, Folder, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
 import Badge from "@/components/ui/badge.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import AppDialog from "@/components/ui/dialog.vue";
@@ -111,15 +111,10 @@ const onImportFile = (e: Event) => {
   >
     <div class="space-y-2 rounded-md border border-border p-2.5">
       <div class="grid grid-cols-[1fr_180px] gap-2">
-        <Input v-model="name" placeholder="模板名称（可选）" class="h-8 text-xs" />
-        <Input v-model="group" placeholder="分组（可选）" class="h-8 text-xs" />
+        <Input v-model="name" placeholder="模板名称（可选）" class="" />
+        <Input v-model="group" placeholder="分组（可选）" class="" />
       </div>
-      <Textarea
-        v-model="content"
-        rows="4"
-        placeholder="模板文本内容"
-        class="min-h-20 font-mono text-xs"
-      />
+      <Textarea v-model="content" :rows="4" placeholder="模板文本内容" class="font-mono" />
       <div class="flex items-center gap-2">
         <div class="flex-1" />
         <Button size="sm" class="h-7 text-xs" @click="save">
@@ -160,7 +155,7 @@ const onImportFile = (e: Event) => {
           class="text-destructive hover:text-destructive"
           @click="pendingDeleteId = t.id"
         >
-          <Trash2 class="size-3" />
+          <Trash class="size-3" />
         </Button>
       </div>
     </div>
@@ -171,7 +166,7 @@ const onImportFile = (e: Event) => {
         导入模板
       </Button>
       <Button variant="outline" size="sm" @click="exportTextTemplates">
-        <FolderOpen class="size-3.5" />
+        <Folder class="size-3.5" />
         导出模板
       </Button>
     </template>

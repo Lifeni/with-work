@@ -4,18 +4,19 @@
 
 ## 技术选型
 
-| 领域     | 选择                         | 理由                                                                        |
-| -------- | ---------------------------- | --------------------------------------------------------------------------- |
-| 前端框架 | Vue 3 + Vite 8               | SPA 纯静态，Vercel 与单文件模式两相宜                                       |
-| 语言     | TypeScript（strict）         | 类型安全，适合长期维护与开源协作                                            |
-| 样式     | Tailwind CSS v4（CSS-first） | 原子类 + 主题变量（oklch），深色模式通过 `.dark` 类切换                     |
-| UI 组件  | shadcn 风格 + reka-ui        | 组件代码归项目所有、按需裁剪，契合工具类界面                                |
-| 编辑器   | Monaco Editor（锁 0.52.x）   | VS Code 内核：查找/替换（正则、计数、跳转）、minimap、内置 Diff 编辑器      |
-| 状态管理 | Pinia + 自定义持久化插件     | 全部 store 自动持久化到 localStorage（key 前缀 `ww:`，兼容旧 Zustand 格式） |
-| 测试     | Vitest + @vue/test-utils     | jsdom 环境；测试模式将 `monaco-editor` alias 为 `src/test/mockMonaco.ts`    |
-| 包管理   | pnpm                         | 确定性依赖树（pnpm-lock.yaml），安装快速、节省磁盘                          |
-| 字体     | Inter（@fontsource 自托管）  | 中文字体走系统回退栈（MiSans / HarmonyOS Sans SC / Noto Sans SC），不打包   |
-| 部署     | Vercel                       | `vercel.json` 配置 framework/build/outputDirectory                          |
+| 领域     | 选择                                   | 理由                                                                          |
+| -------- | -------------------------------------- | ----------------------------------------------------------------------------- |
+| 前端框架 | Vue 3 + Vite 8                         | SPA 纯静态，Vercel 与单文件模式两相宜                                         |
+| 语言     | TypeScript（strict）                   | 类型安全，适合长期维护与开源协作                                              |
+| 样式     | Tailwind CSS v4（CSS-first）           | 原子类 + 主题变量（oklch），深色模式通过 `.dark` 类切换                       |
+| UI 组件  | Naive UI（n-config-provider 主题联动） | 组件齐全、内置暗色主题；主色 themeOverrides 对齐品牌色；布局继续使用 Tailwind |
+| 图标     | @vicons/tabler（xicons）               | tabler 线性图标集，按需 tree-shaking，与 Naive 同作者                         |
+| 编辑器   | Monaco Editor（锁 0.52.x）             | VS Code 内核：查找/替换（正则、计数、跳转）、minimap、内置 Diff 编辑器        |
+| 状态管理 | Pinia + 自定义持久化插件               | 全部 store 自动持久化到 localStorage（key 前缀 `ww:`，兼容旧 Zustand 格式）   |
+| 测试     | Vitest + @vue/test-utils               | jsdom 环境；测试模式将 `monaco-editor` alias 为 `src/test/mockMonaco.ts`      |
+| 包管理   | pnpm                                   | 确定性依赖树（pnpm-lock.yaml），安装快速、节省磁盘                            |
+| 字体     | Inter（@fontsource 自托管）            | 中文字体走系统回退栈（MiSans / HarmonyOS Sans SC / Noto Sans SC），不打包     |
+| 部署     | Vercel                                 | `vercel.json` 配置 framework/build/outputDirectory                            |
 
 ## 双构建模式
 
@@ -39,13 +40,13 @@
 
 | 目录                     | 职责                 | 说明                                                                                                                                                                                        |
 | ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/App.vue`            | 应用布局壳           | 顶栏 / 左侧工具栏 / 编辑器区 / 右侧暂存区 / 状态栏 / 设置弹窗                                                                                                                               |
-| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（固定双栏 + 中间操作栏）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                                                              |
+| `src/App.vue`            | 应用布局壳           | 左侧品牌栏 / 暂存区（编辑器左侧）/ 编辑器区 / 顶栏 / 状态栏 / 设置弹窗                                                                                                                              |
+| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                             |
 | `src/views/settings/`    | 设置内容             | `SettingsView.vue`，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                      |
-| `src/components/ui/`     | 无业务语义的基础组件 | Button、Input、Dialog、DropdownMenu、Tooltip、Toggle、Badge（基于 reka-ui 的 shadcn 风格封装）                                                                                              |
-| `src/components/shared/` | 业务共享组件         | TitleBar、StagingPanel（暂存区+模板+规则）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
+| `src/components/ui/`     | 无业务语义的基础组件 | Button、Dialog、DropdownMenu、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 为原生实现                                                                                 |
+| `src/components/shared/` | 业务共享组件         | TitleBar、StagingPanel（暂存区+模板+规则）、FloatingEditorToolbar（悬浮工具栏）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail（品牌栏+设置/导入/导出）、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
 | `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings / list（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件                                                 |
-| `src/tools/`             | 全局工具注册表       | `registry.ts` + 左侧竖向工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                          |
+| `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                               |
 | `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`utils.ts`                  |
 | `src/hooks/`             | 自定义 composables   | `useDebounce`                                                                                                                                                                               |
 | `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                        |
@@ -61,6 +62,8 @@
 - 切换工作区时编辑器实例复用，仅换绑 Model → 撤销/重做历史按工作区独立保留。
 - store ↔ Model 双向同步：编辑内容经 Model 内容变化事件写回 store（自动持久化）；
   store 内容变化（交换/互传/导入等）经 `watch` 以 `executeEdits("ww-sync")` 写回 Model（保留可撤销性）。
+  同步时校验编辑器当前 Model 与目标工作区 Model 的引用一致，避免换绑滞后窗口内串写；
+  内容变化事件携带 Model 引用，按 `findWorkspaceIdByModel(model)` 写入 Model 真正归属的工作区。
 - 无工作区时（App 自动新建）清空编辑器引用，避免对已释放实例调用 `setModel` 崩溃。
 
 ### 查找替换面板（FindReplacePanel）
@@ -74,10 +77,12 @@
 
 ### 暂存区（StagingPanel）
 
-- 右侧面板，宽度可拖动调节（记忆于设置），窄屏自动收起为右下角悬浮按钮。
+- 编辑器左侧面板，宽度可拖动调节（记忆于设置）；窄屏自动收起，通过顶栏左侧按钮开关，
+  折叠入口在顶栏左侧（宽屏）与面板标题前（窄屏抽屉模式）。
 - 四个模块：全局暂存区（文本条目）、文本模板、排序模板、替换规则，均支持双击编辑、分组、导入/导出。
-- 拖拽交互：文本条目/模板拖入编辑器 = 在落点插入纯文本；替换规则拖入 = 按规则替换全文（可撤销）。
-  拖拽回源区域（来源标记相同）忽略，避免误添加。
+- 拖拽交互为自绘 pointer 拖拽（绕开原生 draggable 的启动判定不稳定问题）：
+  卡片按住拖动，拖到编辑器上方高亮落点，松开后文本条目/模板插入落点纯文本、替换规则按规则替换全文（可撤销）；
+  未拖出卡片即松开视为点击，双击编辑/按钮不受影响。
 
 ### 数据流
 

@@ -44,10 +44,10 @@ describe("App 整体布局", () => {
   it("点击设置按钮打开设置弹窗", async () => {
     const wrapper = mount(App, { attachTo: document.body });
     await tick();
-    await wrapper.get('[title="设置"]').trigger("click");
+    await wrapper.get('[aria-label="设置"]').trigger("click");
     await tick();
 
-    const dialog = document.querySelector("[role=dialog]");
+    const dialog = document.querySelector(".ww-dialog-content");
     expect(dialog?.textContent).toContain("设置");
     expect(dialog?.textContent).toContain("外观");
     wrapper.unmount();
@@ -56,7 +56,7 @@ describe("App 整体布局", () => {
   it("顶部新建工作区按钮创建第二个工作区", async () => {
     const wrapper = mount(App, { attachTo: document.body });
     await tick();
-    await wrapper.get('[title="新建工作区"]').trigger("click");
+    await wrapper.get('[aria-label="新建工作区"]').trigger("click");
     await nextTick();
     expect(useWorkspaceStore().workspaces).toHaveLength(2);
     wrapper.unmount();
@@ -64,20 +64,11 @@ describe("App 整体布局", () => {
 });
 
 describe("App 底部状态栏", () => {
-  it("显示当前工作区名称与暂存区计数", async () => {
+  it("显示当前工作区名称与自动保存提示", async () => {
     const wrapper = mount(App, { attachTo: document.body });
     await tick();
     expect(wrapper.text()).toContain("工作区 1");
-    expect(wrapper.text()).toContain("暂存区 (0)");
-    wrapper.unmount();
-  });
-
-  it("切换主题菜单不影响布局", async () => {
-    const wrapper = mount(App, { attachTo: document.body });
-    await tick();
-    await wrapper.get('[title="切换主题"]').trigger("click");
-    await tick();
-    expect(document.querySelectorAll("[role=menuitem]").length).toBeGreaterThan(0);
+    expect(wrapper.text()).toContain("已自动保存");
     wrapper.unmount();
   });
 });

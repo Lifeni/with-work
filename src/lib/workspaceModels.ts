@@ -40,6 +40,19 @@ export function cleanupWorkspaceModels(existingIds: Set<string>) {
   }
 }
 
+/**
+ * 反查 Model 所属的工作区 id。
+ * 切换工作区时编辑器换绑 Model 存在滞后窗口，期间的内容变化事件
+ * 用 Model 归属定位真正的工作区，避免写入错误的工作区（内容串台）。
+ * 不属于任何缓存（如测试替身）时返回 null，调用方回落当前激活工作区。
+ */
+export function findWorkspaceIdByModel(model: monaco.editor.ITextModel): string | null {
+  for (const [id, pair] of cache) {
+    if (pair.left === model || pair.right === model) return id;
+  }
+  return null;
+}
+
 /** 测试辅助：销毁并清空全部缓存 */
 export function resetWorkspaceModels() {
   for (const pair of cache.values()) {

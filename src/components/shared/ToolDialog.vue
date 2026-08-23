@@ -116,7 +116,7 @@ function execute() {
             :value="config.customRegex ?? ''"
             @input="config = { ...config, customRegex: ($event.target as HTMLInputElement).value }"
             placeholder="如 [，,、;；]"
-            class="h-7 min-w-0 flex-1 font-mono text-xs"
+            class="min-w-0 flex-1 font-mono"
           />
         </div>
         <div class="flex gap-1.5">

@@ -1,36 +1,38 @@
 <script setup lang="ts">
-import { cva, type VariantProps } from "class-variance-authority";
+import { computed } from "vue";
+import { NTag } from "naive-ui";
 import { cn } from "@/lib/utils";
 
-const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors",
-  {
-    variants: {
-      variant: {
-        default: "border-transparent bg-primary text-primary-foreground",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        outline: "text-foreground",
-        destructive: "border-transparent bg-destructive text-destructive-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
+/** Badge：Naive n-tag 的薄封装（圆角胶囊），保持原 variant 语义 */
+const props = withDefaults(
+  defineProps<{
+    variant?: "default" | "secondary" | "outline" | "destructive";
+  }>(),
+  { variant: "default" },
 );
 
-type BadgeVariants = VariantProps<typeof badgeVariants>;
-
-const props = withDefaults(defineProps<{ variant?: BadgeVariants["variant"] }>(), {
-  variant: "default",
+const tagType = computed(() => {
+  switch (props.variant) {
+    case "default":
+      return "primary";
+    case "outline":
+      return "default";
+    case "destructive":
+      return "error";
+    default:
+      return "default";
+  }
 });
 </script>
 
 <template>
-  <div
-    :class="cn(badgeVariants({ variant: props.variant }), $attrs.class as string)"
+  <NTag
+    size="small"
+    :type="tagType"
+    :bordered="props.variant !== 'outline'"
+    :class="cn('!m-0 !rounded-full !px-1 !py-0 !text-[10px] leading-3.5', $attrs.class as string)"
     v-bind="{ ...$attrs, class: undefined }"
   >
     <slot />
-  </div>
+  </NTag>
 </template>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { AArrowUp, FolderOpen, ListOrdered, Pencil, Plus, Trash2, Upload } from "@lucide/vue";
-import Badge from "@/components/ui/badge.vue";
+import { ArrowBigUpLine, Folder, ListNumbers, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import AppDialog from "@/components/ui/dialog.vue";
 import Button from "@/components/ui/button.vue";
@@ -119,14 +118,14 @@ const onImportFile = (e: Event) => {
   >
     <div class="space-y-2 rounded-md border border-border p-2.5">
       <div class="grid grid-cols-[1fr_180px] gap-2">
-        <Input v-model="name" placeholder="模板名称（可选）" class="h-8 text-xs" />
-        <Input v-model="group" placeholder="分组（可选）" class="h-8 text-xs" />
+        <Input v-model="name" placeholder="模板名称（可选）" class="" />
+        <Input v-model="group" placeholder="分组（可选）" class="" />
       </div>
       <Textarea
         v-model="content"
-        rows="4"
+        :rows="4"
         placeholder="模板条目，每行一条（按从上到下顺序排列）"
-        class="min-h-20 font-mono text-xs"
+        class="font-mono"
       />
       <div class="flex items-center gap-2">
         <Toggle
@@ -135,7 +134,7 @@ const onImportFile = (e: Event) => {
           title="开头匹配：文本以列表项开头即算匹配"
           class="h-7 text-xs"
         >
-          <AArrowUp class="size-3.5" />
+          <ArrowBigUpLine class="size-3.5" />
           开头匹配
         </Toggle>
         <div class="flex-1" />
@@ -161,14 +160,24 @@ const onImportFile = (e: Event) => {
         :key="t.id"
         class="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5"
       >
-        <ListOrdered class="size-3.5 shrink-0 text-muted-foreground" />
+        <ListNumbers class="size-3.5 shrink-0 text-muted-foreground" />
         <span class="w-32 shrink-0 truncate text-xs font-medium" :title="t.name">{{ t.name }}</span>
-        <Badge v-if="t.group" variant="secondary" class="shrink-0 text-[9px]">{{ t.group }}</Badge>
-        <Badge variant="secondary">{{ t.items.length }} 条</Badge>
-        <Badge v-if="t.prefixMatch" variant="outline" class="shrink-0 gap-0.5 text-[9px]">
-          <AArrowUp class="size-2.5" />
+        <span
+          v-if="t.group"
+          class="shrink-0 text-xs font-medium text-muted-foreground"
+        >
+          {{ t.group }}
+        </span>
+        <span class="shrink-0 text-xs font-medium text-muted-foreground">
+          {{ t.items.length }} 条
+        </span>
+        <span
+          v-if="t.prefixMatch"
+          class="flex shrink-0 items-center gap-0.5 text-xs font-medium text-muted-foreground"
+        >
+          <ArrowBigUpLine class="size-3" />
           开头匹配
-        </Badge>
+        </span>
         <span
           class="min-w-0 flex-1 truncate text-xs text-muted-foreground"
           :title="t.items.join('、')"
@@ -185,7 +194,7 @@ const onImportFile = (e: Event) => {
           class="text-destructive hover:text-destructive"
           @click="pendingDeleteId = t.id"
         >
-          <Trash2 class="size-3" />
+          <Trash class="size-3" />
         </Button>
       </div>
     </div>
@@ -196,7 +205,7 @@ const onImportFile = (e: Event) => {
         导入模板
       </Button>
       <Button variant="outline" size="sm" @click="exportTemplates">
-        <FolderOpen class="size-3.5" />
+        <Folder class="size-3.5" />
         导出模板
       </Button>
     </template>

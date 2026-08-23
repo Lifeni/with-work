@@ -1,153 +1,67 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import {
-  Check,
-  Download,
-  FileCode2,
-  FileText,
-  FolderOpen,
-  HardDrive,
-  Moon,
-  Plus,
-  Redo2,
-  Settings,
-  Sun,
-  Trash2,
-  Undo2,
-  Upload,
-  WrapText,
-  X,
-} from "@lucide/vue";
+import { LayoutSidebarLeftCollapse, LayoutSidebarLeftExpand, Plus, Trash, X } from "@vicons/tabler";
 import Button from "@/components/ui/button.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  dropdownContentClass,
-  dropdownItemClass,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { getActiveEditor } from "@/lib/editorBridge";
 import { useWorkspaceStore } from "@/stores/workspace";
-import { useSettingsStore } from "@/stores/settings";
 import { useUiStore } from "@/stores/ui";
 import { useToastStore } from "@/stores/toast";
-import {
-  applyBackup,
-  clearAllData,
-  exportBackup,
-  exportCurrentWorkspace,
-  exportRules,
-  exportTemplates,
-  parseBackup,
-  parseRules,
-  parseTemplates,
-} from "@/lib/backup";
-import { useRulesStore } from "@/stores/rules";
-import { useTemplatesStore } from "@/stores/templates";
-import type { BackupData, ThemeMode } from "@/types";
+import type { Workspace } from "@/types";
 
-const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
-  { value: "light", label: "浅色" },
-  { value: "dark", label: "深色" },
-  { value: "system", label: "跟随系统" },
-];
-
+/** 顶栏：暂存区开关 + 工作区标签页（新建/设置/数据入口已移至左侧品牌栏） */
 const wsStore = useWorkspaceStore();
-const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
-const rulesStore = useRulesStore();
-const templatesStore = useTemplatesStore();
 const toast = useToastStore().push;
 
 const renamingId = ref<string | null>(null);
 const renameValue = ref("");
-const pendingBackup = ref<BackupData | null>(null);
-const confirmImport = ref(false);
-const confirmClearAll = ref(false);
-const backupRef = ref<HTMLInputElement | null>(null);
-const rulesRef = ref<HTMLInputElement | null>(null);
-const templatesRef = ref<HTMLInputElement | null>(null);
+const confirmClearWorkspaces = ref(false);
+const pendingCloseWorkspace = ref<{ id: string; name: string } | null>(null);
 
 function commitRename(id: string, fallback: string) {
   wsStore.renameWorkspace(id, renameValue.value.trim() || fallback);
   renamingId.value = null;
 }
 
-/** 编辑操作（作用于当前聚焦的编辑器） */
-const undoFocused = () => getActiveEditor()?.trigger("toolbar", "undo", null);
-const redoFocused = () => getActiveEditor()?.trigger("toolbar", "redo", null);
+/** 关闭工作区：有内容时先确认，空工作区直接关闭 */
+function requestCloseWorkspace(w: Workspace) {
+  if (w.left?.trim() || w.right?.trim()) {
+    pendingCloseWorkspace.value = { id: w.id, name: w.name };
+  } else {
+    wsStore.deleteWorkspace(w.id);
+  }
+}
 
-const onBackupFile = (e: Event) => {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
-  void file.text().then((raw) => {
-    const res = parseBackup(raw);
-    if (!res.ok) {
-      toast(res.error);
-      return;
-    }
-    pendingBackup.value = res.data;
-    confirmImport.value = true;
-  });
-};
+function confirmCloseWorkspace() {
+  if (pendingCloseWorkspace.value) {
+    wsStore.deleteWorkspace(pendingCloseWorkspace.value.id);
+    toast("已关闭工作区");
+  }
+  pendingCloseWorkspace.value = null;
+}
 
-const onRulesFile = (e: Event) => {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
-  void file.text().then((raw) => {
-    const res = parseRules(raw);
-    if (!res.ok) {
-      toast(res.error);
-      return;
-    }
-    rulesStore.replaceAll(res.rules);
-    toast(`已导入 ${res.rules.length} 条替换规则`);
-  });
-};
-
-const onTemplatesFile = (e: Event) => {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
-  void file.text().then((raw) => {
-    const res = parseTemplates(raw);
-    if (!res.ok) {
-      toast(res.error);
-      return;
-    }
-    templatesStore.replaceAll(res.templates);
-    toast(`已导入 ${res.templates.length} 个排序模板`);
-  });
-};
+/** 清空全部工作区（清完后自动新建一个空工作区） */
+function clearWorkspaces() {
+  for (const w of [...wsStore.workspaces]) wsStore.deleteWorkspace(w.id);
+  confirmClearWorkspaces.value = false;
+  toast("已清空全部工作区");
+}
 </script>
 
 <template>
   <header class="flex h-9 shrink-0 items-stretch bg-card">
-    <!-- 编辑操作：撤销 / 重做 / 自动换行（作用于聚焦编辑器） -->
-    <div class="flex shrink-0 items-center gap-0.5 border-b border-r border-border px-1.5">
-      <Button variant="ghost" size="icon-sm" title="撤销 (Ctrl+Z)" @click="undoFocused">
-        <Undo2 />
-      </Button>
-      <Button variant="ghost" size="icon-sm" title="重做" @click="redoFocused">
-        <Redo2 />
-      </Button>
+    <!-- 暂存区折叠 / 展开开关（暂存区在编辑器左侧） -->
+    <div class="flex shrink-0 items-center border-b border-r border-border px-1.5">
       <Button
         variant="ghost"
         size="icon-sm"
-        :title="settingsStore.wordWrap ? '自动换行：开启' : '自动换行：关闭'"
-        @click="settingsStore.setWordWrap(!settingsStore.wordWrap)"
-        :class="cn(settingsStore.wordWrap && 'bg-accent text-accent-foreground')"
+        :title="uiStore.stagingOpen ? '收起暂存区' : '展开暂存区'"
+        :active="uiStore.stagingOpen"
+        @click="uiStore.setStagingOpen(!uiStore.stagingOpen)"
       >
-        <WrapText class="size-3.5" />
+        <LayoutSidebarLeftCollapse v-if="uiStore.stagingOpen" />
+        <LayoutSidebarLeftExpand v-else />
       </Button>
     </div>
 
@@ -181,10 +95,10 @@ const onTemplatesFile = (e: Event) => {
           "
           :class="
             cn(
-              'group relative flex min-w-24 max-w-52 shrink-0 cursor-pointer select-none items-center gap-1.5 border-r border-border/60 px-3 text-xs transition-colors',
+              'group relative flex min-w-24 max-w-52 shrink-0 cursor-pointer select-none items-center gap-1.5 pl-3 pr-1 text-xs transition-colors',
               w.id === wsStore.activeId && !uiStore.settingsOpen
-                ? 'bg-background font-medium'
-                : 'border-b border-border text-muted-foreground hover:bg-accent/60',
+                ? 'border-r border-foreground/20 bg-background font-medium'
+                : 'border-b border-r border-border/60 text-muted-foreground hover:bg-accent/60',
             )
           "
         >
@@ -192,156 +106,65 @@ const onTemplatesFile = (e: Event) => {
             v-if="w.id === wsStore.activeId && !uiStore.settingsOpen"
             class="absolute inset-x-0 top-0 h-0.5 bg-primary"
           />
-          <span class="truncate">{{ w.name }}</span>
+          <span class="min-w-0 flex-1 truncate">{{ w.name }}</span>
+          <!-- 关闭按钮：仅激活的工作区显示，靠近 tab 右缘 -->
           <button
+            v-if="w.id === wsStore.activeId && !uiStore.settingsOpen"
             type="button"
             title="关闭工作区"
-            @click.stop="wsStore.deleteWorkspace(w.id)"
-            class="rounded-sm p-0.5 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+            @click.stop="requestCloseWorkspace(w)"
+            class="shrink-0 rounded-sm p-0.5 hover:bg-muted"
           >
             <X class="size-3" />
           </button>
         </div>
       </template>
-      <button
-        type="button"
-        title="新建工作区"
-        @click="wsStore.createWorkspace()"
-        class="flex shrink-0 items-center border-b border-border px-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      >
-        <Plus class="size-4" />
-      </button>
+      <div class="flex shrink-0 items-center border-b border-r border-border px-1.5">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="新建工作区"
+          @click="wsStore.createWorkspace()"
+        >
+          <Plus />
+        </Button>
+      </div>
       <!-- 空白区域补齐底部边线（与各 tab 的 border-b 连成一线） -->
       <div aria-hidden class="min-w-4 flex-1 border-b border-border" />
     </div>
 
     <div class="flex shrink-0 items-center gap-1 border-b border-l border-border px-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon-sm" title="切换主题">
-            <Moon v-if="settingsStore.theme === 'dark'" class="size-3.5" />
-            <Sun v-else class="size-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" :class="cn(dropdownContentClass, 'w-32')">
-          <DropdownMenuItem
-            v-for="opt in THEME_OPTIONS"
-            :key="opt.value"
-            @select="settingsStore.setTheme(opt.value)"
-            :class="dropdownItemClass"
-          >
-            <span class="flex-1">{{ opt.label }}</span>
-            <Check v-if="settingsStore.theme === opt.value" class="size-3.5" />
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon-sm" title="数据（导入 / 导出 / 备份）">
-            <HardDrive />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" :class="cn(dropdownContentClass, 'w-48')">
-          <DropdownMenuItem :class="dropdownItemClass" @select="exportBackup">
-            <Download /> 导出全部备份
-          </DropdownMenuItem>
-          <DropdownMenuItem :class="dropdownItemClass" @select="backupRef?.click()">
-            <Upload /> 导入备份
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem :class="dropdownItemClass" @select="exportRules">
-            <FileCode2 /> 导出替换规则
-          </DropdownMenuItem>
-          <DropdownMenuItem :class="dropdownItemClass" @select="rulesRef?.click()">
-            <FolderOpen /> 导入替换规则
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem :class="dropdownItemClass" @select="exportTemplates">
-            <FileCode2 /> 导出排序模板
-          </DropdownMenuItem>
-          <DropdownMenuItem :class="dropdownItemClass" @select="templatesRef?.click()">
-            <FolderOpen /> 导入排序模板
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem :class="dropdownItemClass" @select="exportCurrentWorkspace">
-            <FileText /> 导出当前工作区
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            :class="cn(dropdownItemClass, 'text-destructive focus:text-destructive')"
-            @select="confirmClearAll = true"
-          >
-            <Trash2 /> 清空所有数据
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
       <Button
         variant="ghost"
         size="icon-sm"
-        title="设置"
-        :aria-pressed="uiStore.settingsOpen"
-        @click="uiStore.setSettingsOpen(!uiStore.settingsOpen)"
-        :class="cn(uiStore.settingsOpen && 'bg-accent text-accent-foreground')"
+        title="清空工作区"
+        @click="confirmClearWorkspaces = true"
       >
-        <Settings class="size-3.5" />
+        <Trash />
       </Button>
     </div>
 
-    <input
-      ref="backupRef"
-      type="file"
-      accept=".json,application/json"
-      class="hidden"
-      @change="onBackupFile"
-    />
-    <input
-      ref="rulesRef"
-      type="file"
-      accept=".json,application/json"
-      class="hidden"
-      @change="onRulesFile"
-    />
-    <input
-      ref="templatesRef"
-      type="file"
-      accept=".json,application/json"
-      class="hidden"
-      @change="onTemplatesFile"
-    />
-
     <ConfirmDialog
-      :open="confirmImport"
-      title="导入备份"
-      description="导入备份将覆盖当前的全部数据（工作区、暂存区、规则、模板、设置），确定继续吗？"
-      confirm-text="覆盖导入"
+      :open="pendingCloseWorkspace !== null"
+      title="关闭工作区"
+      :description="
+        pendingCloseWorkspace
+          ? `工作区「${pendingCloseWorkspace.name}」中还有内容，确定关闭吗？关闭后将丢失这些内容。`
+          : undefined
+      "
+      confirm-text="关闭"
       destructive
-      @confirm="
-        () => {
-          if (pendingBackup) {
-            applyBackup(pendingBackup);
-            toast('备份已导入');
-          }
-          confirmImport = false;
-          pendingBackup = null;
-        }
-      "
-      @cancel="
-        () => {
-          confirmImport = false;
-          pendingBackup = null;
-        }
-      "
+      @confirm="confirmCloseWorkspace"
+      @cancel="pendingCloseWorkspace = null"
     />
     <ConfirmDialog
-      :open="confirmClearAll"
-      title="清空所有数据"
-      description="将删除本地保存的全部工作区、暂存区、规则与设置，此操作不可恢复。"
-      confirm-text="全部清空"
+      :open="confirmClearWorkspaces"
+      title="清空工作区"
+      :description="`确定清空全部 ${wsStore.workspaces.length} 个工作区吗？清空后将自动新建一个空工作区。`"
+      confirm-text="清空"
       destructive
-      @confirm="clearAllData()"
-      @cancel="confirmClearAll = false"
+      @confirm="clearWorkspaces"
+      @cancel="confirmClearWorkspaces = false"
     />
   </header>
 </template>

@@ -2,18 +2,17 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import * as monaco from "monaco-editor";
 import {
-  AArrowUp,
+  ArrowBigUpLine,
   ArrowDown,
   ArrowUp,
-  CaseSensitive,
-  Highlighter,
-  ListOrdered,
-  Regex,
-  ReplaceAll,
+  LetterCase,
+  Highlight,
+  ListNumbers,
+  Braces,
+  Replace,
   Scissors,
-  Settings2,
-} from "@lucide/vue";
-import Badge from "@/components/ui/badge.vue";
+  Settings,
+} from "@vicons/tabler";
 import Button from "@/components/ui/button.vue";
 import Input from "@/components/ui/input.vue";
 import Toggle from "@/components/ui/toggle.vue";
@@ -356,34 +355,33 @@ defineExpose({ open });
   <div class="bg-background p-0">
     <!-- 单行四功能：查找 → 替换 → 分割 → 排序（窄屏自动换行） -->
     <div class="flex flex-wrap items-center gap-1.5">
-      <Input
-        ref="findInputRef"
-        v-model="find"
-        placeholder="查找"
-        class="h-6.5 min-w-28 flex-1 basis-40 text-xs"
-      />
-      <Badge
-        :variant="findError ? 'destructive' : 'secondary'"
-        title="匹配数（当前 / 总数）"
-        class="min-w-9 shrink-0 justify-center px-1 font-mono text-[10px]"
-      >
-        {{
-          findError
-            ? "无效"
-            : matches.length > 0
-              ? `${current + 1}/${matches.length}`
-              : find
-                ? "0"
-                : "—"
-        }}
-      </Badge>
+      <div class="relative min-w-28 flex-1 basis-40">
+        <Input
+          ref="findInputRef"
+          v-model="find"
+          placeholder="查找"
+          class="w-full"
+          :style="{ '--n-padding-right': '48px' }"
+        />
+        <!-- 匹配数：显示在查找输入框内部右对齐（有输入才显示） -->
+        <span
+          v-if="find.trim()"
+          title="匹配数（当前 / 总数）"
+          :class="[
+            'pointer-events-none absolute inset-y-0 right-2.5 flex items-center font-mono text-[10px]',
+            findError ? 'text-destructive' : 'text-muted-foreground',
+          ]"
+        >
+          {{ findError ? "无效" : matches.length > 0 ? `${current + 1}/${matches.length}` : "0" }}
+        </span>
+      </div>
       <Toggle
         :active="isRegex"
         title="正则表达式"
         @click="isRegex = !isRegex"
         class="h-6.5 px-1.5 text-[10px]"
       >
-        <Regex />
+        <Braces />
       </Toggle>
       <Toggle
         :active="matchCase"
@@ -391,7 +389,7 @@ defineExpose({ open });
         @click="matchCase = !matchCase"
         class="h-6.5 px-1.5 text-[10px]"
       >
-        <CaseSensitive />
+        <LetterCase />
       </Toggle>
       <Toggle
         :active="highlightAll"
@@ -399,12 +397,12 @@ defineExpose({ open });
         @click="highlightAll = !highlightAll"
         class="h-6.5 px-1.5 text-[10px]"
       >
-        <Highlighter />
+        <Highlight />
       </Toggle>
       <Button
         variant="ghost"
         size="icon-sm"
-        class="h-6.5 w-6.5"
+        class="w-6.5"
         title="上一个"
         :disabled="matches.length === 0"
         @click="navigate(current - 1)"
@@ -414,7 +412,7 @@ defineExpose({ open });
       <Button
         variant="ghost"
         size="icon-sm"
-        class="h-6.5 w-6.5"
+        class="w-6.5"
         title="下一个"
         :disabled="matches.length === 0"
         @click="navigate(current + 1)"
@@ -424,11 +422,7 @@ defineExpose({ open });
 
       <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
 
-      <Input
-        v-model="replace"
-        placeholder="替换为"
-        class="h-6.5 min-w-24 flex-1 basis-32 text-xs"
-      />
+      <Input v-model="replace" placeholder="替换为" class="min-w-24 flex-1 basis-32" />
       <select
         :value="ruleSelect"
         @change="
@@ -455,13 +449,13 @@ defineExpose({ open });
         替换
       </Button>
       <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="replaceAll">
-        <ReplaceAll class="size-3" />
+        <Replace class="size-3" />
         全部替换
       </Button>
       <Button
         variant="ghost"
         size="icon-sm"
-        class="h-6.5 w-6.5"
+        class="w-6.5"
         title="管理替换规则"
         @click="
           () => {
@@ -470,7 +464,7 @@ defineExpose({ open });
           }
         "
       >
-        <Settings2 />
+        <Settings />
       </Button>
 
       <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
@@ -495,7 +489,7 @@ defineExpose({ open });
         v-if="delimiter === 'custom'"
         v-model="customRegex"
         placeholder="分隔正则"
-        class="h-6.5 w-28 font-mono text-xs"
+        class="min-w-24 flex-1 basis-32 font-mono"
       />
       <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSplit">
         <Scissors class="size-3" />
@@ -528,20 +522,20 @@ defineExpose({ open });
         title="开头匹配：文本以模板列表项开头即算匹配"
         class="h-6.5 w-6.5 px-0"
       >
-        <AArrowUp class="size-3.5" />
+        <ArrowBigUpLine class="size-3.5" />
       </Toggle>
       <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSort">
-        <ListOrdered class="size-3" />
+        <ListNumbers class="size-3" />
         排序
       </Button>
       <Button
         variant="ghost"
         size="icon-sm"
-        class="h-6.5 w-6.5"
+        class="w-6.5"
         title="管理排序规则"
         @click="templatesOpen = true"
       >
-        <Settings2 />
+        <Settings />
       </Button>
     </div>
 

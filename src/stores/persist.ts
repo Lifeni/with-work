@@ -1,4 +1,3 @@
-import { toRaw, watch } from "vue";
 import type { PiniaPlugin } from "pinia";
 
 // 各 store 的 localStorage 持久化 key（与旧版 Zustand persist 保持一致，
@@ -21,6 +20,7 @@ const PERSIST_KEYS: Record<string, string> = {
 export const persistPlugin: PiniaPlugin = (ctx) => {
   const key = PERSIST_KEYS[ctx.store.$id];
   if (!key) return;
+  console.log("[persist] plugin running for", ctx.store.$id);
 
   try {
     const raw = localStorage.getItem(key);
@@ -39,11 +39,11 @@ export const persistPlugin: PiniaPlugin = (ctx) => {
     // 本地数据损坏时静默跳过，保留空初始状态
   }
 
-  watch(
-    () => toRaw(ctx.store.$state),
+  // 深度订阅状态变化写回 localStorage（Pinia 官方持久化模式）
+  ctx.store.$subscribe(
     () => {
       try {
-        localStorage.setItem(key, JSON.stringify(toRaw(ctx.store.$state)));
+        localStorage.setItem(key, JSON.stringify(ctx.store.$state));
       } catch {
         // 存储配额不足等异常静默忽略
       }

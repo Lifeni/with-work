@@ -8,6 +8,12 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  /* xicons 等 svg 图标无内置尺寸，兜底为 1em（有 size-* 工具类时由工具类覆盖） */
+  svg {
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+  }
 }
 
 :root {
@@ -96,7 +102,8 @@
     margin: 0;
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans);
+    /* !important：Naive UI 挂载时向 body 注入默认字体（v-sans 栈），压制以保证 Inter 体系生效 */
+    font-family: var(--font-sans) !important;
     -webkit-font-smoothing: antialiased;
   }
   ::selection {
@@ -129,6 +136,25 @@
   display: none;
 }
 
+/* 按钮内图标统一尺寸（按钮字号已收紧，svg 由类控制时易过小，这里兜底） */
+.n-button .n-button__content svg {
+  width: 16px;
+  height: 16px;
+}
+.n-button--medium-type.n-button--medium-size:not(.n-button--small-type) .n-button__content svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 图标按钮：内容强制水平/垂直居中并去除内边距（Naive 非 circle 按钮存在布局偏移） */
+.n-button.ww-icon-btn {
+  padding: 0 !important;
+}
+.n-button.ww-icon-btn .n-button__content {
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
 /* Monaco 查找高亮 */
 .ww-find-match {
   background: color-mix(in oklab, #f59e0b 30%, transparent);
@@ -139,6 +165,25 @@
   outline: 1px solid #f59e0b;
   outline-offset: -1px;
   border-radius: 2px;
+}
+
+/* 弹层动画 */
+/* 自绘拖拽幽灵（暂存区/模板卡片 → 编辑器） */
+.ww-drag-ghost {
+  position: fixed;
+  z-index: 500;
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  opacity: 0.92;
+  pointer-events: none;
 }
 
 /* 弹层动画 */

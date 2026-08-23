@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { FolderOpen, Pencil, Plus, Trash2, Upload } from "@lucide/vue";
-import Badge from "@/components/ui/badge.vue";
+import { Folder, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import AppDialog from "@/components/ui/dialog.vue";
 import Button from "@/components/ui/button.vue";
@@ -132,7 +131,7 @@ const onImportFile = (e: Event) => {
   >
     <div class="space-y-2 rounded-md border border-border p-2.5">
       <div class="grid grid-cols-3 gap-2">
-        <Input v-model="name" placeholder="规则名称（可选）" class="h-8 text-xs" />
+        <Input v-model="name" placeholder="规则名称（可选）" class="" />
         <Input v-model="find" placeholder="查找内容" class="h-8 font-mono text-xs" />
         <Input v-model="replace" placeholder="替换为" class="h-8 font-mono text-xs" />
       </div>
@@ -176,8 +175,13 @@ const onImportFile = (e: Event) => {
         >
           {{ r.replace }}
         </span>
-        <Badge v-if="r.isRegex" variant="secondary">正则</Badge>
-        <Badge v-if="r.matchCase" variant="outline">Aa</Badge>
+        <span
+          v-if="r.isRegex"
+          class="shrink-0 text-xs font-medium text-muted-foreground"
+        >
+          正则
+        </span>
+        <span v-if="r.matchCase" class="shrink-0 text-xs font-medium text-muted-foreground">Aa</span>
         <Button variant="ghost" size="icon-sm" title="编辑" @click="startEdit(r)">
           <Pencil class="size-3" />
         </Button>
@@ -188,7 +192,7 @@ const onImportFile = (e: Event) => {
           class="text-destructive hover:text-destructive"
           @click="pendingDeleteId = r.id"
         >
-          <Trash2 class="size-3" />
+          <Trash class="size-3" />
         </Button>
       </div>
     </div>
@@ -199,7 +203,7 @@ const onImportFile = (e: Event) => {
         导入规则
       </Button>
       <Button variant="outline" size="sm" @click="exportRules">
-        <FolderOpen class="size-3.5" />
+        <Folder class="size-3.5" />
         导出规则
       </Button>
     </template>
