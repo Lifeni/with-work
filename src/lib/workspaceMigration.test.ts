@@ -8,13 +8,21 @@ import {
 describe("normalizeWorkspace", () => {
   it("把只有旧版 content 的工作区迁移到左栏", () => {
     const w = normalizeWorkspace({ id: "w1", name: "旧工作区", content: "旧内容" });
-    expect(w).toEqual({
+    expect(w).toEqual({ id: "w1", name: "旧工作区", left: "旧内容", right: "" });
+    // 内容已迁到左栏，旧的 content 不再保留（否则会被持久化永久写回）
+    expect(Object.keys(w ?? {})).not.toContain("content");
+  });
+
+  it("content 与双栏内容不一致时保留，避免静默丢数据", () => {
+    const w = normalizeWorkspace({
       id: "w1",
-      name: "旧工作区",
-      left: "旧内容",
+      name: "混合数据",
+      left: "左栏内容",
       right: "",
-      content: "旧内容",
+      content: "另一份历史内容",
     });
+    expect(w?.left).toBe("左栏内容");
+    expect(w?.content).toBe("另一份历史内容");
   });
 
   it("已有 left/right 时不使用 content 覆盖", () => {
@@ -29,7 +37,7 @@ describe("normalizeWorkspace", () => {
     expect(w?.right).toBe("右");
   });
 
-  it("丢弃 view/editorMode/language，但保留 content 供备份往返", () => {
+  it("丢弃 view/editorMode/language 等已废弃字段", () => {
     const w = normalizeWorkspace({
       id: "w1",
       name: "工作区",
@@ -38,10 +46,8 @@ describe("normalizeWorkspace", () => {
       view: "editor",
       editorMode: "dual",
       language: "auto",
-      content: "x",
     });
-    expect(Object.keys(w ?? {}).sort()).toEqual(["content", "id", "left", "name", "right"]);
-    expect(w?.content).toBe("x");
+    expect(Object.keys(w ?? {}).sort()).toEqual(["id", "left", "name", "right"]);
   });
 
   it("缺少 id 的条目被丢弃，名称缺失时补默认名", () => {

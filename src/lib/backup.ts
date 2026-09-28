@@ -100,10 +100,11 @@ export function applyBackup(d: BackupData) {
   // v1/v2 备份的工作区只有单栏 content，双栏内容只存在于 diff 里，需要回填；
   // v3+ 的工作区本身已带 left/right，diff 只是导出时那个工作区的快照，
   // 无条件回填会把「另一个工作区」的内容覆盖到恢复后的首个工作区上。
+  const diff = d.diff ?? { left: "", right: "" };
   const wsStore = useWorkspaceStore();
-  if (d.version < 3 && wsStore.activeId && (d.diff.left || d.diff.right)) {
-    wsStore.setLeft(wsStore.activeId, d.diff.left);
-    wsStore.setRight(wsStore.activeId, d.diff.right);
+  if (d.version < 3 && wsStore.activeId && (diff.left || diff.right)) {
+    wsStore.setLeft(wsStore.activeId, diff.left);
+    wsStore.setRight(wsStore.activeId, diff.right);
   }
   applyTheme(d.settings.theme);
 }

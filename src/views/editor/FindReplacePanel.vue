@@ -101,7 +101,16 @@ function subscribeFocusedModel(ed: monaco.editor.IStandaloneCodeEditor | null) {
   decorationsRef.value = null;
   if (!ed) return;
   attachContentSub(ed);
-  modelChangeSub = ed.onDidChangeModel?.(() => attachContentSub(ed)) ?? null;
+  modelChangeSub =
+    ed.onDidChangeModel?.(() => {
+      attachContentSub(ed);
+      // 换绑 Model 后旧的匹配坐标与装饰都指向上一个 Model，必须清掉并按新 Model 重搜
+      decorationsRef.value?.clear();
+      decorationsRef.value = null;
+      matches.value = [];
+      current.value = 0;
+      modelVersion.value++;
+    }) ?? null;
 }
 
 watch(() => props.focusedEditor, subscribeFocusedModel, { immediate: true });

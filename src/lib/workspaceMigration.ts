@@ -24,14 +24,17 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
   const legacyContent = asString(r.content);
   // 仅当双栏都没有内容时才用旧单栏内容兜底，避免覆盖新数据
   const migratedLeft = left || right ? left : legacyContent;
+  // 迁移后 content 与双栏内容重复就丢掉（否则会被持久化永久写回、并流入新备份）；
+  // 只有它确实携带了另一份数据时才保留，避免静默丢失
+  const keepLegacyContent =
+    legacyContent !== "" && legacyContent !== migratedLeft && legacyContent !== right;
 
   return {
     id,
     name: asString(r.name) || "工作区",
     left: migratedLeft,
     right,
-    // 保留旧字段原值（可为空串），保证老备份读写往返不丢任何一份历史数据
-    ...(r.content !== undefined ? { content: legacyContent } : {}),
+    ...(keepLegacyContent ? { content: legacyContent } : {}),
   };
 }
 

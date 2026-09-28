@@ -165,7 +165,8 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
   let currentModel: MockModel = model;
   const modelChangeListeners: Array<() => void> = [];
 
-  const editor = {
+  // editorImpl 保留真实签名（便于内部调用），editor 对外伪装成 Monaco 的类型
+  const editorImpl = {
     getModel: () => currentModel,
     getSelection,
     /** 模拟 Monaco：实例 dispose 后调用 setModel 会访问已释放对象并抛异常（编辑器生命周期 bug 的崩溃路径） */
@@ -210,13 +211,15 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
     _markDisposed: () => {
       editorDisposed = true;
     },
-  } as unknown as monaco.editor.IStandaloneCodeEditor;
+  };
+  const editor = editorImpl as unknown as monaco.editor.IStandaloneCodeEditor;
 
   return {
     editor,
     model,
     swapModel: (next: MockModel) => {
-      (editor.setModel as (m: MockModel) => void)(next);
+      if (!next) throw new Error("swapModel 需要 Model 引用（对齐 Monaco setModel 语义）");
+      editorImpl.setModel(next);
     },
     currentModel: () => currentModel,
     editsLog,

@@ -97,6 +97,22 @@ describe("FindReplacePanel 编辑器订阅", () => {
     wrapper.unmount();
     expect(next.listenerCount()).toBe(0);
   });
+
+  it("换绑 Model 后按新 Model 重新搜索，不残留旧匹配", async () => {
+    const first = createMockEditor("hello world");
+    const wrapper = mount(FindReplacePanel, {
+      props: { focusedEditor: first.editor, otherEditor: null },
+    });
+    await typeFind(wrapper, "hello");
+    expect(wrapper.text()).toContain("1/1");
+
+    // 切换工作区：同一编辑器实例换绑到没有匹配项的 Model
+    first.swapModel(createMockEditor("没有匹配词").model);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain("0");
+    wrapper.unmount();
+  });
 });
 
 describe("FindReplacePanel 替换", () => {
