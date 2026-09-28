@@ -1,5 +1,7 @@
 import type { PiniaPlugin } from "pinia";
 import { PERSIST_KEYS } from "@/lib/storageKeys";
+import { migrateWorkspaceState } from "@/lib/workspaceMigration";
+import { useToastStore } from "@/stores/toast";
 
 /**
  * 写盘防抖窗口（ms）。
@@ -14,19 +16,45 @@ interface Registration {
   read: () => unknown;
 }
 
+/** 恢复持久化数据时的按 store 迁移（旧结构 → 当前结构） */
+const STATE_MIGRATORS: Record<string, (state: Record<string, unknown>) => Record<string, unknown>> =
+  {
+    workspace: (state) => migrateWorkspaceState(state),
+  };
+
 /** store id(=key) → 待写任务与状态读取器 */
 const pending = new Map<string, ReturnType<typeof setTimeout>>();
 const registrations = new Map<string, Registration>();
 
+/** 清空数据后停止写盘，避免内存中的旧状态被重新写回 */
+let persistDisabled = false;
+/** 写盘失败只提示一次，避免每个按键都弹提示 */
+let writeFailureNotified = false;
+
+function notifyWriteFailure() {
+  if (writeFailureNotified) return;
+  writeFailureNotified = true;
+  try {
+    useToastStore().push("本地存储写入失败，最近的编辑可能没有保存");
+  } catch {
+    // store 尚未就绪时忽略（上面已有 console.warn）
+  }
+}
+
 function writeNow(reg: Registration) {
+  if (persistDisabled) return;
   try {
     localStorage.setItem(reg.key, JSON.stringify(reg.read()));
-  } catch {
-    // 存储配额不足等异常静默忽略
+    writeFailureNotified = false;
+  } catch (e) {
+    // 配额不足等原因写不进去时不能静默：否则用户编辑会无声丢失
+    console.warn(`[persist] 写入 ${reg.key} 失败`, e);
+    notifyWriteFailure();
   }
 }
 
 function scheduleWrite(reg: Registration) {
+  if (persistDisabled) return;
   const timer = pending.get(reg.key);
   if (timer) clearTimeout(timer);
   pending.set(
@@ -52,6 +80,18 @@ export function flushPersist() {
 export function cancelPendingPersist() {
   for (const timer of pending.values()) clearTimeout(timer);
   pending.clear();
+}
+
+/** 清空数据前调用：丢弃待写任务并停止后续写盘（含关页 flush） */
+export function disablePersist() {
+  persistDisabled = true;
+  cancelPendingPersist();
+}
+
+/** 恢复写盘（清空数据后继续使用、或测试隔离时调用） */
+export function enablePersist() {
+  persistDisabled = false;
+  writeFailureNotified = false;
 }
 
 // 关页 / 切后台前落盘（PWA 单文件版同样适用）
@@ -81,7 +121,12 @@ export const persistPlugin: PiniaPlugin = (ctx) => {
           ? (parsed as { state: unknown }).state
           : parsed;
       if (data && typeof data === "object") {
-        Object.assign(ctx.store.$state, data);
+        // 旧结构在这里归一化：既补齐缺失字段，也丢弃已废弃字段
+        const migrator = STATE_MIGRATORS[ctx.store.$id];
+        const restored = migrator
+          ? migrator(data as Record<string, unknown>)
+          : (data as Record<string, unknown>);
+        Object.assign(ctx.store.$state, restored);
       }
     }
   } catch {

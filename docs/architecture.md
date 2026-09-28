@@ -93,8 +93,10 @@
   页面隐藏 / 关闭时用 `flushPersist()` 立即落盘；`clearAllStoredData()` 会先取消待写任务，
   防止旧内容被 flush 写回。
 - 暂存区 → `stagingStore` → 拖拽或按钮（`lib/transfer.ts`）分发到编辑器左右侧。
-- 备份 → `lib/backup.ts` 收集全部 store 为 JSON（`app: "with-work"`，`version: 3`）导出/导入；
-  导入旧版本备份时兼容字段缺失（left/right、textTemplates 等）。
+- 备份 → `lib/backup.ts` 收集全部 store 为 JSON（`app: "with-work"`，`version: 4`）导出/导入；
+  `parseBackup` 兼容 1~3 版本并统一升级到 4：补齐缺失字段（templates、textTemplates），
+  工作区经 `lib/workspaceMigration.ts` 归一化——旧版单栏 `content` 迁到左栏，
+  view/editorMode/language 等废弃字段丢弃。
 - 清空所有数据会连同内置数据标记 `ww:seeded` 一起清除，因此内置规则与排序模板
   会在下次启动时重新注入；工作区导出（`.txt`）取左栏，双栏时以分隔线拼接。
 

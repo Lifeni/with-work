@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick } from "vue";
-import { PERSIST_DEBOUNCE_MS, flushPersist, persistPlugin } from "@/stores/persist";
+import { PERSIST_DEBOUNCE_MS, enablePersist, flushPersist, persistPlugin } from "@/stores/persist";
 import { clearAllStoredData } from "@/lib/backup";
 import { useStagingStore } from "@/stores/staging";
 import { useWorkspaceStore } from "@/stores/workspace";
@@ -19,6 +19,8 @@ const mockApp = {
 
 beforeEach(() => {
   localStorage.clear();
+  // clearAllStoredData 会停写（真实场景里随后就 reload），测试之间需要恢复
+  enablePersist();
   const pinia = createPinia();
   pinia.use(persistPlugin);
   // 模拟 app.use(pinia)：install 后插件进入 _p 并激活
@@ -85,6 +87,27 @@ describe("持久化插件", () => {
     setActivePinia(pinia);
 
     expect(useStagingStore().items[0].text).toBe("旧数据");
+  });
+
+  it("恢复旧版单栏工作区时把 content 迁移到左栏", () => {
+    localStorage.setItem(
+      "ww:workspaces",
+      JSON.stringify({
+        state: {
+          workspaces: [{ id: "old-ws", name: "旧工作区", content: "旧版单栏内容" }],
+          activeId: "old-ws",
+        },
+        version: 0,
+      }),
+    );
+    const pinia = createPinia();
+    pinia.use(persistPlugin);
+    pinia.install(mockApp as never);
+    setActivePinia(pinia);
+
+    const ws = useWorkspaceStore();
+    expect(ws.workspaces[0].left).toBe("旧版单栏内容");
+    expect(ws.activeId).toBe("old-ws");
   });
 
   it("未登记的 store（ui）不写 localStorage", async () => {
@@ -158,5 +181,23 @@ describe("持久化插件", () => {
     flushPersist();
 
     expect(localStorage.getItem("ww:workspaces")).toBeNull();
+  });
+
+  it("写盘失败时提示用户而不是静默丢数据", async () => {
+    const { useToastStore } = await import("@/stores/toast");
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const ws = useWorkspaceStore();
+    ws.setLeft(ws.createWorkspace(), "写不进的内容");
+    await waitForWrite();
+
+    expect(warn).toHaveBeenCalled();
+    expect(useToastStore().toasts.some((t) => t.message.includes("写入失败"))).toBe(true);
+
+    setItem.mockRestore();
+    warn.mockRestore();
   });
 });

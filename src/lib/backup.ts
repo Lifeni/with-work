@@ -5,8 +5,9 @@ import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
 import { useSettingsStore } from "@/stores/settings";
-import { cancelPendingPersist } from "@/stores/persist";
+import { disablePersist } from "@/stores/persist";
 import { ALL_STORAGE_KEYS } from "./storageKeys";
+import { normalizeWorkspaces } from "./workspaceMigration";
 import { downloadText } from "./utils";
 import { applyTheme } from "./theme";
 
@@ -16,7 +17,7 @@ export function collectBackup(): BackupData {
   const settings = useSettingsStore();
   return {
     app: "with-work",
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     workspaces: wsStore.workspaces,
     staging: useStagingStore().items,
@@ -55,15 +56,16 @@ export function parseBackup(
     }
     const data = d as BackupData;
     const version = data.version as number;
-    if (version !== 1 && version !== 2 && version !== 3) {
+    if (version !== 1 && version !== 2 && version !== 3 && version !== 4) {
       return { ok: false, error: `不支持的备份版本：${version}` };
     }
-    // 旧版备份缺少模板字段，兼容补空
+    // 旧版备份缺少模板字段，兼容补空；工作区统一走迁移清洗（旧单栏 content → 左栏）
     return {
       ok: true,
       data: {
         ...data,
-        version: 3,
+        version: 4,
+        workspaces: normalizeWorkspaces(data.workspaces),
         templates: Array.isArray(data.templates) ? data.templates : [],
         textTemplates: Array.isArray(data.textTemplates) ? data.textTemplates : [],
       },
@@ -74,7 +76,7 @@ export function parseBackup(
 }
 
 export function applyBackup(d: BackupData) {
-  useWorkspaceStore().replaceAll(d.workspaces);
+  useWorkspaceStore().replaceAll(normalizeWorkspaces(d.workspaces));
   useStagingStore().replaceAll(d.staging);
   useRulesStore().replaceAll(d.rules);
   useTemplatesStore().replaceAll(d.templates);
@@ -176,8 +178,8 @@ export function exportCurrentWorkspace() {
  * 页面重载交由 clearAllData 处理，便于测试直接验证清理结果。
  */
 export function clearAllStoredData() {
-  // 先丢弃待写任务：否则防抖窗口内的旧内容会在关页 flush 时被写回
-  cancelPendingPersist();
+  // 先停写：否则防抖窗口内的旧内容会在关页 flush，或后续任何 store 变更时被重新写回
+  disablePersist();
   ALL_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
 }
 

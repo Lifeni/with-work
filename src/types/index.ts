@@ -63,7 +63,7 @@ export interface AppSettings {
 
 export interface BackupData {
   app: "with-work";
-  version: 3;
+  version: 4;
   exportedAt: string;
   workspaces: Workspace[];
   staging: StagingItem[];

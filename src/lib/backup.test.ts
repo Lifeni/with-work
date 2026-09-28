@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  applyBackup,
   clearAllStoredData,
   collectBackup,
   parseBackup,
@@ -40,7 +41,7 @@ const BASE_BACKUP = {
 };
 
 describe("parseBackup", () => {
-  it("接受 v3 备份并保留 textTemplates", () => {
+  it("接受 v3 备份并保留 textTemplates，升级到最新版本", () => {
     const d = {
       ...BASE_BACKUP,
       version: 3,
@@ -50,7 +51,7 @@ describe("parseBackup", () => {
     const r = parseBackup(JSON.stringify(d));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.data.version).toBe(3);
+      expect(r.data.version).toBe(4);
       expect(r.data.textTemplates).toHaveLength(1);
       expect(r.data.textTemplates[0].text).toBe("x");
     }
@@ -61,7 +62,7 @@ describe("parseBackup", () => {
     const r = parseBackup(JSON.stringify(d));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.data.version).toBe(3);
+      expect(r.data.version).toBe(4);
       expect(r.data.textTemplates).toEqual([]);
     }
   });
@@ -72,10 +73,17 @@ describe("parseBackup", () => {
     const r = parseBackup(JSON.stringify(d));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.data.version).toBe(3);
+      expect(r.data.version).toBe(4);
       expect(r.data.templates).toEqual([]);
       expect(r.data.textTemplates).toEqual([]);
     }
+  });
+
+  it("接受最新 v4 备份", () => {
+    const d = { ...BASE_BACKUP, version: 4, templates: [], textTemplates: [] };
+    const r = parseBackup(JSON.stringify(d));
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.version).toBe(4);
   });
 
   it("非 with-work 文件被拒绝", () => {
@@ -94,7 +102,7 @@ describe("parseBackup", () => {
 });
 
 describe("collectBackup", () => {
-  it("收集全部数据且版本为 3", () => {
+  it("收集全部数据且版本为 4", () => {
     useWorkspaceStore().createWorkspace();
     useStagingStore().add("hello");
     useRulesStore().addRule({
@@ -110,7 +118,7 @@ describe("collectBackup", () => {
 
     const d = collectBackup();
     expect(d.app).toBe("with-work");
-    expect(d.version).toBe(3);
+    expect(d.version).toBe(4);
     expect(d.workspaces).toHaveLength(1);
     expect(d.workspaces[0].name).toBe("工作区 1");
     expect(d.staging).toHaveLength(1);
@@ -144,6 +152,25 @@ describe("collectBackup", () => {
   it("仍能读取含废弃 list 字段的旧备份", () => {
     const r = parseBackup(JSON.stringify({ ...BASE_BACKUP, version: 3, templates: [] }));
     expect(r.ok).toBe(true);
+  });
+
+  it("导入旧备份时把只有 content 的工作区迁移到左栏", () => {
+    const d = {
+      ...BASE_BACKUP,
+      version: 3,
+      templates: [],
+      textTemplates: [],
+      workspaces: [{ id: "w1", name: "旧工作区", content: "旧版单栏内容" }],
+    };
+    const r = parseBackup(JSON.stringify(d));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    applyBackup(r.data);
+
+    const ws = useWorkspaceStore().workspaces[0];
+    expect(ws.left).toBe("旧版单栏内容");
+    expect(ws.right).toBe("");
   });
 });
 
