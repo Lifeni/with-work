@@ -164,9 +164,28 @@ describe("collectBackup", () => {
     expect(r.data.rules).toEqual([]);
     expect(r.data.templates).toEqual([]);
     expect(r.data.textTemplates).toEqual([]);
-    expect(r.data.settings).toEqual({});
+    expect(r.data.settings).toEqual({ theme: "system" });
     expect(r.data.diff).toEqual({ left: "", right: "" });
     expect(() => applyBackup(r.data)).not.toThrow();
+  });
+
+  it("缺少 workspaces 的残缺备份被拒绝，避免静默清空现有工作区", () => {
+    const r = parseBackup(JSON.stringify({ app: "with-work", version: 4 }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("工作区");
+  });
+
+  it("workspaces 非数组时同样拒绝", () => {
+    const r = parseBackup(JSON.stringify({ app: "with-work", version: 4, workspaces: "坏数据" }));
+    expect(r.ok).toBe(false);
+  });
+
+  it("旧备份缺少 theme 时补为跟随系统，而不是被强制成浅色", () => {
+    const r = parseBackup(
+      JSON.stringify({ ...BASE_BACKUP, version: 1, workspaces: [], settings: {} }),
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.settings.theme).toBe("system");
   });
 
   it("导入旧备份时把只有 content 的工作区迁移到左栏", () => {
@@ -235,7 +254,7 @@ describe("workspaceExportText", () => {
 
   it("双栏时用分隔线拼接左右内容", () => {
     const ws = { id: "w1", name: "工作区", left: "左", right: "右" };
-    expect(workspaceExportText(ws)).toBe("左\n\n--------\n\n右");
+    expect(workspaceExportText(ws)).toBe("左\n\n===== with-work split =====\n\n右");
   });
 
   it("只有右栏时导出右栏内容", () => {

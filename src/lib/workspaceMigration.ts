@@ -25,7 +25,8 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
   // 仅当双栏都没有内容时才用旧单栏内容兜底，避免覆盖新数据
   const migratedLeft = left || right ? left : legacyContent;
   // 迁移后 content 与双栏内容重复就丢掉（否则会被持久化永久写回、并流入新备份）；
-  // 只有它确实携带了另一份数据时才保留，避免静默丢失
+  // 只有它确实携带了另一份数据时才保留在磁盘上（界面不展示该字段），
+  // 以便用户事后手动取回，而不是由程序猜测该追加到哪一栏
   const keepLegacyContent =
     legacyContent !== "" && legacyContent !== migratedLeft && legacyContent !== right;
 

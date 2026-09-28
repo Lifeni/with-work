@@ -375,6 +375,9 @@ onUnmounted(() => {
   contentSub = null;
   modelChangeSub?.dispose();
   modelChangeSub = null;
+  // 工作区 Model 比组件活得久，装饰不清会在重新进入时残留在旧位置
+  decorationsRef.value?.clear();
+  decorationsRef.value = null;
   setRuleApplyListener(null);
 });
 
