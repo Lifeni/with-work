@@ -4,7 +4,8 @@ import type { AppSettings, ThemeMode } from "@/types";
 import { applyTheme } from "@/lib/theme";
 import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE } from "@/lib/settingsMigration";
 
-// 默认值定义收敛在 lib/settingsMigration.ts（持久化恢复与备份导入共用）
+// 默认值定义收敛在 lib/settingsMigration.ts（持久化恢复与备份导入共用）；
+// 修改默认字号 / 字体请改那个文件，这里仅转出以兼容既有引用
 export { DEFAULT_FONT_FAMILY };
 
 export const useSettingsStore = defineStore("settings", () => {

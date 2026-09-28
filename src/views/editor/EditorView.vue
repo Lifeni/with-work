@@ -27,6 +27,7 @@ import { getActiveEditor, setActiveEditor } from "@/lib/editorBridge";
 import { applyReplacements } from "@/lib/replace";
 import { splitLines } from "@/lib/split";
 import { resolveTheme } from "@/lib/theme";
+import { MAX_EDITOR_SPLIT, MIN_EDITOR_SPLIT } from "@/lib/settingsMigration";
 import { cn, downloadText, uid } from "@/lib/utils";
 import {
   cleanupWorkspaceModels,
@@ -440,7 +441,7 @@ function startSplitResize(e: PointerEvent) {
     const rect = editorAreaRef.value?.getBoundingClientRect();
     if (!rect) return;
     const ratio = startRatio + (ev.clientX - startX) / rect.width;
-    settingsStore.setEditorSplit(Math.min(0.75, Math.max(0.25, ratio)));
+    settingsStore.setEditorSplit(Math.min(MAX_EDITOR_SPLIT, Math.max(MIN_EDITOR_SPLIT, ratio)));
   };
   const onUp = () => {
     window.removeEventListener("pointermove", onMove);

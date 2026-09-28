@@ -110,6 +110,8 @@ export function applyBackup(d: BackupData) {
   // v3+ 的工作区本身已带 left/right，diff 只是导出时那个工作区的快照，
   // 无条件回填会把「另一个工作区」的内容覆盖到恢复后的首个工作区上。
   // 因此只填补「空栏」：既不覆盖迁移出来的内容，也尽量把 diff 里的数据捞回来。
+  // 已知边界：备份未记录导出时的 activeId，恢复后 activeId 固定为首个工作区，
+  // 所以 diff 的归属只能按下标猜测（多工作区的 v1/v2 备份存在错归可能，且只填空栏、不覆盖）。
   const diff = d.diff ?? { left: "", right: "" };
   const wsStore = useWorkspaceStore();
   const target = wsStore.workspaces.find((w) => w.id === wsStore.activeId);

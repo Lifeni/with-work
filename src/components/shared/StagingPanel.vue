@@ -25,6 +25,7 @@ import { getActiveEditor } from "@/lib/editorBridge";
 import { splitLines } from "@/lib/split";
 import { sortByReference } from "@/lib/sort";
 import { importText } from "@/lib/transfer";
+import { MAX_STAGING_WIDTH, MIN_STAGING_WIDTH, MIN_TEMPLATE_HEIGHT } from "@/lib/settingsMigration";
 import { useRulesStore } from "@/stores/rules";
 import { useStagingStore } from "@/stores/staging";
 import { useSettingsStore } from "@/stores/settings";
@@ -118,7 +119,7 @@ function startResize(e: MouseEvent) {
   const startX = e.clientX;
   const startWidth = stagingWidth.value;
   const apply = (w: number) => {
-    const next = Math.min(560, Math.max(280, w));
+    const next = Math.min(MAX_STAGING_WIDTH, Math.max(MIN_STAGING_WIDTH, w));
     stagingWidth.value = next;
     settingsStore.setStagingWidth(next);
     if (outerRef.value) {
@@ -288,7 +289,7 @@ function startTemplateResize(e: MouseEvent) {
   const startHeight = templateHeight.value;
   const apply = (h: number) => {
     const max = panelRef.value?.getBoundingClientRect().height;
-    const next = Math.min(max ? max * 0.7 : 640, Math.max(160, h));
+    const next = Math.min(max ? max * 0.7 : 640, Math.max(MIN_TEMPLATE_HEIGHT, h));
     templateHeight.value = next;
     settingsStore.setStagingTemplateHeight(next);
     if (templateZoneRef.value) {
