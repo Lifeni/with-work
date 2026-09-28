@@ -1,11 +1,4 @@
-import type {
-  BackupData,
-  ReplaceRule,
-  SortTemplate,
-  TextTemplate,
-  ThemeMode,
-  Workspace,
-} from "@/types";
+import type { BackupData, ReplaceRule, SortTemplate, TextTemplate, Workspace } from "@/types";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useStagingStore } from "@/stores/staging";
 import { useRulesStore } from "@/stores/rules";
@@ -15,7 +8,8 @@ import { useSettingsStore } from "@/stores/settings";
 import { disablePersist } from "@/stores/persist";
 import { ALL_STORAGE_KEYS } from "./storageKeys";
 import { normalizeWorkspaces } from "./workspaceMigration";
-import { downloadText } from "./utils";
+import { normalizeSettings } from "./settingsMigration";
+import { downloadText, sanitizeFileName } from "./utils";
 import { applyTheme } from "./theme";
 
 export function collectBackup(): BackupData {
@@ -62,7 +56,10 @@ export function parseBackup(
       return { ok: false, error: "文件格式不正确：不是 with-work 的备份文件" };
     }
     const data = d as BackupData;
-    const version = data.version as number;
+    const version = data.version as unknown;
+    if (typeof version !== "number") {
+      return { ok: false, error: "备份文件已损坏：缺少有效的版本号" };
+    }
     if (version !== 1 && version !== 2 && version !== 3 && version !== 4) {
       return { ok: false, error: `不支持的备份版本：${version}` };
     }
@@ -75,9 +72,6 @@ export function parseBackup(
     // 避免 applyBackup 里 replaceAll(undefined) 之类的崩溃
     const asArray = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
     const rawDiff = (data.diff ?? {}) as Partial<BackupData["diff"]>;
-    const rawSettings = (data.settings ?? {}) as Partial<BackupData["settings"]>;
-    const theme: ThemeMode =
-      rawSettings.theme === "light" || rawSettings.theme === "dark" ? rawSettings.theme : "system";
 
     // 旧版备份缺少模板字段，兼容补空；工作区统一走迁移清洗（旧单栏 content → 左栏）。
     // 保留源版本号：applyBackup 需要据此判断是否用 diff 兜底（仅 v1/v2 需要）。
@@ -91,8 +85,9 @@ export function parseBackup(
         rules: asArray(data.rules),
         templates: asArray(data.templates),
         textTemplates: asArray(data.textTemplates),
-        // theme 兜底为跟随系统：缺失时若原样透传，applyTheme 会把界面强制成浅色
-        settings: { ...rawSettings, theme } as BackupData["settings"],
+        // 设置逐字段校验（类型不对回落默认值），theme 缺失时为「跟随系统」，
+        // 否则 applyTheme 会把界面强制成浅色
+        settings: normalizeSettings(data.settings),
         diff: { left: rawDiff.left ?? "", right: rawDiff.right ?? "" },
       },
     };
@@ -109,17 +104,20 @@ export function applyBackup(d: BackupData) {
   useRulesStore().replaceAll(d.rules);
   useTemplatesStore().replaceAll(d.templates);
   useTextTemplatesStore().replaceAll(d.textTemplates);
-  useSettingsStore().replaceAll(d.settings);
+  const settings = normalizeSettings(d.settings);
+  useSettingsStore().replaceAll(settings);
   // v1/v2 备份的工作区只有单栏 content，双栏内容只存在于 diff 里，需要回填；
   // v3+ 的工作区本身已带 left/right，diff 只是导出时那个工作区的快照，
   // 无条件回填会把「另一个工作区」的内容覆盖到恢复后的首个工作区上。
+  // 因此只填补「空栏」：既不覆盖迁移出来的内容，也尽量把 diff 里的数据捞回来。
   const diff = d.diff ?? { left: "", right: "" };
   const wsStore = useWorkspaceStore();
-  if (d.version < 3 && wsStore.activeId && (diff.left || diff.right)) {
-    wsStore.setLeft(wsStore.activeId, diff.left);
-    wsStore.setRight(wsStore.activeId, diff.right);
+  const target = wsStore.workspaces.find((w) => w.id === wsStore.activeId);
+  if (d.version < 3 && target) {
+    if (!target.left && diff.left) wsStore.setLeft(target.id, diff.left);
+    if (!target.right && diff.right) wsStore.setRight(target.id, diff.right);
   }
-  applyTheme(d.settings.theme ?? "system");
+  applyTheme(settings.theme);
 }
 
 export function exportRules() {
@@ -204,7 +202,7 @@ export function exportCurrentWorkspace() {
   const s = useWorkspaceStore();
   const ws: Workspace | undefined = s.workspaces.find((w) => w.id === s.activeId);
   if (!ws) return;
-  downloadText(`${ws.name}.txt`, workspaceExportText(ws));
+  downloadText(`${sanitizeFileName(ws.name)}.txt`, workspaceExportText(ws));
 }
 
 /**

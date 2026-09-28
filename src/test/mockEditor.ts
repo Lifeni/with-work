@@ -37,6 +37,7 @@ export interface MockEditor {
   /** executeEdits 调用记录，便于断言 */
   editsLog: Array<{ source: string; edits: Array<{ range: MockRange; text: string }> }>;
   /** 当前活跃的内容变化订阅数量，用于断言订阅是否被正确释放 */
+  /** 订阅记录归属本 mock 创建的那个 Model（一个 mock 对应一个 Model） */
   listenerCount: () => number;
   getValue: () => string;
   setValue: (v: string) => void;
@@ -169,7 +170,11 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
   const editorImpl = {
     getModel: () => currentModel,
     getSelection,
-    /** 模拟 Monaco：实例 dispose 后调用 setModel 会访问已释放对象并抛异常（编辑器生命周期 bug 的崩溃路径） */
+    /**
+     * 模拟 Monaco：实例 dispose 后调用 setModel 会访问已释放对象并抛异常
+     * （编辑器生命周期 bug 的崩溃路径）。注意本 mock 不支持 setModel(null)，
+     * 需要「编辑器被置空」的场景请显式扩展这里，不要依赖静默忽略。
+     */
     setModel: (next: unknown) => {
       if (editorDisposed) throw new Error("编辑器实例已释放（模拟 Monaco 崩溃）");
       if (!next || next === currentModel) return;

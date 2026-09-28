@@ -2,12 +2,14 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import type { AppSettings, ThemeMode } from "@/types";
 import { applyTheme } from "@/lib/theme";
+import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE } from "@/lib/settingsMigration";
 
-export const DEFAULT_FONT_FAMILY = "ui-monospace, SF Mono, Cascadia Code, Consolas, monospace";
+// 默认值定义收敛在 lib/settingsMigration.ts（持久化恢复与备份导入共用）
+export { DEFAULT_FONT_FAMILY };
 
 export const useSettingsStore = defineStore("settings", () => {
   const theme = ref<ThemeMode>("system");
-  const fontSize = ref(14);
+  const fontSize = ref(DEFAULT_FONT_SIZE);
   const wordWrap = ref(true);
   const editorFontFamily = ref(DEFAULT_FONT_FAMILY);
   const stagingWidth = ref<number | undefined>(undefined);

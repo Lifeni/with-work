@@ -254,4 +254,23 @@ describe("持久化插件", () => {
     setItem.mockRestore();
     warn.mockRestore();
   });
+
+  it("恢复设置时校验字段类型，非法字号不会进入 store", () => {
+    localStorage.setItem(
+      "ww:settings",
+      JSON.stringify({
+        state: { theme: "dark", fontSize: "big", wordWrap: 0 },
+        version: 0,
+      }),
+    );
+    const pinia = createPinia();
+    pinia.use(persistPlugin);
+    pinia.install(mockApp as never);
+    setActivePinia(pinia);
+
+    const settings = useSettingsStore();
+    expect(settings.theme).toBe("dark");
+    expect(settings.fontSize).toBe(14);
+    expect(settings.wordWrap).toBe(true);
+  });
 });

@@ -164,7 +164,9 @@ describe("collectBackup", () => {
     expect(r.data.rules).toEqual([]);
     expect(r.data.templates).toEqual([]);
     expect(r.data.textTemplates).toEqual([]);
-    expect(r.data.settings).toEqual({ theme: "system" });
+    // 设置会逐字段补齐为完整默认值（theme 缺失时跟随系统，而不是被强制浅色）
+    expect(r.data.settings.theme).toBe("system");
+    expect(r.data.settings.fontSize).toBe(14);
     expect(r.data.diff).toEqual({ left: "", right: "" });
     expect(() => applyBackup(r.data)).not.toThrow();
   });
@@ -188,6 +190,44 @@ describe("collectBackup", () => {
     if (r.ok) expect(r.data.settings.theme).toBe("system");
   });
 
+  it("设置里类型不对的字段在导入时被校验掉", () => {
+    const r = parseBackup(
+      JSON.stringify({
+        ...BASE_BACKUP,
+        version: 4,
+        workspaces: [],
+        settings: { theme: "dark", fontSize: "big", wordWrap: 0 },
+      }),
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.settings.theme).toBe("dark");
+    expect(r.data.settings.fontSize).toBe(14);
+    expect(r.data.settings.wordWrap).toBe(true);
+  });
+
+  it("version 为非数字时给出「文件损坏」而不是误报版本不支持", () => {
+    const r = parseBackup(JSON.stringify({ ...BASE_BACKUP, version: "3", workspaces: [] }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("损坏");
+  });
+
+  it("v1/v2 的 diff 只回填到没有内容的工作区", () => {
+    const d = {
+      ...BASE_BACKUP,
+      version: 2,
+      workspaces: [{ id: "w1", name: "一号", content: "一号自己的内容" }],
+      diff: { left: "别的工作区的快照", right: "" },
+    };
+    const r = parseBackup(JSON.stringify(d));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    applyBackup(r.data);
+
+    expect(useWorkspaceStore().workspaces[0].left).toBe("一号自己的内容");
+  });
+
   it("导入旧备份时把只有 content 的工作区迁移到左栏", () => {
     const d = {
       ...BASE_BACKUP,
@@ -207,11 +247,30 @@ describe("collectBackup", () => {
     expect(ws.right).toBe("");
   });
 
-  it("导入 v1/v2 备份时用 diff 补齐双栏内容", () => {
+  it("导入 v1/v2 备份时用 diff 填补空栏，且不覆盖已迁移的内容", () => {
     const d = {
       ...BASE_BACKUP,
       version: 2,
       workspaces: [{ id: "w1", name: "旧工作区", content: "单栏内容" }],
+      diff: { left: "左栏", right: "右栏" },
+    };
+    const r = parseBackup(JSON.stringify(d));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    applyBackup(r.data);
+
+    const ws = useWorkspaceStore().workspaces[0];
+    // 左栏保留迁移出来的单栏内容，右栏此前为空，用 diff 补上
+    expect(ws.left).toBe("单栏内容");
+    expect(ws.right).toBe("右栏");
+  });
+
+  it("导入 v1/v2 备份且工作区没有任何内容时，diff 两栏都回填", () => {
+    const d = {
+      ...BASE_BACKUP,
+      version: 1,
+      workspaces: [{ id: "w1", name: "空工作区" }],
       diff: { left: "左栏", right: "右栏" },
     };
     const r = parseBackup(JSON.stringify(d));

@@ -22,6 +22,12 @@ export function downloadText(filename: string, text: string, mime = "text/plain"
   URL.revokeObjectURL(url);
 }
 
+/** 清洗文件名中的非法字符（工作区名由用户输入，可能含 / \ : 等） */
+export function sanitizeFileName(name: string): string {
+  const cleaned = name.replace(/[\\/:*?"<>|\n\r\t]/g, "_").trim();
+  return cleaned || "未命名";
+}
+
 export function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString("zh-CN", { hour12: false });
 }

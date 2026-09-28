@@ -1,6 +1,7 @@
 import type { PiniaPlugin } from "pinia";
 import { PERSIST_KEYS } from "@/lib/storageKeys";
 import { migrateWorkspaceState } from "@/lib/workspaceMigration";
+import { normalizeSettings } from "@/lib/settingsMigration";
 import { useToastStore } from "@/stores/toast";
 
 /**
@@ -20,6 +21,7 @@ interface Registration {
 const STATE_MIGRATORS: Record<string, (state: Record<string, unknown>) => Record<string, unknown>> =
   {
     workspace: (state) => migrateWorkspaceState(state),
+    settings: (state) => ({ ...normalizeSettings(state) }),
   };
 
 /** store id(=key) → 待写任务与状态读取器 */
