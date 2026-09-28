@@ -30,6 +30,8 @@ export function normalizeWorkspace(raw: unknown): Workspace | null {
     name: asString(r.name) || "工作区",
     left: migratedLeft,
     right,
+    // 保留旧字段原值（可为空串），保证老备份读写往返不丢任何一份历史数据
+    ...(r.content !== undefined ? { content: legacyContent } : {}),
   };
 }
 

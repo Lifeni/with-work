@@ -51,7 +51,8 @@ describe("parseBackup", () => {
     const r = parseBackup(JSON.stringify(d));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.data.version).toBe(4);
+      // 保留源版本号：applyBackup 需要据此判断旧版才用 diff 兜底
+      expect(r.data.version).toBe(3);
       expect(r.data.textTemplates).toHaveLength(1);
       expect(r.data.textTemplates[0].text).toBe("x");
     }
@@ -62,7 +63,7 @@ describe("parseBackup", () => {
     const r = parseBackup(JSON.stringify(d));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.data.version).toBe(4);
+      expect(r.data.version).toBe(2);
       expect(r.data.textTemplates).toEqual([]);
     }
   });
@@ -73,7 +74,7 @@ describe("parseBackup", () => {
     const r = parseBackup(JSON.stringify(d));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.data.version).toBe(4);
+      expect(r.data.version).toBe(1);
       expect(r.data.templates).toEqual([]);
       expect(r.data.textTemplates).toEqual([]);
     }
@@ -171,6 +172,44 @@ describe("collectBackup", () => {
     const ws = useWorkspaceStore().workspaces[0];
     expect(ws.left).toBe("旧版单栏内容");
     expect(ws.right).toBe("");
+  });
+
+  it("导入 v1/v2 备份时用 diff 补齐双栏内容", () => {
+    const d = {
+      ...BASE_BACKUP,
+      version: 2,
+      workspaces: [{ id: "w1", name: "旧工作区", content: "单栏内容" }],
+      diff: { left: "左栏", right: "右栏" },
+    };
+    const r = parseBackup(JSON.stringify(d));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    applyBackup(r.data);
+
+    const ws = useWorkspaceStore().workspaces[0];
+    expect(ws.left).toBe("左栏");
+    expect(ws.right).toBe("右栏");
+  });
+
+  it("导入 v3/v4 备份时不把 diff 快照覆盖到恢复出的工作区", () => {
+    const d = {
+      ...BASE_BACKUP,
+      version: 4,
+      templates: [],
+      textTemplates: [],
+      workspaces: [{ id: "w1", name: "一号", left: "一号自己的内容", right: "右栏" }],
+      diff: { left: "另一个工作区的快照", right: "快照右栏" },
+    };
+    const r = parseBackup(JSON.stringify(d));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    applyBackup(r.data);
+
+    const ws = useWorkspaceStore().workspaces[0];
+    expect(ws.left).toBe("一号自己的内容");
+    expect(ws.right).toBe("右栏");
   });
 });
 

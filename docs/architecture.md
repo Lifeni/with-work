@@ -94,9 +94,11 @@
   防止旧内容被 flush 写回。
 - 暂存区 → `stagingStore` → 拖拽或按钮（`lib/transfer.ts`）分发到编辑器左右侧。
 - 备份 → `lib/backup.ts` 收集全部 store 为 JSON（`app: "with-work"`，`version: 4`）导出/导入；
-  `parseBackup` 兼容 1~3 版本并统一升级到 4：补齐缺失字段（templates、textTemplates），
-  工作区经 `lib/workspaceMigration.ts` 归一化——旧版单栏 `content` 迁到左栏，
-  view/editorMode/language 等废弃字段丢弃。
+  `parseBackup` 兼容 1~4 版本并保留源版本号（迁移判断需要）：补齐缺失字段
+  （templates、textTemplates），工作区经 `lib/workspaceMigration.ts` 归一化——
+  旧版单栏 `content` 迁到左栏、`content` 原值保留以便备份往返，
+  view/editorMode/language 等废弃字段丢弃。导入时只有 v1/v2 会用备份里的
+  `diff` 回填激活工作区的双栏内容；v3+ 的工作区自带 left/right，回填反而会串内容。
 - 清空所有数据会连同内置数据标记 `ww:seeded` 一起清除，因此内置规则与排序模板
   会在下次启动时重新注入；工作区导出（`.txt`）取左栏，双栏时以分隔线拼接。
 

@@ -8,7 +8,13 @@ import {
 describe("normalizeWorkspace", () => {
   it("把只有旧版 content 的工作区迁移到左栏", () => {
     const w = normalizeWorkspace({ id: "w1", name: "旧工作区", content: "旧内容" });
-    expect(w).toEqual({ id: "w1", name: "旧工作区", left: "旧内容", right: "" });
+    expect(w).toEqual({
+      id: "w1",
+      name: "旧工作区",
+      left: "旧内容",
+      right: "",
+      content: "旧内容",
+    });
   });
 
   it("已有 left/right 时不使用 content 覆盖", () => {
@@ -23,7 +29,7 @@ describe("normalizeWorkspace", () => {
     expect(w?.right).toBe("右");
   });
 
-  it("丢弃 view/editorMode/language 等已废弃字段", () => {
+  it("丢弃 view/editorMode/language，但保留 content 供备份往返", () => {
     const w = normalizeWorkspace({
       id: "w1",
       name: "工作区",
@@ -34,7 +40,8 @@ describe("normalizeWorkspace", () => {
       language: "auto",
       content: "x",
     });
-    expect(Object.keys(w ?? {}).sort()).toEqual(["id", "left", "name", "right"]);
+    expect(Object.keys(w ?? {}).sort()).toEqual(["content", "id", "left", "name", "right"]);
+    expect(w?.content).toBe("x");
   });
 
   it("缺少 id 的条目被丢弃，名称缺失时补默认名", () => {

@@ -63,7 +63,8 @@ export interface AppSettings {
 
 export interface BackupData {
   app: "with-work";
-  version: 4;
+  /** 备份格式版本：导出时写最新版（4），解析旧文件时保留源版本供迁移判断 */
+  version: 1 | 2 | 3 | 4;
   exportedAt: string;
   workspaces: Workspace[];
   staging: StagingItem[];

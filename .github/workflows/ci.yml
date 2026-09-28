@@ -10,6 +10,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# 只读工作流：显式声明最小权限，避免默认 GITHUB_TOKEN 权限过宽
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: lint / test / build

@@ -59,12 +59,13 @@ export function parseBackup(
     if (version !== 1 && version !== 2 && version !== 3 && version !== 4) {
       return { ok: false, error: `不支持的备份版本：${version}` };
     }
-    // 旧版备份缺少模板字段，兼容补空；工作区统一走迁移清洗（旧单栏 content → 左栏）
+    // 旧版备份缺少模板字段，兼容补空；工作区统一走迁移清洗（旧单栏 content → 左栏）。
+    // 保留源版本号：applyBackup 需要据此判断是否用 diff 兜底（仅 v1/v2 需要）。
     return {
       ok: true,
       data: {
         ...data,
-        version: 4,
+        version,
         workspaces: normalizeWorkspaces(data.workspaces),
         templates: Array.isArray(data.templates) ? data.templates : [],
         textTemplates: Array.isArray(data.textTemplates) ? data.textTemplates : [],
@@ -82,9 +83,11 @@ export function applyBackup(d: BackupData) {
   useTemplatesStore().replaceAll(d.templates);
   useTextTemplatesStore().replaceAll(d.textTemplates);
   useSettingsStore().replaceAll(d.settings);
-  // 旧版备份的工作区没有 left/right，把备份的 diff 合并到当前工作区
+  // v1/v2 备份的工作区只有单栏 content，双栏内容只存在于 diff 里，需要回填；
+  // v3+ 的工作区本身已带 left/right，diff 只是导出时那个工作区的快照，
+  // 无条件回填会把「另一个工作区」的内容覆盖到恢复后的首个工作区上。
   const wsStore = useWorkspaceStore();
-  if (wsStore.activeId && (d.diff.left || d.diff.right)) {
+  if (d.version < 3 && wsStore.activeId && (d.diff.left || d.diff.right)) {
     wsStore.setLeft(wsStore.activeId, d.diff.left);
     wsStore.setRight(wsStore.activeId, d.diff.right);
   }
@@ -157,13 +160,16 @@ export function parseTextTemplates(
   }
 }
 
+/** 双栏导出时的分栏分隔线 */
+const EXPORT_SEPARATOR = "--------";
+
 /** 工作区导出为纯文本：只有右栏时直接取右栏，双栏时用分隔线拼接，便于一眼对照 */
 export function workspaceExportText(ws: Workspace): string {
   const left = ws.left ?? "";
   const right = ws.right ?? "";
   if (!left) return right;
   if (!right) return left;
-  return `${left}\n\n--------\n\n${right}`;
+  return `${left}\n\n${EXPORT_SEPARATOR}\n\n${right}`;
 }
 
 export function exportCurrentWorkspace() {
@@ -175,7 +181,8 @@ export function exportCurrentWorkspace() {
 
 /**
  * 清除本地保存的全部数据（含内置数据标记，使内置规则/模板在下次启动时重新注入）。
- * 页面重载交由 clearAllData 处理，便于测试直接验证清理结果。
+ * 同时停写（`disablePersist`），避免内存中的旧状态被写回——因此调用方必须在清空后
+ * 立即刷新页面（`clearAllData` 即如此）；页面重载单独拆出只是为了便于测试验证清理结果。
  */
 export function clearAllStoredData() {
   // 先停写：否则防抖窗口内的旧内容会在关页 flush，或后续任何 store 变更时被重新写回

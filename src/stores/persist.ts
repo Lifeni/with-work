@@ -82,13 +82,17 @@ export function cancelPendingPersist() {
   pending.clear();
 }
 
-/** 清空数据前调用：丢弃待写任务并停止后续写盘（含关页 flush） */
+/**
+ * 清空数据前调用：丢弃待写任务并停止后续写盘（含关页 flush）。
+ * 本会话内是终态——调用方应在清空后立即刷新页面重建模块状态；
+ * 若确实需要继续使用（例如测试隔离），显式调用 enablePersist() 恢复。
+ */
 export function disablePersist() {
   persistDisabled = true;
   cancelPendingPersist();
 }
 
-/** 恢复写盘（清空数据后继续使用、或测试隔离时调用） */
+/** 恢复写盘：仅用于「清空后不刷新页面」的特殊场景与测试隔离 */
 export function enablePersist() {
   persistDisabled = false;
   writeFailureNotified = false;
