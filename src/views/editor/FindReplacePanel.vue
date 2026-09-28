@@ -72,22 +72,36 @@ const toast = useToastStore().push;
 // 监听目标编辑器内容版本：内容变化时自动重跑搜索
 const modelVersion = ref(0);
 let contentSub: monaco.IDisposable | null = null;
+let modelChangeSub: monaco.IDisposable | null = null;
+
+/** 把内容订阅挂到编辑器当前的 Model 上（换绑 Model 时需要重新挂） */
+function attachContentSub(ed: monaco.editor.IStandaloneCodeEditor) {
+  contentSub?.dispose();
+  contentSub = null;
+  const model = ed.getModel();
+  if (!model) return;
+  contentSub = model.onDidChangeContent(() => {
+    modelVersion.value++;
+  });
+}
 
 /**
  * 换绑目标编辑器：先释放上一个编辑器的订阅，再订阅新 Model。
  * 不能把 onUnmounted 写进 watch 回调——那会在调度阶段找不到组件实例而注册失败，
  * 既泄漏订阅又漏掉「挂载即有编辑器」这一次订阅。
+ * 编辑器实例是复用的：切换工作区走的是同一个实例的 setModel，此时 props 引用不变，
+ * 必须靠 onDidChangeModel 把订阅迁到新 Model，否则搜索不会随新内容刷新。
  */
 function subscribeFocusedModel(ed: monaco.editor.IStandaloneCodeEditor | null) {
   contentSub?.dispose();
   contentSub = null;
+  modelChangeSub?.dispose();
+  modelChangeSub = null;
   decorationsRef.value?.clear();
   decorationsRef.value = null;
-  const model = ed?.getModel();
-  if (!model) return;
-  contentSub = model.onDidChangeContent(() => {
-    modelVersion.value++;
-  });
+  if (!ed) return;
+  attachContentSub(ed);
+  modelChangeSub = ed.onDidChangeModel?.(() => attachContentSub(ed)) ?? null;
 }
 
 watch(() => props.focusedEditor, subscribeFocusedModel, { immediate: true });
@@ -350,6 +364,8 @@ onMounted(() => {
 onUnmounted(() => {
   contentSub?.dispose();
   contentSub = null;
+  modelChangeSub?.dispose();
+  modelChangeSub = null;
   setRuleApplyListener(null);
 });
 

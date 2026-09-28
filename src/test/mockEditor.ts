@@ -30,6 +30,10 @@ export interface MockModel {
 export interface MockEditor {
   editor: monaco.editor.IStandaloneCodeEditor;
   model: MockModel;
+  /** 模拟 Monaco 在同一编辑器实例上换绑 Model（切换工作区），会触发 onDidChangeModel */
+  swapModel: (next: MockModel) => void;
+  /** 当前挂载的 Model */
+  currentModel: () => MockModel;
   /** executeEdits 调用记录，便于断言 */
   editsLog: Array<{ source: string; edits: Array<{ range: MockRange; text: string }> }>;
   /** 当前活跃的内容变化订阅数量，用于断言订阅是否被正确释放 */
@@ -157,12 +161,28 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
         }
       : null;
 
+  // 同一编辑器实例上换绑 Model（切换工作区）时，Monaco 会触发 onDidChangeModel
+  let currentModel: MockModel = model;
+  const modelChangeListeners: Array<() => void> = [];
+
   const editor = {
-    getModel: () => model,
+    getModel: () => currentModel,
     getSelection,
     /** 模拟 Monaco：实例 dispose 后调用 setModel 会访问已释放对象并抛异常（编辑器生命周期 bug 的崩溃路径） */
-    setModel: () => {
+    setModel: (next: unknown) => {
       if (editorDisposed) throw new Error("编辑器实例已释放（模拟 Monaco 崩溃）");
+      if (!next || next === currentModel) return;
+      currentModel = next as MockModel;
+      modelChangeListeners.forEach((fn) => fn());
+    },
+    onDidChangeModel: (fn: () => void) => {
+      modelChangeListeners.push(fn);
+      return {
+        dispose: () => {
+          const i = modelChangeListeners.indexOf(fn);
+          if (i >= 0) modelChangeListeners.splice(i, 1);
+        },
+      };
     },
     onDidFocusEditorText: () => ({ dispose: () => {} }),
     onDidChangeCursorPosition: () => ({ dispose: () => {} }),
@@ -195,6 +215,10 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
   return {
     editor,
     model,
+    swapModel: (next: MockModel) => {
+      (editor.setModel as (m: MockModel) => void)(next);
+    },
+    currentModel: () => currentModel,
     editsLog,
     listenerCount: () => contentListeners.length,
     getValue: () => value,

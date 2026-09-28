@@ -200,4 +200,32 @@ describe("持久化插件", () => {
     setItem.mockRestore();
     warn.mockRestore();
   });
+
+  it("pinia 重建后旧 store 的迟到变更不会覆盖新 store 的数据", async () => {
+    const oldStore = useWorkspaceStore();
+    const oldId = oldStore.createWorkspace();
+    oldStore.setLeft(oldId, "旧实例内容");
+    await waitForWrite();
+
+    // 模拟重建 pinia：旧 store 实例被丢弃，新实例接管同一个存储键
+    const pinia2 = createPinia();
+    pinia2.use(persistPlugin);
+    pinia2.install(mockApp as never);
+    setActivePinia(pinia2);
+    const newStore = useWorkspaceStore();
+    const newId = newStore.createWorkspace();
+    newStore.setLeft(newId, "新实例内容");
+    await waitForWrite();
+
+    // 旧实例的迟到变更：不得覆盖新实例已落盘的数据
+    oldStore.setLeft(oldId, "旧实例的迟到变更");
+    await waitForWrite();
+
+    const stored = JSON.parse(localStorage.getItem("ww:workspaces")!);
+    expect(stored.workspaces.map((w: { left: string }) => w.left)).toEqual([
+      "旧实例内容",
+      "新实例内容",
+    ]);
+    expect(JSON.stringify(stored)).not.toContain("迟到");
+  });
 });

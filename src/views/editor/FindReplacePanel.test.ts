@@ -80,6 +80,23 @@ describe("FindReplacePanel 编辑器订阅", () => {
 
     expect(focused.listenerCount()).toBe(0);
   });
+
+  it("同一编辑器换绑 Model（切换工作区）后订阅跟随到新 Model", async () => {
+    const first = createMockEditor("aaa");
+    const wrapper = mount(FindReplacePanel, {
+      props: { focusedEditor: first.editor, otherEditor: null },
+    });
+    expect(first.listenerCount()).toBe(1);
+
+    const next = createMockEditor("bbb");
+    first.swapModel(next.model);
+
+    expect(first.listenerCount()).toBe(0);
+    expect(next.listenerCount()).toBe(1);
+
+    wrapper.unmount();
+    expect(next.listenerCount()).toBe(0);
+  });
 });
 
 describe("FindReplacePanel 替换", () => {

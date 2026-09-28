@@ -55,13 +55,17 @@ function writeNow(reg: Registration) {
 
 function scheduleWrite(reg: Registration) {
   if (persistDisabled) return;
+  // 同一个 key 只认最新注册的 store：pinia 重建后旧实例的迟到变更不得覆盖新实例数据
+  if (registrations.get(reg.key) !== reg) return;
   const timer = pending.get(reg.key);
   if (timer) clearTimeout(timer);
   pending.set(
     reg.key,
     setTimeout(() => {
       pending.delete(reg.key);
-      writeNow(reg);
+      // 写盘时刻重新取当前注册，保证写的是仍然存活的那个 store 的状态
+      const current = registrations.get(reg.key);
+      if (current) writeNow(current);
     }, PERSIST_DEBOUNCE_MS),
   );
 }

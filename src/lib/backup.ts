@@ -77,6 +77,8 @@ export function parseBackup(
 }
 
 export function applyBackup(d: BackupData) {
+  // parseBackup 已归一化过一次；这里再跑一次是幂等的防御（applyBackup 也可能被直接调用），
+  // 保证无论调用路径如何，写入 store 的都是当前结构的工作区。
   useWorkspaceStore().replaceAll(normalizeWorkspaces(d.workspaces));
   useStagingStore().replaceAll(d.staging);
   useRulesStore().replaceAll(d.rules);
