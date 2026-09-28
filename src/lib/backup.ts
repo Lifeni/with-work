@@ -6,19 +6,9 @@ import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
 import { useSettingsStore } from "@/stores/settings";
 import { useListStore } from "@/stores/list";
+import { ALL_STORAGE_KEYS } from "./storageKeys";
 import { downloadText } from "./utils";
 import { applyTheme } from "./theme";
-
-export const STORAGE_KEYS = [
-  "ww:workspaces",
-  "ww:staging",
-  "ww:rules",
-  "ww:templates",
-  "ww:text-templates",
-  "ww:settings",
-  "ww:diff",
-  "ww:list",
-];
 
 export function collectBackup(): BackupData {
   const wsStore = useWorkspaceStore();
@@ -41,6 +31,7 @@ export function collectBackup(): BackupData {
       editorFontFamily: settings.editorFontFamily,
       stagingWidth: settings.stagingWidth,
       editorSplit: settings.editorSplit,
+      stagingTemplateHeight: settings.stagingTemplateHeight,
     },
     diff: { left: activeWs?.left ?? "", right: activeWs?.right ?? "" },
     list: {
@@ -171,14 +162,31 @@ export function parseTextTemplates(
   }
 }
 
+/** 工作区导出为纯文本：只有右栏时直接取右栏，双栏时用分隔线拼接，便于一眼对照 */
+export function workspaceExportText(ws: Workspace): string {
+  const left = ws.left ?? "";
+  const right = ws.right ?? "";
+  if (!left) return right;
+  if (!right) return left;
+  return `${left}\n\n--------\n\n${right}`;
+}
+
 export function exportCurrentWorkspace() {
   const s = useWorkspaceStore();
   const ws: Workspace | undefined = s.workspaces.find((w) => w.id === s.activeId);
   if (!ws) return;
-  downloadText(`${ws.name}.txt`, ws.content);
+  downloadText(`${ws.name}.txt`, workspaceExportText(ws));
+}
+
+/**
+ * 清除本地保存的全部数据（含内置数据标记，使内置规则/模板在下次启动时重新注入）。
+ * 页面重载交由 clearAllData 处理，便于测试直接验证清理结果。
+ */
+export function clearAllStoredData() {
+  ALL_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
 }
 
 export function clearAllData() {
-  STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
+  clearAllStoredData();
   location.reload();
 }

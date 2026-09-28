@@ -1,16 +1,5 @@
 import type { PiniaPlugin } from "pinia";
-
-// 各 store 的 localStorage 持久化 key（与旧版 Zustand persist 保持一致，
-// 用户浏览器中已有的数据可直接迁移，无需手动处理）
-const PERSIST_KEYS: Record<string, string> = {
-  workspace: "ww:workspaces",
-  staging: "ww:staging",
-  rules: "ww:rules",
-  templates: "ww:templates",
-  textTemplates: "ww:text-templates",
-  settings: "ww:settings",
-  list: "ww:list",
-};
+import { PERSIST_KEYS } from "@/lib/storageKeys";
 
 /**
  * 持久化插件：store 创建时从 localStorage 恢复（兼容旧 Zustand persist 的
@@ -20,7 +9,6 @@ const PERSIST_KEYS: Record<string, string> = {
 export const persistPlugin: PiniaPlugin = (ctx) => {
   const key = PERSIST_KEYS[ctx.store.$id];
   if (!key) return;
-  console.log("[persist] plugin running for", ctx.store.$id);
 
   try {
     const raw = localStorage.getItem(key);

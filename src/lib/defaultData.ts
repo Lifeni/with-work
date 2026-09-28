@@ -1,6 +1,7 @@
 import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
+import { SEEDED_KEY } from "@/lib/storageKeys";
 import type { ReplaceRule, SortTemplate, TextTemplate } from "@/types";
 
 /**
@@ -11,8 +12,8 @@ import type { ReplaceRule, SortTemplate, TextTemplate } from "@/types";
  * - 用户编辑过的项不会被覆盖。
  */
 
-/** 已注入内置 id 的持久化标记 */
-export const SEEDED_KEY = "ww:seeded";
+// 已注入内置 id 的持久化标记（键定义收敛在 lib/storageKeys.ts，这里转出便于既有引用）
+export { SEEDED_KEY };
 
 /** 历史版本注入过、现已下架的内置项：seed 时从用户数据中移除 */
 export const DEPRECATED_BUILTIN_IDS = [

@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  clearAllStoredData,
   collectBackup,
   parseBackup,
   parseRules,
   parseTemplates,
   parseTextTemplates,
 } from "./backup";
+import { SEEDED_KEY } from "./storageKeys";
+import { seedDefaultData } from "./defaultData";
 import { useRulesStore } from "@/stores/rules";
 import { useStagingStore } from "@/stores/staging";
 import { useTemplatesStore } from "@/stores/templates";
@@ -156,5 +159,26 @@ describe("规则 / 模板解析", () => {
     const r = parseTextTemplates(JSON.stringify([{ id: "1", name: "n", text: "内容" }]));
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.templates).toHaveLength(1);
+  });
+});
+
+describe("clearAllStoredData", () => {
+  it("连同内置数据标记一起清除，使内置规则与模板可以重新注入", () => {
+    localStorage.setItem(SEEDED_KEY, JSON.stringify(["builtin-rule-angle-bracket"]));
+    localStorage.setItem("ww:staging", JSON.stringify({ items: [{ id: "s1", text: "x" }] }));
+    useRulesStore().replaceAll([]);
+    useTemplatesStore().replaceAll([]);
+
+    clearAllStoredData();
+
+    expect(localStorage.getItem(SEEDED_KEY)).toBeNull();
+    expect(localStorage.getItem("ww:staging")).toBeNull();
+
+    // 清空后重新注入：内置规则与排序模板必须回来
+    seedDefaultData();
+    expect(useRulesStore().rules.map((r) => r.id)).toContain("builtin-rule-angle-bracket");
+    expect(useTemplatesStore().templates.map((t) => t.id)).toContain(
+      "builtin-sort-shandong-cities",
+    );
   });
 });
