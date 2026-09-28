@@ -221,7 +221,8 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
     currentModel: () => currentModel,
     editsLog,
     listenerCount: () => contentListeners.length,
-    getValue: () => value,
-    setValue: (v) => model.setValue(v),
+    // 读写统一走当前挂载的 Model：换绑后与真实 Monaco 行为一致
+    getValue: () => currentModel.getValue(),
+    setValue: (v) => currentModel.setValue(v),
   };
 }

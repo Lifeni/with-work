@@ -155,6 +155,20 @@ describe("collectBackup", () => {
     expect(r.ok).toBe(true);
   });
 
+  it("宽容处理缺字段的备份：补默认值而不是让恢复流程抛错", () => {
+    const r = parseBackup(JSON.stringify({ app: "with-work", version: 4, workspaces: [] }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.data.staging).toEqual([]);
+    expect(r.data.rules).toEqual([]);
+    expect(r.data.templates).toEqual([]);
+    expect(r.data.textTemplates).toEqual([]);
+    expect(r.data.settings).toEqual({});
+    expect(r.data.diff).toEqual({ left: "", right: "" });
+    expect(() => applyBackup(r.data)).not.toThrow();
+  });
+
   it("导入旧备份时把只有 content 的工作区迁移到左栏", () => {
     const d = {
       ...BASE_BACKUP,

@@ -59,6 +59,11 @@ export function parseBackup(
     if (version !== 1 && version !== 2 && version !== 3 && version !== 4) {
       return { ok: false, error: `不支持的备份版本：${version}` };
     }
+    // 宽容恢复：字段缺失或类型不对（手工改过 / 传输损坏）时补默认值，
+    // 避免 applyBackup 里 replaceAll(undefined) 之类的崩溃
+    const asArray = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+    const rawDiff = (data.diff ?? {}) as Partial<BackupData["diff"]>;
+
     // 旧版备份缺少模板字段，兼容补空；工作区统一走迁移清洗（旧单栏 content → 左栏）。
     // 保留源版本号：applyBackup 需要据此判断是否用 diff 兜底（仅 v1/v2 需要）。
     return {
@@ -67,8 +72,15 @@ export function parseBackup(
         ...data,
         version,
         workspaces: normalizeWorkspaces(data.workspaces),
-        templates: Array.isArray(data.templates) ? data.templates : [],
-        textTemplates: Array.isArray(data.textTemplates) ? data.textTemplates : [],
+        staging: asArray(data.staging),
+        rules: asArray(data.rules),
+        templates: asArray(data.templates),
+        textTemplates: asArray(data.textTemplates),
+        settings:
+          data.settings && typeof data.settings === "object"
+            ? data.settings
+            : ({} as BackupData["settings"]),
+        diff: { left: rawDiff.left ?? "", right: rawDiff.right ?? "" },
       },
     };
   } catch {

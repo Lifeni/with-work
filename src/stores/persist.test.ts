@@ -228,4 +228,30 @@ describe("持久化插件", () => {
     ]);
     expect(JSON.stringify(stored)).not.toContain("迟到");
   });
+
+  it("其他 key 写成功不会让持续失败的 key 重复提示", async () => {
+    const { useToastStore } = await import("@/stores/toast");
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation((key: string) => {
+      if (key === "ww:workspaces") throw new Error("QuotaExceededError");
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const ws = useWorkspaceStore();
+    const id = ws.createWorkspace();
+    ws.setLeft(id, "第一次写失败");
+    await waitForWrite();
+
+    // 另一个 key 写成功：不应因此让 workspace 的失败重新提示
+    useSettingsStore().setFontSize(18);
+    await waitForWrite();
+
+    ws.setLeft(id, "第二次写失败");
+    await waitForWrite();
+
+    const failures = useToastStore().toasts.filter((t) => t.message.includes("写入失败"));
+    expect(failures).toHaveLength(1);
+
+    setItem.mockRestore();
+    warn.mockRestore();
+  });
 });

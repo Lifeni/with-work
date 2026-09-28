@@ -28,16 +28,17 @@ const registrations = new Map<string, Registration>();
 
 /** 清空数据后停止写盘，避免内存中的旧状态被重新写回 */
 let persistDisabled = false;
-/** 写盘失败只提示一次，避免每个按键都弹提示 */
-let writeFailureNotified = false;
+/** 处于写盘失败状态的 key：同一 key 的失败只提示一次，直到它恢复正常 */
+const failingKeys = new Set<string>();
 
-function notifyWriteFailure() {
-  if (writeFailureNotified) return;
-  writeFailureNotified = true;
+/** 尝试提示写盘失败；返回是否已提示（store 未就绪时返回 false，下次再试） */
+function notifyWriteFailure(): boolean {
   try {
     useToastStore().push("本地存储写入失败，最近的编辑可能没有保存");
+    return true;
   } catch {
     // store 尚未就绪时忽略（上面已有 console.warn）
+    return false;
   }
 }
 
@@ -45,11 +46,13 @@ function writeNow(reg: Registration) {
   if (persistDisabled) return;
   try {
     localStorage.setItem(reg.key, JSON.stringify(reg.read()));
-    writeFailureNotified = false;
+    failingKeys.delete(reg.key);
   } catch (e) {
     // 配额不足等原因写不进去时不能静默：否则用户编辑会无声丢失
     console.warn(`[persist] 写入 ${reg.key} 失败`, e);
-    notifyWriteFailure();
+    if (!failingKeys.has(reg.key) && notifyWriteFailure()) {
+      failingKeys.add(reg.key);
+    }
   }
 }
 
@@ -99,7 +102,7 @@ export function disablePersist() {
 /** 恢复写盘：仅用于「清空后不刷新页面」的特殊场景与测试隔离 */
 export function enablePersist() {
   persistDisabled = false;
-  writeFailureNotified = false;
+  failingKeys.clear();
 }
 
 // 关页 / 切后台前落盘（PWA 单文件版同样适用）
