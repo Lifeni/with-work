@@ -44,6 +44,20 @@ const AUTO_CHARS: Partial<Record<SplitDelimiter, string>> = {
   "cn-dunhao": "、",
 };
 
+/**
+ * 各固定分隔符对应的字面量（不含 auto / custom，这两个需要按文本另算）。
+ * 「组合」（把多行拼成一行）与「分割」共用同一组选项，取的就是这里的字面量。
+ */
+export const DELIMITER_LITERALS: Record<Exclude<SplitDelimiter, "auto" | "custom">, string> = {
+  newline: "\n",
+  comma: ",",
+  "cn-comma": "，",
+  semicolon: ";",
+  "cn-semicolon": "；",
+  "cn-dunhao": "、",
+  space: " ",
+};
+
 export function splitText(text: string, opts: SplitOptions): SplitResult {
   if (!text) return { items: [] };
   const { delimiter, customRegex, trim = true, ignoreEmpty = true, dedupe = false } = opts;

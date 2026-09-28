@@ -5,6 +5,7 @@ import {
   ArrowBigUpLine,
   ArrowDown,
   ArrowUp,
+  ArrowsJoin,
   LetterCase,
   Highlight,
   ListNumbers,
@@ -19,6 +20,7 @@ import Toggle from "@/components/ui/toggle.vue";
 import RulesDialog from "@/components/shared/RulesDialog.vue";
 import TemplatesDialog from "@/components/shared/TemplatesDialog.vue";
 import { setRuleApplyListener } from "@/lib/editorBridge";
+import { joinText } from "@/lib/join";
 import { computeReplacement } from "@/lib/replace";
 import { sortAlphabetical, sortByReference } from "@/lib/sort";
 import { splitLines, splitText, type SplitDelimiter } from "@/lib/split";
@@ -280,6 +282,31 @@ function runSplit() {
   toast(`已分割 ${r.items.length} 项并写入另一侧编辑器`);
 }
 
+/**
+ * 组合：把聚焦编辑器的多行（选区优先）拼成一行写入另一侧，是「分割」的逆操作。
+ * 组合符与分割共用同一个分隔符下拉；结果写另一侧便于与原文本对照，也能再分割回来。
+ */
+function runJoin() {
+  const src = props.focusedEditor;
+  const model = src?.getModel();
+  if (!src || !model) {
+    toast("请先点击要组合的编辑器（高亮边框者）");
+    return;
+  }
+  const sel = src.getSelection();
+  const input = sel && !sel.isEmpty() ? model.getValueInRange(sel) : model.getValue();
+  const r = joinText(input, { delimiter: delimiter.value, customRegex: customRegex.value });
+  if (r.error) {
+    toast(r.error);
+    return;
+  }
+  if (!writeToEditor(props.otherEditor, r.text)) {
+    toast("另一侧编辑器尚未就绪");
+    return;
+  }
+  toast(`已把 ${r.count} 行组合为一行并写入另一侧编辑器`);
+}
+
 /** 排序：作用于当前聚焦编辑器（选区优先）。
  *  选了排序模板 → 按模板排；未选 → 升序，再点一次切降序，循环切换 */
 function runSort() {
@@ -390,190 +417,207 @@ defineExpose({ open });
 
 <template>
   <div class="bg-background p-0">
-    <!-- 单行四功能：查找 → 替换 → 分割 → 排序（窄屏自动换行） -->
-    <div class="flex flex-wrap items-center gap-1.5">
-      <div class="relative min-w-28 flex-1 basis-40">
-        <Input
-          ref="findInputRef"
-          v-model="find"
-          placeholder="查找"
-          class="w-full"
-          :style="{ '--n-padding-right': '48px' }"
-        />
-        <!-- 匹配数：显示在查找输入框内部右对齐（有输入才显示） -->
-        <span
-          v-if="find.trim()"
-          title="匹配数（当前 / 总数）"
-          :class="[
-            'pointer-events-none absolute inset-y-0 right-2.5 flex items-center font-mono text-[10px]',
-            findError ? 'text-destructive' : 'text-muted-foreground',
-          ]"
+    <!-- 四组功能：查找 → 替换 → 分割/组合 → 排序 -->
+    <!-- 外层 space 允许换行，每组自身 flex-nowrap：整组一起换行，组内不被拆散 -->
+    <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+      <!-- 组 1：查找（输入 + 匹配模式 + 上/下一个） -->
+      <div data-ww-group class="flex min-w-0 flex-[1_1_16rem] flex-nowrap items-center gap-1.5">
+        <div class="relative min-w-24 flex-1">
+          <Input
+            ref="findInputRef"
+            v-model="find"
+            placeholder="查找"
+            class="w-full"
+            :style="{ '--n-padding-right': '48px' }"
+          />
+          <!-- 匹配数：显示在查找输入框内部右对齐（有输入才显示） -->
+          <span
+            v-if="find.trim()"
+            title="匹配数（当前 / 总数）"
+            :class="[
+              'pointer-events-none absolute inset-y-0 right-2.5 flex items-center font-mono text-[10px]',
+              findError ? 'text-destructive' : 'text-muted-foreground',
+            ]"
+          >
+            {{ findError ? "无效" : matches.length > 0 ? `${current + 1}/${matches.length}` : "0" }}
+          </span>
+        </div>
+        <Toggle
+          :active="isRegex"
+          title="正则表达式"
+          @click="isRegex = !isRegex"
+          class="h-6.5 px-1.5 text-[10px]"
         >
-          {{ findError ? "无效" : matches.length > 0 ? `${current + 1}/${matches.length}` : "0" }}
-        </span>
+          <Braces />
+        </Toggle>
+        <Toggle
+          :active="matchCase"
+          title="区分大小写"
+          @click="matchCase = !matchCase"
+          class="h-6.5 px-1.5 text-[10px]"
+        >
+          <LetterCase />
+        </Toggle>
+        <Toggle
+          :active="highlightAll"
+          title="全部高亮"
+          @click="highlightAll = !highlightAll"
+          class="h-6.5 px-1.5 text-[10px]"
+        >
+          <Highlight />
+        </Toggle>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          class="w-6.5"
+          title="上一个"
+          :disabled="matches.length === 0"
+          @click="navigate(current - 1)"
+        >
+          <ArrowUp />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          class="w-6.5"
+          title="下一个"
+          :disabled="matches.length === 0"
+          @click="navigate(current + 1)"
+        >
+          <ArrowDown />
+        </Button>
       </div>
-      <Toggle
-        :active="isRegex"
-        title="正则表达式"
-        @click="isRegex = !isRegex"
-        class="h-6.5 px-1.5 text-[10px]"
-      >
-        <Braces />
-      </Toggle>
-      <Toggle
-        :active="matchCase"
-        title="区分大小写"
-        @click="matchCase = !matchCase"
-        class="h-6.5 px-1.5 text-[10px]"
-      >
-        <LetterCase />
-      </Toggle>
-      <Toggle
-        :active="highlightAll"
-        title="全部高亮"
-        @click="highlightAll = !highlightAll"
-        class="h-6.5 px-1.5 text-[10px]"
-      >
-        <Highlight />
-      </Toggle>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        class="w-6.5"
-        title="上一个"
-        :disabled="matches.length === 0"
-        @click="navigate(current - 1)"
-      >
-        <ArrowUp />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        class="w-6.5"
-        title="下一个"
-        :disabled="matches.length === 0"
-        @click="navigate(current + 1)"
-      >
-        <ArrowDown />
-      </Button>
 
-      <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
+      <!-- 组 2：替换（替换内容 + 规则 + 执行 + 管理） -->
+      <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
+        <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
 
-      <Input v-model="replace" placeholder="替换为" class="min-w-24 flex-1 basis-32" />
-      <select
-        :value="ruleSelect"
-        @change="
-          (e: Event) => {
-            const rule = rulesStore.rules.find(
-              (r) => r.id === (e.target as HTMLSelectElement).value,
-            );
-            if (rule) applyRule(rule);
-            ruleSelect = '';
-          }
-        "
-        title="替换规则"
-        class="h-6.5 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
-      >
-        <option value="">替换规则</option>
-        <option v-for="r in rulesStore.rules" :key="r.id" :value="r.id">{{ r.name }}</option>
-      </select>
-      <Button
-        size="sm"
-        variant="secondary"
-        class="h-6.5 shrink-0 px-2 text-[11px]"
-        @click="replaceOne"
-      >
-        替换
-      </Button>
-      <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="replaceAll">
-        <Replace class="size-3" />
-        全部替换
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        class="w-6.5"
-        title="管理替换规则"
-        @click="
-          () => {
-            ruleDraft = find.trim() ? { find, replace, isRegex, matchCase } : null;
-            rulesOpen = true;
-          }
-        "
-      >
-        <Settings />
-      </Button>
+        <Input v-model="replace" placeholder="替换为" class="min-w-24 flex-1 basis-32" />
+        <select
+          :value="ruleSelect"
+          @change="
+            (e: Event) => {
+              const rule = rulesStore.rules.find(
+                (r) => r.id === (e.target as HTMLSelectElement).value,
+              );
+              if (rule) applyRule(rule);
+              ruleSelect = '';
+            }
+          "
+          title="替换规则"
+          class="h-6.5 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+        >
+          <option value="">替换规则</option>
+          <option v-for="r in rulesStore.rules" :key="r.id" :value="r.id">{{ r.name }}</option>
+        </select>
+        <Button
+          size="sm"
+          variant="secondary"
+          class="h-6.5 shrink-0 px-2 text-[11px]"
+          @click="replaceOne"
+        >
+          替换
+        </Button>
+        <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="replaceAll">
+          <Replace class="size-3" />
+          全部替换
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          class="w-6.5"
+          title="管理替换规则"
+          @click="
+            () => {
+              ruleDraft = find.trim() ? { find, replace, isRegex, matchCase } : null;
+              rulesOpen = true;
+            }
+          "
+        >
+          <Settings />
+        </Button>
+      </div>
 
-      <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
+      <!-- 组 3：分割 / 组合（共用同一组分隔符选项） -->
+      <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
+        <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
 
-      <select
-        :value="delimiter"
-        @change="delimiter = ($event.target as HTMLSelectElement).value as SplitDelimiter"
-        title="分割分隔符"
-        class="h-6.5 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
-      >
-        <option value="auto">自动检测</option>
-        <option value="newline">换行</option>
-        <option value="comma">英文逗号</option>
-        <option value="cn-comma">中文逗号</option>
-        <option value="semicolon">英文分号</option>
-        <option value="cn-semicolon">中文分号</option>
-        <option value="cn-dunhao">顿号</option>
-        <option value="space">空格 / Tab</option>
-        <option value="custom">自定义正则</option>
-      </select>
-      <Input
-        v-if="delimiter === 'custom'"
-        v-model="customRegex"
-        placeholder="分隔正则"
-        class="min-w-24 flex-1 basis-32 font-mono"
-      />
-      <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSplit">
-        <Scissors class="size-3" />
-        分割
-      </Button>
+        <select
+          :value="delimiter"
+          @change="delimiter = ($event.target as HTMLSelectElement).value as SplitDelimiter"
+          title="分割 / 组合分隔符"
+          class="h-6.5 min-w-0 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+        >
+          <option value="auto">自动检测</option>
+          <option value="newline">换行</option>
+          <option value="comma">英文逗号</option>
+          <option value="cn-comma">中文逗号</option>
+          <option value="semicolon">英文分号</option>
+          <option value="cn-semicolon">中文分号</option>
+          <option value="cn-dunhao">顿号</option>
+          <option value="space">空格 / Tab</option>
+          <option value="custom">自定义正则</option>
+        </select>
+        <Input
+          v-if="delimiter === 'custom'"
+          v-model="customRegex"
+          placeholder="分隔正则"
+          class="min-w-24 flex-1 basis-32 font-mono"
+        />
+        <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSplit">
+          <Scissors class="size-3" />
+          分割
+        </Button>
+        <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runJoin">
+          <ArrowsJoin class="size-3" />
+          组合
+        </Button>
+      </div>
 
-      <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
+      <!-- 组 4：排序（模板 + 开头匹配 + 执行 + 管理） -->
+      <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
+        <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
 
-      <select
-        :value="templateSelect"
-        @change="
-          (e: Event) => {
-            templateSelect = (e.target as HTMLSelectElement).value;
-            // 选中模板后同步开头匹配开关状态（模板自带属性或关闭）
-            const t = templatesStore.templates.find((x) => x.id === templateSelect);
-            prefixMatch = t?.prefixMatch ?? false;
-          }
-        "
-        title="排序规则"
-        class="h-6.5 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
-      >
-        <option value="">排序规则</option>
-        <option v-for="t in templatesStore.templates" :key="t.id" :value="t.id">
-          {{ t.name }}
-        </option>
-      </select>
-      <Toggle
-        :active="prefixMatch"
-        @click="prefixMatch = !prefixMatch"
-        title="开头匹配：文本以模板列表项开头即算匹配"
-        class="h-6.5 w-6.5 px-0"
-      >
-        <ArrowBigUpLine class="size-3.5" />
-      </Toggle>
-      <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSort">
-        <ListNumbers class="size-3" />
-        排序
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        class="w-6.5"
-        title="管理排序规则"
-        @click="templatesOpen = true"
-      >
-        <Settings />
-      </Button>
+        <select
+          :value="templateSelect"
+          @change="
+            (e: Event) => {
+              templateSelect = (e.target as HTMLSelectElement).value;
+              // 选中模板后同步开头匹配开关状态（模板自带属性或关闭）
+              const t = templatesStore.templates.find((x) => x.id === templateSelect);
+              prefixMatch = t?.prefixMatch ?? false;
+            }
+          "
+          title="排序规则"
+          class="h-6.5 min-w-0 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+        >
+          <option value="">排序规则</option>
+          <option v-for="t in templatesStore.templates" :key="t.id" :value="t.id">
+            {{ t.name }}
+          </option>
+        </select>
+        <Toggle
+          :active="prefixMatch"
+          @click="prefixMatch = !prefixMatch"
+          title="开头匹配：文本以模板列表项开头即算匹配"
+          class="h-6.5 w-6.5 px-0"
+        >
+          <ArrowBigUpLine class="size-3.5" />
+        </Toggle>
+        <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSort">
+          <ListNumbers class="size-3" />
+          排序
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          class="w-6.5"
+          title="管理排序规则"
+          @click="templatesOpen = true"
+        >
+          <Settings />
+        </Button>
+      </div>
     </div>
 
     <p v-if="findError" class="mt-1 text-xs text-destructive">正则表达式无效，请检查语法</p>

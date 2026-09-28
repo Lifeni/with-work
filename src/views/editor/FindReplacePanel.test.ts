@@ -158,7 +158,7 @@ describe("FindReplacePanel 分割", () => {
   it("分割聚焦编辑器内容并写入另一侧", async () => {
     const { wrapper, other } = mountPanel("a,b,c");
     // 聚焦编辑器需要内容留在 model（mountPanel 已创建）
-    const select = wrapper.find('select[title="分割分隔符"]');
+    const select = wrapper.find('select[title="分割 / 组合分隔符"]');
     await select.setValue("comma");
     const btn = wrapper.findAll("button").find((b) => b.text() === "分割");
     await btn!.trigger("click");
@@ -174,6 +174,74 @@ describe("FindReplacePanel 分割", () => {
     const btn = wrapper.findAll("button").find((b) => b.text() === "分割");
     await btn!.trigger("click");
     expect(useToastStore().toasts.some((t) => t.message.includes("请先点击"))).toBe(true);
+    wrapper.unmount();
+  });
+});
+
+describe("FindReplacePanel 组合", () => {
+  it("把聚焦编辑器多行按所选组合符拼成一行写入另一侧，源内容不动", async () => {
+    const { wrapper, focused, other } = mountPanel("苹果\n香蕉\n橘子");
+    await wrapper.find('select[title="分割 / 组合分隔符"]').setValue("cn-dunhao");
+    const btn = wrapper.findAll("button").find((b) => b.text() === "组合");
+    expect(btn).toBeDefined();
+    await btn!.trigger("click");
+
+    expect(other.getValue()).toBe("苹果、香蕉、橘子");
+    expect(focused.getValue()).toBe("苹果\n香蕉\n橘子");
+    wrapper.unmount();
+  });
+
+  it("自动检测不到组合符时提示且不写入另一侧", async () => {
+    const { wrapper, other } = mountPanel("苹果\n香蕉");
+    const btn = wrapper.findAll("button").find((b) => b.text() === "组合");
+    await btn!.trigger("click");
+
+    expect(other.getValue()).toBe("");
+    expect(useToastStore().toasts.some((t) => t.message.includes("组合符"))).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("支持选区：只组合选中的行", async () => {
+    const focused = createMockEditor("苹果\n香蕉\n橘子", {
+      selection: {
+        startLineNumber: 1,
+        startColumn: 1,
+        endLineNumber: 2,
+        endColumn: 3,
+      },
+    });
+    const other = createMockEditor("");
+    const wrapper = mount(FindReplacePanel, {
+      props: { focusedEditor: focused.editor, otherEditor: other.editor },
+    });
+    await wrapper.find('select[title="分割 / 组合分隔符"]').setValue("comma");
+    await wrapper
+      .findAll("button")
+      .find((b) => b.text() === "组合")!
+      .trigger("click");
+
+    expect(other.getValue()).toBe("苹果,香蕉");
+    wrapper.unmount();
+  });
+});
+
+describe("FindReplacePanel 工具栏分组", () => {
+  it("四个功能组各自不拆行，分割与组合属于同一组", () => {
+    const { wrapper } = mountPanel();
+    const groups = wrapper.findAll("[data-ww-group]");
+    expect(groups).toHaveLength(4);
+    for (const g of groups) expect(g.classes()).toContain("flex-nowrap");
+
+    // 第 1 组：查找（输入框 + 匹配模式 + 上下切换）
+    expect(groups[0].find('input[placeholder="查找"]').exists()).toBe(true);
+    expect(groups[0].findAll("button").length).toBeGreaterThanOrEqual(5);
+    // 第 2 组：替换
+    expect(groups[1].text()).toContain("全部替换");
+    // 第 3 组：分割 / 组合
+    expect(groups[2].text()).toContain("分割");
+    expect(groups[2].text()).toContain("组合");
+    // 第 4 组：排序
+    expect(groups[3].text()).toContain("排序");
     wrapper.unmount();
   });
 });
