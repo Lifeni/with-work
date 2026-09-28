@@ -53,6 +53,35 @@ describe("FindReplacePanel 查找", () => {
   });
 });
 
+describe("FindReplacePanel 编辑器订阅", () => {
+  it("切换聚焦编辑器时释放上一个编辑器的内容订阅", async () => {
+    const first = createMockEditor("aaa");
+    const second = createMockEditor("bbb");
+    const wrapper = mount(FindReplacePanel, {
+      props: { focusedEditor: first.editor, otherEditor: second.editor },
+    });
+    expect(first.listenerCount()).toBe(1);
+
+    await wrapper.setProps({ focusedEditor: second.editor, otherEditor: first.editor });
+
+    expect(first.listenerCount()).toBe(0);
+    expect(second.listenerCount()).toBe(1);
+    wrapper.unmount();
+  });
+
+  it("卸载时释放内容订阅", async () => {
+    const focused = createMockEditor("aaa");
+    const wrapper = mount(FindReplacePanel, {
+      props: { focusedEditor: focused.editor, otherEditor: null },
+    });
+    expect(focused.listenerCount()).toBe(1);
+
+    wrapper.unmount();
+
+    expect(focused.listenerCount()).toBe(0);
+  });
+});
+
 describe("FindReplacePanel 替换", () => {
   it("全部替换把聚焦编辑器全部匹配替换", async () => {
     const { wrapper, focused } = mountPanel("a1\na2\na3");

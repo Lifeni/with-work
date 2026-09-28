@@ -32,6 +32,8 @@ export interface MockEditor {
   model: MockModel;
   /** executeEdits 调用记录，便于断言 */
   editsLog: Array<{ source: string; edits: Array<{ range: MockRange; text: string }> }>;
+  /** 当前活跃的内容变化订阅数量，用于断言订阅是否被正确释放 */
+  listenerCount: () => number;
   getValue: () => string;
   setValue: (v: string) => void;
 }
@@ -134,7 +136,12 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
     },
     onDidChangeContent: (fn) => {
       contentListeners.push(fn);
-      return { dispose: () => {} };
+      return {
+        dispose: () => {
+          const i = contentListeners.indexOf(fn);
+          if (i >= 0) contentListeners.splice(i, 1);
+        },
+      };
     },
     getLineCount: () => value.split("\n").length,
   };
@@ -189,6 +196,7 @@ export function createMockEditor(initialValue = "", options: MockEditorOptions =
     editor,
     model,
     editsLog,
+    listenerCount: () => contentListeners.length,
     getValue: () => value,
     setValue: (v) => model.setValue(v),
   };
