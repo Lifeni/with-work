@@ -4,19 +4,19 @@
 
 ## 技术选型
 
-| 领域     | 选择                                   | 理由                                                                          |
-| -------- | -------------------------------------- | ----------------------------------------------------------------------------- |
-| 前端框架 | Vue 3 + Vite 8                         | SPA 纯静态，Vercel 与单文件模式两相宜                                         |
-| 语言     | TypeScript（strict）                   | 类型安全，适合长期维护与开源协作                                              |
-| 样式     | Tailwind CSS v4（CSS-first）           | 原子类 + 主题变量（oklch），深色模式通过 `.dark` 类切换                       |
-| UI 组件  | Naive UI（n-config-provider 主题联动） | 组件齐全、内置暗色主题；主色 themeOverrides 对齐品牌色；布局继续使用 Tailwind |
-| 图标     | @vicons/tabler（xicons）               | tabler 线性图标集，按需 tree-shaking，与 Naive 同作者                         |
-| 编辑器   | Monaco Editor（锁 0.52.x）             | VS Code 内核：查找/替换（正则、计数、跳转）、minimap、内置 Diff 编辑器        |
-| 状态管理 | Pinia + 自定义持久化插件               | 全部 store 自动持久化到 localStorage（key 前缀 `ww:`，兼容旧 Zustand 格式）   |
-| 测试     | Vitest + @vue/test-utils               | jsdom 环境；测试模式将 `monaco-editor` alias 为 `src/test/mockMonaco.ts`      |
-| 包管理   | pnpm                                   | 确定性依赖树（pnpm-lock.yaml），安装快速、节省磁盘                            |
-| 字体     | Inter（@fontsource 自托管）            | 中文字体走系统回退栈（MiSans / HarmonyOS Sans SC / Noto Sans SC），不打包     |
-| 部署     | Vercel                                 | `vercel.json` 配置 framework/build/outputDirectory                            |
+| 领域     | 选择                                   | 理由                                                                                      |
+| -------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 前端框架 | Vue 3 + Vite 8                         | SPA 纯静态，Vercel 与单文件模式两相宜                                                     |
+| 语言     | TypeScript（strict）                   | 类型安全，适合长期维护与开源协作                                                          |
+| 样式     | Tailwind CSS v4（CSS-first）           | 原子类 + 主题变量（oklch），深色模式通过 `.dark` 类切换                                   |
+| UI 组件  | Naive UI（n-config-provider 主题联动） | 组件齐全、内置暗色主题；主色 themeOverrides 对齐品牌色；布局继续使用 Tailwind             |
+| 图标     | @vicons/tabler（xicons）               | tabler 线性图标集，按需 tree-shaking，与 Naive 同作者                                     |
+| 编辑器   | Monaco Editor（锁 0.52.x）             | VS Code 内核：查找/替换（正则、计数、跳转）、minimap、内置 Diff 编辑器                    |
+| 状态管理 | Pinia + 自定义持久化插件               | 全部 store 自动持久化到 localStorage（key 前缀 `ww:`，兼容旧 Zustand 格式）；写盘防抖合并 |
+| 测试     | Vitest + @vue/test-utils               | jsdom 环境；测试模式将 `monaco-editor` alias 为 `src/test/mockMonaco.ts`                  |
+| 包管理   | pnpm                                   | 确定性依赖树（pnpm-lock.yaml），安装快速、节省磁盘                                        |
+| 字体     | Inter（@fontsource 自托管）            | 中文字体走系统回退栈（MiSans / HarmonyOS Sans SC / Noto Sans SC），不打包                 |
+| 部署     | Vercel                                 | `vercel.json` 配置 framework/build/outputDirectory                                        |
 
 ## 双构建模式
 
@@ -45,9 +45,9 @@
 | `src/views/settings/`    | 设置内容             | `SettingsView.vue`，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                                                                                    |
 | `src/components/ui/`     | 无业务语义的基础组件 | Button、Dialog、DropdownMenu、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 为原生实现                                                                                                                                             |
 | `src/components/shared/` | 业务共享组件         | TitleBar、StagingPanel（暂存区+模板+规则）、FloatingEditorToolbar（悬浮工具栏）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail（品牌栏+设置/导入/导出）、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
-| `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings / list（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件                                                                                                               |
+| `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件（防抖写盘 + `flushPersist`）                                                                                         |
 | `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                                                                                            |
-| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`utils.ts`                                                                                |
+| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`storageKeys.ts`、`utils.ts`                                                              |
 | `src/hooks/`             | 自定义 composables   | `useDebounce`                                                                                                                                                                                                                                             |
 | `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                                                                                      |
 | `src/types/`             | 全局类型定义         | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等                                                                                                                                                                              |
@@ -86,10 +86,17 @@
 
 ### 数据流
 
-- 编辑器内容 → `workspaceStore.setLeft/Right` → 持久化插件 → localStorage（实时自动保存）。
+- 存储键集中在 `lib/storageKeys.ts`（`PERSIST_KEYS` / `SEEDED_KEY` / `ALL_STORAGE_KEYS`），
+  持久化插件与「清空数据」共用同一份清单，避免漏删某个键。
+- 编辑器内容 → `workspaceStore.setLeft/Right` → 持久化插件 → localStorage。
+  写盘经 250ms 防抖合并（编辑大文档时不至于每次按键都序列化全部工作区），
+  页面隐藏 / 关闭时用 `flushPersist()` 立即落盘；`clearAllStoredData()` 会先取消待写任务，
+  防止旧内容被 flush 写回。
 - 暂存区 → `stagingStore` → 拖拽或按钮（`lib/transfer.ts`）分发到编辑器左右侧。
 - 备份 → `lib/backup.ts` 收集全部 store 为 JSON（`app: "with-work"`，`version: 3`）导出/导入；
   导入旧版本备份时兼容字段缺失（left/right、textTemplates 等）。
+- 清空所有数据会连同内置数据标记 `ww:seeded` 一起清除，因此内置规则与排序模板
+  会在下次启动时重新注入；工作区导出（`.txt`）取左栏，双栏时以分隔线拼接。
 
 ## 测试体系
 
@@ -99,6 +106,8 @@
   `MonacoEditor.vue` / `DiffEditor.vue` 的组件时用 `src/test/stubs.ts` 的替身
   （`vi.mock` 写法参考 `src/App.test.ts`）。
 - 新增功能建议配套测试；改动后运行 `pnpm test`、`pnpm lint`、`pnpm build`。
+- CI（`.github/workflows/ci.yml`）在 push 与 PR 上依次执行 `format:check`、`lint`、
+  `test`、`build`，本地提交前跑同样四项即可对齐。
 
 ## 内置数据
 

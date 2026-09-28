@@ -34,6 +34,6 @@ docs: 更新部署指南
 ## PR 流程
 
 1. Fork 本仓库并创建功能分支（如 `feat/user-profile`）。
-2. 本地完成开发与验证。
+2. 本地完成开发与验证（`pnpm format:check`、`pnpm lint`、`pnpm test`、`pnpm build`）。
 3. 提交 PR，在描述中说明改动内容与动机。
-4. 通过 Review 后合并。
+4. 等待 CI（lint / test / build）变绿，通过 Review 后合并。

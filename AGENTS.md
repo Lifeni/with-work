@@ -43,7 +43,7 @@ with-work/
 │   ├── stores/               # Pinia stores（workspace/staging/rules/templates/textTemplates/settings/ui/status/toast，自动持久化）
 │   ├── tools/                # 全局工具注册表（文本处理工具，新增工具只需追加一条）
 │   ├── hooks/                # 自定义 composables（useDebounce）
-│   ├── lib/                  # 纯函数与桥接（split/sort/replace/backup/transfer/workspaceModels/detect/theme/monaco/applyTool/editorBridge/utils）
+│   ├── lib/                  # 纯函数与桥接（split/sort/replace/backup/transfer/workspaceModels/detect/theme/monaco/applyTool/editorBridge/storageKeys/utils）
 │   ├── test/                 # 测试基础设施（mockMonaco、mockEditor、resetStores、setup）
 │   ├── types/                # 全局类型定义
 │   └── assets/               # 静态资源（favicon.svg 源文件，模块导入会被内联）
@@ -55,7 +55,7 @@ with-work/
 
 ## 关键设计
 
-- **状态**：Pinia + 自定义持久化插件（`stores/persist.ts`），key 前缀 `ww:`（兼容旧版 Zustand 的 `{ state, version }` 存储格式，老数据自动解包）；所有数据（工作区/暂存区/规则/模板/设置）自动保存到 localStorage；备份格式升级时递增 `BackupData.version` 并兼容旧数据。
+- **状态**：Pinia + 自定义持久化插件（`stores/persist.ts`），key 前缀 `ww:`（兼容旧版 Zustand 的 `{ state, version }` 存储格式，老数据自动解包）；所有数据（工作区/暂存区/规则/模板/设置）自动保存到 localStorage，写盘经 250ms 防抖合并，页面隐藏/关闭前 `flushPersist()` 落盘。存储键统一在 `lib/storageKeys.ts` 维护（含内置数据标记 `ww:seeded`），「清空所有数据」会连标记一起清除以便内置数据重新注入。备份格式升级时递增 `BackupData.version` 并兼容旧数据。
 - **编辑器**：固定双栏（左右两个独立 Monaco Editor），聚焦侧有高亮边框；中间操作栏有复制/粘贴/对比弹窗/交换/左右互传/导出到暂存区与模板/清空按钮，支持拖动调节左右宽度；窄屏（<1024px）自动纵向堆叠且两边等高。
 - **悬浮工具栏**（`FloatingEditorToolbar.vue`）：跟随聚焦编辑器悬浮于其底部（宽窄屏均适用），包含文本工具（行排序/去空行/大小写等）+ 撤销/重做；工具执行后自动恢复编辑器焦点，Ctrl+Z 可直接撤销。
 - **工作区模型**：每个工作区持有独立的 Monaco Model（`lib/workspaceModels.ts` 缓存），切换工作区时换绑 Model，撤销/重做历史按工作区独立保留；store ↔ Model 双向同步（`ww-sync`）。内容变化事件携带 Model 引用、按 `findWorkspaceIdByModel` 归属写入，换绑滞后窗口内也不会把内容串到其他工作区。
@@ -66,6 +66,7 @@ with-work/
 - **路径别名**：`@/` 指向 `src/`。
 - **全局工具**：`src/tools/registry.ts` 注册表 + 悬浮工具栏入口（跟随聚焦编辑器显示于其底部）；工具是纯函数（输入文本 → 输出文本），作用于聚焦编辑器（选区优先，无选区时处理全文），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。
 - **测试**：Vitest + @vue/test-utils（jsdom）。测试模式通过 vite alias 将 `monaco-editor` 替换为 `src/test/mockMonaco.ts`（构建不受影响）；编辑器组件用 `src/test/stubs.ts` 的 `monacoEditorStub` 代替（`vi.mock` 时参考 `src/App.test.ts`）。改动画布组件后跑 `pnpm test`。
+- **CI**：`.github/workflows/ci.yml` 在 push / PR 上依次执行 `pnpm format:check`、`pnpm lint`、`pnpm test`、`pnpm build`；提交前跑同样四项。
 - **内置数据**：`lib/defaultData.ts` 维护内置替换规则与排序模板（增量注入：新内置项对老用户可见，删除不复活，下架项自动移除）；`main.ts` 启动时调用 `seedDefaultData()`。
 
 ## 代码约定
@@ -88,5 +89,5 @@ with-work/
 ## 给 AI 助手的提示
 
 - 新任务开始前，先阅读本文件与 `docs/` 下相关文档。
-- 改动后运行 `pnpm build`（含类型检查）、`pnpm lint` 与 `pnpm test` 验证。
+- 改动后运行 `pnpm format:check`、`pnpm lint`、`pnpm test` 与 `pnpm build`（含类型检查）验证，与 CI 保持一致。
 - 修改持久化数据结构或备份格式时，注意升级 `version` 并兼容旧数据。
