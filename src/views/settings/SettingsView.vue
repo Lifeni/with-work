@@ -47,6 +47,7 @@ const toast = useToastStore().push;
 // 构建期注入的全局常量（vite define）：模板中不能直接访问，转发为组件变量
 const BUILD_MODE = __BUILD_MODE__;
 const BUILD_TIME = __BUILD_TIME__;
+const APP_VERSION = __APP_VERSION__;
 
 const pendingBackup = ref<BackupData | null>(null);
 const confirmImport = ref(false);
@@ -163,7 +164,7 @@ const onRulesFile = (e: Event) => {
             <img :src="favicon" alt="一点微小的工作" class="h-12 w-12 rounded-full" />
             <div class="text-xs text-muted-foreground">
               <p class="text-sm font-semibold text-foreground">一点微小的工作</p>
-              <p>版本 100.1.0{{ BUILD_MODE === "single" ? " 单文件版" : "" }} 🕯️</p>
+              <p>版本 {{ APP_VERSION }}{{ BUILD_MODE === "single" ? " 单文件版" : "" }} 🕯️</p>
               <p>
                 构建时间
                 {{

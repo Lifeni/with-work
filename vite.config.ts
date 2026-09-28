@@ -1,10 +1,16 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
+import { readFileSync } from "node:fs";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
+
+// 版本号单一来源：设置页「关于」的版本从 package.json 注入，避免两处各写一份
+const { version: APP_VERSION } = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 // 双构建模式：
 //   pnpm build         → dist/（部署到 Vercel，启用 PWA 离线支持）
@@ -19,6 +25,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
       __BUILD_MODE__: JSON.stringify(isSingle ? "single" : "deploy"),
+      __APP_VERSION__: JSON.stringify(APP_VERSION),
     },
     plugins: [
       vue(),

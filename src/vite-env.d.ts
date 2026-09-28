@@ -5,3 +5,6 @@ declare const __BUILD_TIME__: string;
 
 /** 构建模式：single = 单文件版；deploy = Vercel 部署版 */
 declare const __BUILD_MODE__: "single" | "deploy";
+
+/** 应用版本号（取自 package.json），由 vite.config.ts 的 define 在构建时注入 */
+declare const __APP_VERSION__: string;

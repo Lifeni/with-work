@@ -30,6 +30,15 @@ describe("SettingsView 关于板块", () => {
     wrapper.unmount();
   });
 
+  it("版本号来自构建期注入的 __APP_VERSION__（与 package.json 一致）", async () => {
+    const pkg = (await import("../../../package.json")).default;
+    const wrapper = mount(SettingsView, { attachTo: document.body });
+    expect(typeof __APP_VERSION__).toBe("string");
+    expect(document.body.textContent).toContain(`版本 ${__APP_VERSION__}`);
+    expect(__APP_VERSION__).toBe(pkg.version);
+    wrapper.unmount();
+  });
+
   it("外观设置可切换主题与字号", async () => {
     const wrapper = mount(SettingsView, { attachTo: document.body });
 
