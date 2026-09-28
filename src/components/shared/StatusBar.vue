@@ -16,10 +16,8 @@ const right = computed(() => ws.value?.right ?? "");
 
 // 内容变化即视为“已自动保存”时刻
 const contentKey = computed(() => `${left.value}\u0000${right.value}`);
-const lastSavedContent = ref(contentKey.value);
 const savedAt = ref(new Date());
 watch(contentKey, () => {
-  lastSavedContent.value = contentKey.value;
   savedAt.value = new Date();
 });
 </script>

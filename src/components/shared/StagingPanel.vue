@@ -659,7 +659,6 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
               </button>
             </div>
             <div class="flex-1" />
-            <div class="flex-1" />
             <Button
               variant="ghost"
               size="icon-sm"
@@ -969,13 +968,13 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
         @cancel="pendingDelete = null"
       />
 
-    <!-- 面板右缘宽度手柄：面板根内 absolute 层（静时透明，hover 提示；命中由 document 捕获代理接管） -->
-    <div
-      v-if="uiStore.stagingOpen"
-      class="absolute inset-y-0 -right-2 z-10 w-4 cursor-ew-resize touch-none select-none bg-transparent hover:bg-primary/25"
-      :data-resize-width="true"
-      title="拖动调节面板宽度"
-    />
+      <!-- 面板右缘宽度手柄：面板根内 absolute 层（静时透明，hover 提示；命中由 document 捕获代理接管） -->
+      <div
+        v-if="uiStore.stagingOpen"
+        class="absolute inset-y-0 -right-2 z-10 w-4 cursor-ew-resize touch-none select-none bg-transparent hover:bg-primary/25"
+        :data-resize-width="true"
+        title="拖动调节面板宽度"
+      />
     </div>
   </div>
 </template>

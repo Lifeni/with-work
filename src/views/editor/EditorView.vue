@@ -26,6 +26,7 @@ import { detectLanguage } from "@/lib/detect";
 import { getActiveEditor, setActiveEditor } from "@/lib/editorBridge";
 import { applyReplacements } from "@/lib/replace";
 import { splitLines } from "@/lib/split";
+import { resolveTheme } from "@/lib/theme";
 import { cn, downloadText, uid } from "@/lib/utils";
 import {
   cleanupWorkspaceModels,
@@ -152,14 +153,9 @@ const diffOpen = ref(false);
 const panelRef = ref<InstanceType<typeof FindReplacePanel> | null>(null);
 const editorAreaRef = ref<HTMLDivElement | null>(null);
 
+// 主题解析复用 lib/theme（system 跟随系统），此处只做「主题名 → Monaco 主题名」映射
 const theme = computed<string>(() =>
-  settingsStore.theme === "dark"
-    ? "vs-dark"
-    : settingsStore.theme === "light"
-      ? "light"
-      : window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "vs-dark"
-        : "light",
+  resolveTheme(settingsStore.theme) === "dark" ? "vs-dark" : "light",
 );
 
 // 编辑器选项：computed 响应设置变化（字号/字体/换行修改后实时推给 Monaco updateOptions）

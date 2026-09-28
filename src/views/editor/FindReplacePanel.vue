@@ -39,7 +39,7 @@ interface MatchInfo {
 interface Props {
   /** 当前聚焦的编辑器（查找/替换/预览的源） */
   focusedEditor: monaco.editor.IStandaloneCodeEditor | null;
-  /** 另一侧编辑器（替换预览的结果目标） */
+  /** 另一侧编辑器：分割结果与排序未匹配项的写入目标 */
   otherEditor: monaco.editor.IStandaloneCodeEditor | null;
 }
 const props = defineProps<Props>();

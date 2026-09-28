@@ -9,11 +9,17 @@ export function importText(target: ImportTarget, text: string) {
   const toast = useToastStore().push;
   const activeId = wsStore.activeId;
 
+  // 没有激活工作区时无处写入：如实提示，避免「已导入」的成功假象
+  if (!activeId) {
+    toast("没有可导入的工作区");
+    return;
+  }
+
   if (target === "diff-left") {
-    if (activeId) wsStore.setLeft(activeId, text);
+    wsStore.setLeft(activeId, text);
     toast("已导入到对比左侧");
   } else {
-    if (activeId) wsStore.setRight(activeId, text);
+    wsStore.setRight(activeId, text);
     toast("已导入到对比右侧");
   }
 }
