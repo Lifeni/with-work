@@ -5,7 +5,6 @@ import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
 import { useSettingsStore } from "@/stores/settings";
-import { useListStore } from "@/stores/list";
 import { ALL_STORAGE_KEYS } from "./storageKeys";
 import { downloadText } from "./utils";
 import { applyTheme } from "./theme";
@@ -14,7 +13,6 @@ export function collectBackup(): BackupData {
   const wsStore = useWorkspaceStore();
   const activeWs = wsStore.workspaces.find((w) => w.id === wsStore.activeId);
   const settings = useSettingsStore();
-  const list = useListStore();
   return {
     app: "with-work",
     version: 3,
@@ -34,11 +32,6 @@ export function collectBackup(): BackupData {
       stagingTemplateHeight: settings.stagingTemplateHeight,
     },
     diff: { left: activeWs?.left ?? "", right: activeWs?.right ?? "" },
-    list: {
-      source: list.source,
-      reference: list.reference,
-      compare: list.compare,
-    },
   };
 }
 
@@ -86,7 +79,6 @@ export function applyBackup(d: BackupData) {
   useTemplatesStore().replaceAll(d.templates);
   useTextTemplatesStore().replaceAll(d.textTemplates);
   useSettingsStore().replaceAll(d.settings);
-  useListStore().replaceAll(d.list);
   // 旧版备份的工作区没有 left/right，把备份的 diff 合并到当前工作区
   const wsStore = useWorkspaceStore();
   if (wsStore.activeId && (d.diff.left || d.diff.right)) {

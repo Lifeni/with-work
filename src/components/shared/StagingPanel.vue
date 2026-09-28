@@ -178,7 +178,7 @@ function applyTemplate(t: SortTemplate) {
     editor.executeEdits("ww-template", [{ range: model.getFullModelRange(), text }]);
   } else {
     const wsStore = useWorkspaceStore();
-    if (wsStore.activeId) wsStore.setContent(wsStore.activeId, text);
+    if (wsStore.activeId) wsStore.setLeft(wsStore.activeId, text);
   }
   toast(
     `已按模板「${t.name}」排序` +
@@ -196,7 +196,7 @@ function insertTextTemplate(t: TextTemplate) {
     editor.focus();
   } else {
     const wsStore = useWorkspaceStore();
-    if (wsStore.activeId) wsStore.setContent(wsStore.activeId, t.text);
+    if (wsStore.activeId) wsStore.setLeft(wsStore.activeId, t.text);
   }
   toast(`已插入模板「${t.name}」`);
 }

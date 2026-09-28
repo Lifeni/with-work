@@ -7,10 +7,12 @@ import {
   parseRules,
   parseTemplates,
   parseTextTemplates,
+  workspaceExportText,
 } from "./backup";
 import { SEEDED_KEY } from "./storageKeys";
 import { seedDefaultData } from "./defaultData";
 import { useRulesStore } from "@/stores/rules";
+import { useSettingsStore } from "@/stores/settings";
 import { useStagingStore } from "@/stores/staging";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
@@ -127,6 +129,38 @@ describe("collectBackup", () => {
     useWorkspaceStore().setRight(id, "右");
     const d = collectBackup();
     expect(d.diff).toEqual({ left: "左", right: "右" });
+  });
+
+  it("设置包含暂存区模板高度（备份不再丢该设置）", () => {
+    useSettingsStore().setStagingTemplateHeight(300);
+    expect(collectBackup().settings.stagingTemplateHeight).toBe(300);
+  });
+
+  it("不再写入已废弃的 list 字段", () => {
+    useWorkspaceStore().createWorkspace();
+    expect(collectBackup()).not.toHaveProperty("list");
+  });
+
+  it("仍能读取含废弃 list 字段的旧备份", () => {
+    const r = parseBackup(JSON.stringify({ ...BASE_BACKUP, version: 3, templates: [] }));
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("workspaceExportText", () => {
+  it("单栏时导出左栏内容", () => {
+    const ws = { id: "w1", name: "工作区", left: "只有左栏" };
+    expect(workspaceExportText(ws)).toBe("只有左栏");
+  });
+
+  it("双栏时用分隔线拼接左右内容", () => {
+    const ws = { id: "w1", name: "工作区", left: "左", right: "右" };
+    expect(workspaceExportText(ws)).toBe("左\n\n--------\n\n右");
+  });
+
+  it("只有右栏时导出右栏内容", () => {
+    const ws = { id: "w1", name: "工作区", left: "", right: "只有右栏" };
+    expect(workspaceExportText(ws)).toBe("只有右栏");
   });
 });
 

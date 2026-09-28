@@ -1,18 +1,16 @@
-export type ViewId = "editor" | "settings";
-export type EditorMode = "single" | "dual";
 export type ThemeMode = "light" | "dark" | "system";
 
 export interface Workspace {
   id: string;
   name: string;
-  content: string;
-  language: string;
-  view: ViewId;
-  /** 编辑器模式：单编辑器 / 双编辑器（对比）。旧数据可能缺失，读取时用 ?? "single" */
-  editorMode?: EditorMode;
   /** 双栏编辑器内容（旧数据可能缺失，读取时用 ?? ""） */
   left?: string;
   right?: string;
+  /**
+   * @deprecated 旧版单栏内容，仅用于兼容历史备份的读写往返，当前版本不再写入。
+   * 界面内容一律以 left / right 为准。
+   */
+  content?: string;
 }
 
 export interface StagingItem {
@@ -74,5 +72,4 @@ export interface BackupData {
   textTemplates: TextTemplate[];
   settings: AppSettings;
   diff: { left: string; right: string };
-  list: { source: string; reference: string; compare: string };
 }

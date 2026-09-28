@@ -13,7 +13,7 @@ export function getToolInput(): string {
   }
   const wsStore = useWorkspaceStore();
   const ws = wsStore.workspaces.find((w) => w.id === wsStore.activeId);
-  return ws?.left ?? ws?.content ?? "";
+  return ws?.left ?? "";
 }
 
 /** 执行工具：有选区替换选区，否则替换聚焦编辑器全文；编辑器内可 Ctrl+Z 撤销 */

@@ -14,12 +14,8 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     const ws: Workspace = {
       id,
       name: `工作区 ${workspaces.value.length + 1}`,
-      content: "",
-      language: "auto",
-      editorMode: "single",
       left: "",
       right: "",
-      view: "editor",
     };
     workspaces.value = [...workspaces.value, ws];
     activeId.value = id;
@@ -44,14 +40,6 @@ export const useWorkspaceStore = defineStore("workspace", () => {
 
   function setActive(id: string) {
     activeId.value = id;
-  }
-
-  function setContent(id: string, content: string) {
-    workspaces.value = workspaces.value.map((w) => (w.id === id ? { ...w, content } : w));
-  }
-
-  function setLanguage(id: string, language: string) {
-    workspaces.value = workspaces.value.map((w) => (w.id === id ? { ...w, language } : w));
   }
 
   function setLeft(id: string, left: string) {
@@ -80,8 +68,6 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     deleteWorkspace,
     renameWorkspace,
     setActive,
-    setContent,
-    setLanguage,
     setLeft,
     setRight,
     swapSides,
