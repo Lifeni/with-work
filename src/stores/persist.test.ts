@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick } from "vue";
-import { persistPlugin } from "@/stores/persist";
+import { PERSIST_DEBOUNCE_MS, flushPersist, persistPlugin } from "@/stores/persist";
+import { clearAllStoredData } from "@/lib/backup";
 import { useStagingStore } from "@/stores/staging";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
@@ -25,10 +26,15 @@ beforeEach(() => {
   setActivePinia(pinia);
 });
 
+/** 等待防抖写盘完成（真实定时器，比防抖窗口多留一点余量） */
+function waitForWrite() {
+  return new Promise((r) => setTimeout(r, PERSIST_DEBOUNCE_MS + 50));
+}
+
 describe("持久化插件", () => {
   it("store 修改后自动写入 localStorage", async () => {
     useStagingStore().add("你好");
-    await nextTick();
+    await waitForWrite();
 
     const raw = localStorage.getItem("ww:staging");
     expect(raw).toBeTruthy();
@@ -40,7 +46,7 @@ describe("持久化插件", () => {
     const ws = useWorkspaceStore();
     const id = ws.createWorkspace();
     ws.setLeft(id, "左侧内容");
-    await nextTick();
+    await waitForWrite();
 
     const raw = localStorage.getItem("ww:workspaces");
     const data = JSON.parse(raw!);
@@ -52,7 +58,7 @@ describe("持久化插件", () => {
     const ws = useWorkspaceStore();
     const id = ws.createWorkspace();
     ws.setLeft(id, "刷新前的内容");
-    await nextTick();
+    await waitForWrite();
 
     // 模拟页面刷新：清空内存中的 pinia，重新加载插件
     const pinia2 = createPinia();
@@ -84,13 +90,13 @@ describe("持久化插件", () => {
   it("未登记的 store（ui）不写 localStorage", async () => {
     const { useUiStore } = await import("@/stores/ui");
     useUiStore().setStagingOpen(false);
-    await nextTick();
+    await waitForWrite();
     expect(localStorage.getItem("ww:ui")).toBeNull();
   });
 
   it("设置变化同样自动保存", async () => {
     useSettingsStore().setFontSize(20);
-    await nextTick();
+    await waitForWrite();
     const raw = localStorage.getItem("ww:settings");
     expect(JSON.parse(raw!).fontSize).toBe(20);
   });
@@ -109,7 +115,48 @@ describe("持久化插件", () => {
       isRegex: false,
       matchCase: false,
     });
-    await nextTick();
+    await waitForWrite();
     expect(JSON.parse(localStorage.getItem("ww:rules")!).rules[0].name).toBe("规则");
+  });
+
+  it("连续修改合并为一次写入（防抖）", async () => {
+    const setItem = vi.spyOn(localStorage, "setItem");
+    const ws = useWorkspaceStore();
+    const id = ws.createWorkspace();
+    // 分三次「按键」修改：每次都等一个 tick，模拟真实输入节奏
+    ws.setLeft(id, "第一次");
+    await nextTick();
+    ws.setLeft(id, "第二次");
+    await nextTick();
+    ws.setLeft(id, "第三次");
+    await waitForWrite();
+
+    const workspaceWrites = setItem.mock.calls.filter(([k]) => k === "ww:workspaces").length;
+    expect(workspaceWrites).toBe(1);
+    expect(JSON.parse(localStorage.getItem("ww:workspaces")!).workspaces[0].left).toBe("第三次");
+    setItem.mockRestore();
+  });
+
+  it("flushPersist 立即写出待写状态（关页前落盘）", async () => {
+    const ws = useWorkspaceStore();
+    const id = ws.createWorkspace();
+    ws.setLeft(id, "未落盘的内容");
+
+    flushPersist();
+
+    expect(JSON.parse(localStorage.getItem("ww:workspaces")!).workspaces[0].left).toBe(
+      "未落盘的内容",
+    );
+  });
+
+  it("清空数据后待写任务不会把旧数据写回", async () => {
+    const ws = useWorkspaceStore();
+    const id = ws.createWorkspace();
+    ws.setLeft(id, "应当被清掉的内容");
+
+    clearAllStoredData();
+    flushPersist();
+
+    expect(localStorage.getItem("ww:workspaces")).toBeNull();
   });
 });

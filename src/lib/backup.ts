@@ -5,6 +5,7 @@ import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
 import { useSettingsStore } from "@/stores/settings";
+import { cancelPendingPersist } from "@/stores/persist";
 import { ALL_STORAGE_KEYS } from "./storageKeys";
 import { downloadText } from "./utils";
 import { applyTheme } from "./theme";
@@ -175,6 +176,8 @@ export function exportCurrentWorkspace() {
  * 页面重载交由 clearAllData 处理，便于测试直接验证清理结果。
  */
 export function clearAllStoredData() {
+  // 先丢弃待写任务：否则防抖窗口内的旧内容会在关页 flush 时被写回
+  cancelPendingPersist();
   ALL_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
 }
 
