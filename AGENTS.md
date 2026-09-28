@@ -19,7 +19,7 @@
 | 命令                           | 说明                                                    |
 | ------------------------------ | ------------------------------------------------------- |
 | `pnpm install`                 | 安装依赖（首次）                                        |
-| `pnpm dev`                     | 启动开发服务器 → http://localhost:3000                  |
+| `pnpm dev`                     | 启动开发服务器 → http://localhost:5173（Vite 默认端口） |
 | `pnpm build`                   | 类型检查 + 生产构建 → `dist/`（Vercel）                 |
 | `pnpm build:single`            | 类型检查 + 单文件构建 → `dist-single/index.html`        |
 | `pnpm preview`                 | 预览 `dist/` 构建产物                                   |

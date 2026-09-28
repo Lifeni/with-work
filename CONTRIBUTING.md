@@ -10,7 +10,7 @@
 
 ```bash
 pnpm install    # 安装依赖
-pnpm dev        # 启动开发服务器 → http://localhost:3000
+pnpm dev        # 启动开发服务器 → http://localhost:5173
 ```
 
 ## 代码规范

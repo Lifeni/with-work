@@ -90,6 +90,11 @@ export default defineConfig(({ mode }) => {
           : {}),
       },
     },
+    server: {
+      // 构建产物就在项目根目录下：dev 期间忽略它们，否则跑一次 pnpm build
+      // 会让 dev 服务器整页刷新，正好撞上 HMR 更新就可能留下坏模块
+      watch: { ignored: ["**/dist/**", "**/dist-single/**"] },
+    },
     build: {
       outDir: isSingle ? "dist-single" : "dist",
       assetsInlineLimit: isSingle ? 100000000 : 4096,
