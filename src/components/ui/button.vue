@@ -69,7 +69,8 @@ const sizeStyle = computed(() => {
 
 // 次级/幽灵/描边按钮的图标与文字统一为 muted 灰色系（hover 转 accent）
 const mutedStyle = computed(() => {
-  if (props.variant === "default" || props.variant === "destructive" || props.active) return undefined;
+  if (props.variant === "default" || props.variant === "destructive" || props.active)
+    return undefined;
   return {
     "--n-text-color": "var(--muted-foreground)",
     "--n-text-color-hover": "var(--accent-foreground)",

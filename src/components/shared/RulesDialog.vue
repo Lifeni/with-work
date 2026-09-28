@@ -175,13 +175,12 @@ const onImportFile = (e: Event) => {
         >
           {{ r.replace }}
         </span>
-        <span
-          v-if="r.isRegex"
-          class="shrink-0 text-xs font-medium text-muted-foreground"
-        >
+        <span v-if="r.isRegex" class="shrink-0 text-xs font-medium text-muted-foreground">
           正则
         </span>
-        <span v-if="r.matchCase" class="shrink-0 text-xs font-medium text-muted-foreground">Aa</span>
+        <span v-if="r.matchCase" class="shrink-0 text-xs font-medium text-muted-foreground"
+          >Aa</span
+        >
         <Button variant="ghost" size="icon-sm" title="编辑" @click="startEdit(r)">
           <Pencil class="size-3" />
         </Button>

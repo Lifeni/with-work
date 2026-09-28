@@ -35,20 +35,20 @@ function runTool(tool: GlobalTool) {
   >
     <!-- 文本工具（选区优先，无选区处理全文） -->
     <template v-for="t in tools.filter((x) => !x.hideFromRail)" :key="t.id">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        :title="t.name"
-        @click="runTool(t)"
-        class="shrink-0"
-      >
+      <Button variant="ghost" size="icon-sm" :title="t.name" @click="runTool(t)" class="shrink-0">
         <component :is="t.icon" />
       </Button>
     </template>
 
     <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
 
-    <Button variant="ghost" size="icon-sm" title="撤销 (Ctrl+Z)" class="shrink-0" @click="undoFocused">
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      title="撤销 (Ctrl+Z)"
+      class="shrink-0"
+      @click="undoFocused"
+    >
       <ArrowBackUp />
     </Button>
     <Button variant="ghost" size="icon-sm" title="重做" class="shrink-0" @click="redoFocused">

@@ -162,10 +162,7 @@ const onImportFile = (e: Event) => {
       >
         <ListNumbers class="size-3.5 shrink-0 text-muted-foreground" />
         <span class="w-32 shrink-0 truncate text-xs font-medium" :title="t.name">{{ t.name }}</span>
-        <span
-          v-if="t.group"
-          class="shrink-0 text-xs font-medium text-muted-foreground"
-        >
+        <span v-if="t.group" class="shrink-0 text-xs font-medium text-muted-foreground">
           {{ t.group }}
         </span>
         <span class="shrink-0 text-xs font-medium text-muted-foreground">

@@ -351,9 +351,8 @@ function cardDragMove(e: PointerEvent) {
     cardDrag.ghost.style.top = `${e.clientY + 12}px`;
   }
   // 命中检测：是否悬停在编辑器 wrapper（jsdom 等无 elementFromPoint 环境自动跳过）
-  const hit = (
-    document.elementFromPoint?.(e.clientX, e.clientY)?.closest?.("[data-ww-editor]") ?? null
-  ) as HTMLElement | null;
+  const hit = (document.elementFromPoint?.(e.clientX, e.clientY)?.closest?.("[data-ww-editor]") ??
+    null) as HTMLElement | null;
   if (hit !== cardDrag.hit) {
     if (cardDrag.hit) cardDrag.hit.style.outline = "";
     cardDrag.hit = hit;
@@ -384,7 +383,14 @@ function cardDragUp(e: PointerEvent) {
 
 function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
   if (e.button !== 0 || (e.target as HTMLElement | null)?.closest?.("button")) return;
-  cardDrag = { startX: e.clientX, startY: e.clientY, payload, active: false, hit: null, ghost: null };
+  cardDrag = {
+    startX: e.clientX,
+    startY: e.clientY,
+    payload,
+    active: false,
+    hit: null,
+    ghost: null,
+  };
   window.addEventListener("pointermove", cardDragMove);
   window.addEventListener("pointerup", cardDragUp);
   window.addEventListener("pointercancel", cardDragUp);
@@ -425,9 +431,7 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
           <LayoutSidebarLeftCollapse />
         </Button>
         <!-- 标题靠左：文字 + 计数徽标 -->
-        <span class="flex items-center gap-1.5 text-xs font-medium">
-          全局暂存区
-        </span>
+        <span class="flex items-center gap-1.5 text-xs font-medium"> 全局暂存区 </span>
         <div class="flex-1" />
         <Button variant="ghost" size="icon-sm" title="清空暂存区" @click="confirmClear = true">
           <Trash />
@@ -519,7 +523,9 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
               <div
                 title="拖拽到编辑器可快速插入，双击可编辑"
                 @dblclick="startItemEdit(item.id)"
-                @pointerdown="(e: PointerEvent) => startCardDrag(e, { kind: 'staging', text: item.text })"
+                @pointerdown="
+                  (e: PointerEvent) => startCardDrag(e, { kind: 'staging', text: item.text })
+                "
                 class="cursor-grab select-none rounded-md border border-border bg-background p-2 active:cursor-grabbing"
               >
                 <p class="line-clamp-3 whitespace-pre-wrap break-all text-xs">{{ item.text }}</p>
@@ -792,10 +798,7 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                       <span class="min-w-0 flex-1 truncate font-medium" :title="t.name">
                         {{ t.name }}
                       </span>
-                      <span
-                        v-if="t.prefixMatch"
-                        class="shrink-0 text-[10px] text-muted-foreground"
-                      >
+                      <span v-if="t.prefixMatch" class="shrink-0 text-[10px] text-muted-foreground">
                         开头匹配
                       </span>
                       <span class="shrink-0 text-[10px] text-muted-foreground">

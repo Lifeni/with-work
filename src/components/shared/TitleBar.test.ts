@@ -82,11 +82,11 @@ describe("TitleBar 暂存区开关", () => {
     ui.setStagingOpen(false);
     const wrapper = mountBar();
 
-    const btn = wrapper.get("[aria-label=\"展开暂存区\"]");
+    const btn = wrapper.get('[aria-label="展开暂存区"]');
     await btn.trigger("click");
     expect(ui.stagingOpen).toBe(true);
     // 收起状态图标语义切换
-    expect(wrapper.find("[aria-label=\"收起暂存区\"]").exists()).toBe(true);
+    expect(wrapper.find('[aria-label="收起暂存区"]').exists()).toBe(true);
     wrapper.unmount();
   });
 });

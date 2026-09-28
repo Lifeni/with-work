@@ -202,8 +202,20 @@ const onTemplatesFile = (e: Event) => {
       </button>
     </div>
 
-    <input ref="backupRef" type="file" accept=".json,application/json" class="hidden" @change="onBackupFile" />
-    <input ref="rulesRef" type="file" accept=".json,application/json" class="hidden" @change="onRulesFile" />
+    <input
+      ref="backupRef"
+      type="file"
+      accept=".json,application/json"
+      class="hidden"
+      @change="onBackupFile"
+    />
+    <input
+      ref="rulesRef"
+      type="file"
+      accept=".json,application/json"
+      class="hidden"
+      @change="onRulesFile"
+    />
     <input
       ref="templatesRef"
       type="file"

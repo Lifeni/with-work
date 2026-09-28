@@ -35,6 +35,10 @@ describe("importText", () => {
     importText("diff-left", "无处安放");
 
     expect(store.workspaces).toHaveLength(0);
-    expect(useToastStore().toasts.map((t) => t.message).join("|")).not.toContain("已导入");
+    expect(
+      useToastStore()
+        .toasts.map((t) => t.message)
+        .join("|"),
+    ).not.toContain("已导入");
   });
 });

@@ -234,9 +234,7 @@ watch([left, right], () => {
   const target = wsId ? getWorkspaceModels(wsId) : null;
   const lm = leftEditor.value?.getModel();
   if (leftEditor.value && target && lm === target.left && lm.getValue() !== left.value) {
-    leftEditor.value.executeEdits("ww-sync", [
-      { range: lm.getFullModelRange(), text: left.value },
-    ]);
+    leftEditor.value.executeEdits("ww-sync", [{ range: lm.getFullModelRange(), text: left.value }]);
   }
   const rm = rightEditor.value?.getModel();
   if (rightEditor.value && target && rm === target.right && rm.getValue() !== right.value) {
@@ -496,7 +494,9 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
           :theme="theme"
           :options="editorOptions"
           @mount="(ed: monaco.editor.IStandaloneCodeEditor) => mountEditor(ed, 'left')"
-          @model-change="(v: string, m: monaco.editor.ITextModel | null) => handleModelChange('left', v, m)"
+          @model-change="
+            (v: string, m: monaco.editor.ITextModel | null) => handleModelChange('left', v, m)
+          "
         />
         <FloatingEditorToolbar v-if="focused === 'left'" />
       </div>
@@ -608,7 +608,9 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
           :theme="theme"
           :options="editorOptions"
           @mount="(ed: monaco.editor.IStandaloneCodeEditor) => mountEditor(ed, 'right')"
-          @model-change="(v: string, m: monaco.editor.ITextModel | null) => handleModelChange('right', v, m)"
+          @model-change="
+            (v: string, m: monaco.editor.ITextModel | null) => handleModelChange('right', v, m)
+          "
         />
         <FloatingEditorToolbar v-if="focused === 'right'" />
       </div>

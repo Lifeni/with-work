@@ -106,7 +106,12 @@ describe("StagingPanel 全局暂存区", () => {
 
     // jsdom 无 PointerEvent，用 MouseEvent 构造 pointer 系列事件（window 层监听）
     card.element.dispatchEvent(
-      new MouseEvent("pointerdown", { clientX: 100, clientY: 100, bubbles: true, cancelable: true }),
+      new MouseEvent("pointerdown", {
+        clientX: 100,
+        clientY: 100,
+        bubbles: true,
+        cancelable: true,
+      }),
     );
     // 未达阈值：不出现幽灵
     window.dispatchEvent(new MouseEvent("pointermove", { clientX: 102, clientY: 100 }));
