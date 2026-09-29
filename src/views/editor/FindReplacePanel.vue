@@ -316,8 +316,12 @@ function runJoin() {
         message: `组合符为换行，已规整 ${r.count} 行后写入另一侧编辑器（结果仍是多行）`,
       };
     }
+    // 兜底：全空白输入（正常路径已被 runToOtherSide 拦掉）不得把另一侧写成空
+    if (r.count === 0) {
+      return { error: "没有可组合的内容（输入为空或只有空白行）" };
+    }
     // 只有一行时谈不上「组合成一行」，如实说明是原样搬运
-    if (r.count <= 1) {
+    if (r.count === 1) {
       return { text: r.text, message: "内容只有 1 行，已原样写入另一侧编辑器" };
     }
     return { text: r.text, message: `已把 ${r.count} 行组合为一行并写入另一侧编辑器` };

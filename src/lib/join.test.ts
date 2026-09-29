@@ -68,4 +68,11 @@ describe("joinText", () => {
     expect(r.text).toBe("只有一行");
     expect(r.count).toBe(1);
   });
+
+  it("全空白输入返回 0 行与空结果（是否落盘由调用方判断）", () => {
+    const r = joinText("   \n  \n", { delimiter: "comma" });
+    expect(r.count).toBe(0);
+    expect(r.text).toBe("");
+    expect(r.error).toBeUndefined();
+  });
 });
