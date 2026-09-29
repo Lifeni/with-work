@@ -75,7 +75,12 @@ with-work/
 - 新增功能优先放对应 `views/`，通用逻辑放 `lib/`，跨组件状态放 `stores/`。
 - 样式用 Tailwind 原子类；语义色使用主题变量（`bg-background`、`text-muted-foreground` 等），不要硬编码颜色。
 - 新环境变量使用 `VITE_` 前缀并补充到 `.env.example`，不得提交真实密钥。
-- 修改 Monaco 相关代码时注意：**不要升级 monaco-editor 到 0.53+**（worker 内联方式不兼容，会破坏单文件构建）。
+- 修改 Monaco 相关代码时注意：**不要升级 monaco-editor 到 0.53+**。已实测 0.57（见分支
+  `codex/monaco-upgrade-eval`）：worker 导入路径需由 `esm/vs/editor/editor.worker` 改为
+  `editor/editor.worker` 后构建才能通过，但语言服务 worker（ts/json/css/html）由 monaco 内部
+  `new Worker(new URL(...))` 生成，无法被 vite-plugin-singlefile 内联——单文件产物会多出 4 个独立
+  worker 文件（ts.worker 约 6.7MB）且 index.html 以文件名引用它们，而 `ship-single.mjs` 只复制
+  index.html，导致下载到的单文件版缺 worker。要升级需改为只引入编辑器与语言定义（不要语言服务特性）。
 
 ## Git 约定
 
