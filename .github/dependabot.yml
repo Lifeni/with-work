@@ -2,7 +2,7 @@ version: 2
 
 updates:
   # 依赖更新：项目用 pnpm（dependabot 会读 pnpm-lock.yaml），避免再生成 npm 的 package-lock.json
-  # 频率每月一次：每周检查会频繁开 PR，连带触发通知与部署
+  # 频率每月一次、且 minor/patch 合并成一个 PR：每周检查 + 每个更新单独开 PR 会产生大量通知
   - package-ecosystem: npm
     directory: "/"
     schedule:
@@ -11,6 +11,11 @@ updates:
     commit-message:
       prefix: chore
       prefix-development: chore
+    groups:
+      # 小版本与补丁合并成一个 PR；大版本仍单独提，便于逐个评估破坏性变更
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
     ignore:
       # monaco 0.53+ 的 worker 加载方式无法内联进单文件构建，项目刻意锁在 0.52.x
       - dependency-name: monaco-editor
@@ -22,3 +27,10 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
+    commit-message:
+      prefix: chore
+    groups:
+      # workflow 里用到的 action 一起提，避免每个 action 各开一个 PR
+      actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
