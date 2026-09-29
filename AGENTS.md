@@ -85,6 +85,11 @@ with-work/
   - 常用前缀：`feat` / `fix` / `docs` / `refactor` / `chore` / `style` / `test` / `perf` / `build` / `ci`。
 - 主分支名为 `main`；功能开发在独立分支进行，完成后通过 PR 合并。
 - 推送 / 部署前必须先征得开发者确认。
+- **不要在 PR / Issue 下留言、评论或回复**（每一条都会给开发者发邮件通知）；
+  关闭 PR 时也不要附理由评论。
+- **不要创建 GitHub Release 或 tag，也不要代为发版**；部署由 Vercel 随 push 自动完成。
+- **不要启用或新增 GitHub Actions 工作流**（开发者明确不要走 CI）：
+  `.github/workflows/ci.yml` 已在 GitHub 侧停用（`gh workflow disable CI`），不要恢复。
 
 ## 给 AI 助手的提示
 
