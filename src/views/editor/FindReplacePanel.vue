@@ -254,49 +254,28 @@ const writeToEditor = (dst: monaco.editor.IStandaloneCodeEditor | null, text: st
   return true;
 };
 
-/** 分割：作用于当前聚焦编辑器（选区优先），结果自动写入另一侧 */
-function runSplit() {
-  const src = props.focusedEditor;
-  const model = src?.getModel();
-  if (!src || !model) {
-    toast("请先点击要分割的编辑器（高亮边框者）");
-    return;
-  }
-  const sel = src.getSelection();
-  const input = sel && !sel.isEmpty() ? model.getValueInRange(sel) : model.getValue();
-  const r = splitText(input, {
-    delimiter: delimiter.value,
-    customRegex: customRegex.value,
-    trim: true,
-    ignoreEmpty: true,
-    dedupe: false,
-  });
-  if (r.error) {
-    toast(r.error);
-    return;
-  }
-  if (!writeToEditor(props.otherEditor, r.items.join("\n"))) {
-    toast("另一侧编辑器尚未就绪");
-    return;
-  }
-  toast(`已分割 ${r.items.length} 项并写入另一侧编辑器`);
-}
+type OtherSideResult = { text: string; message: string } | { error: string };
 
 /**
- * 组合：把聚焦编辑器的多行（选区优先）拼成一行写入另一侧，是「分割」的逆操作。
- * 组合符与分割共用同一个分隔符下拉；结果写另一侧便于与原文本对照，也能再分割回来。
+ * 「聚焦编辑器 → 另一侧」类操作（分割 / 组合）的公共流程：
+ * 取输入（选区优先）→ 计算 → 写入另一侧 → 提示。
+ * 空输入在这里统一拦住：否则会把另一侧已有内容整体替换成空串，等同于静默清空。
  */
-function runJoin() {
+function runToOtherSide(build: (input: string) => OtherSideResult) {
   const src = props.focusedEditor;
   const model = src?.getModel();
   if (!src || !model) {
-    toast("请先点击要组合的编辑器（高亮边框者）");
+    toast("请先点击要处理的编辑器（高亮边框者）");
     return;
   }
   const sel = src.getSelection();
   const input = sel && !sel.isEmpty() ? model.getValueInRange(sel) : model.getValue();
-  const r = joinText(input, { delimiter: delimiter.value, customRegex: customRegex.value });
-  if (r.error) {
+  if (!input.trim()) {
+    toast("没有可处理的内容");
+    return;
+  }
+  const r = build(input);
+  if ("error" in r) {
     toast(r.error);
     return;
   }
@@ -304,7 +283,34 @@ function runJoin() {
     toast("另一侧编辑器尚未就绪");
     return;
   }
-  toast(`已把 ${r.count} 行组合为一行并写入另一侧编辑器`);
+  toast(r.message);
+}
+
+/** 分割：作用于当前聚焦编辑器（选区优先），结果自动写入另一侧 */
+function runSplit() {
+  runToOtherSide((input) => {
+    const r = splitText(input, {
+      delimiter: delimiter.value,
+      customRegex: customRegex.value,
+      trim: true,
+      ignoreEmpty: true,
+      dedupe: false,
+    });
+    if (r.error) return { error: r.error };
+    return { text: r.items.join("\n"), message: `已分割 ${r.items.length} 项并写入另一侧编辑器` };
+  });
+}
+
+/**
+ * 组合：把聚焦编辑器的多行（选区优先）拼成一行写入另一侧，是「分割」的逆操作。
+ * 组合符与分割共用同一个分隔符下拉；结果写另一侧便于与原文本对照，也能再分割回来。
+ */
+function runJoin() {
+  runToOtherSide((input) => {
+    const r = joinText(input, { delimiter: delimiter.value, customRegex: customRegex.value });
+    if (r.error) return { error: r.error };
+    return { text: r.text, message: `已把 ${r.count} 行组合为一行并写入另一侧编辑器` };
+  });
 }
 
 /** 排序：作用于当前聚焦编辑器（选区优先）。

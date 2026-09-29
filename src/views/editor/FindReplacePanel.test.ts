@@ -223,6 +223,41 @@ describe("FindReplacePanel 组合", () => {
     expect(other.getValue()).toBe("苹果,香蕉");
     wrapper.unmount();
   });
+
+  it("输入为空时提示且不清空另一侧编辑器", async () => {
+    const focused = createMockEditor("   \n  ");
+    const other = createMockEditor("另一侧原有内容");
+    const wrapper = mount(FindReplacePanel, {
+      props: { focusedEditor: focused.editor, otherEditor: other.editor },
+    });
+
+    await wrapper
+      .findAll("button")
+      .find((b) => b.text() === "组合")!
+      .trigger("click");
+
+    expect(other.getValue()).toBe("另一侧原有内容");
+    expect(useToastStore().toasts.some((t) => t.message.includes("没有可处理"))).toBe(true);
+    wrapper.unmount();
+  });
+});
+
+describe("FindReplacePanel 分割边界", () => {
+  it("输入为空时提示且不清空另一侧编辑器", async () => {
+    const focused = createMockEditor("   ");
+    const other = createMockEditor("另一侧原有内容");
+    const wrapper = mount(FindReplacePanel, {
+      props: { focusedEditor: focused.editor, otherEditor: other.editor },
+    });
+
+    await wrapper
+      .findAll("button")
+      .find((b) => b.text() === "分割")!
+      .trigger("click");
+
+    expect(other.getValue()).toBe("另一侧原有内容");
+    wrapper.unmount();
+  });
 });
 
 describe("FindReplacePanel 工具栏分组", () => {

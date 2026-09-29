@@ -28,6 +28,11 @@ describe("resolveSeparator", () => {
     expect("error" in resolveSeparator("a", { delimiter: "custom", customRegex: "" })).toBe(true);
     expect("error" in resolveSeparator("a", { delimiter: "custom", customRegex: "[" })).toBe(true);
   });
+
+  it("自定义正则在文本中没有匹配时报错，而不是把正则源码当组合符", () => {
+    const r = resolveSeparator("苹果\n香蕉", { delimiter: "custom", customRegex: "\\d+" });
+    expect("error" in r && r.error).toContain("没有在文本中匹配");
+  });
 });
 
 describe("joinText", () => {
@@ -49,6 +54,8 @@ describe("joinText", () => {
     const r = joinText("苹果\n香蕉", { delimiter: "auto" });
     expect(r.error).toBeTruthy();
     expect(r.text).toBe("苹果\n香蕉");
+    // 出错时不应把原文行数当成「参与拼接的行数」报给调用方
+    expect(r.count).toBe(0);
   });
 
   it("只有一行时也返回该行内容", () => {
