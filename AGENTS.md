@@ -89,6 +89,9 @@ with-work/
 ## 给 AI 助手的提示
 
 - 新任务开始前，先阅读本文件与 `docs/` 下相关文档。
+- **改动完成后必须用 `ocr` 做代码审查**（`@alibaba-group/open-code-review`，已全局安装）：
+  按提交范围审查，如 `ocr review --from <上一个已审查的提交> --to HEAD`；逐条判断反馈，
+  确属缺陷的就补测试修掉，不认同的要在回复里说明理由。审查通过才算完成一个改动。
 - 改动后运行 `pnpm format:check`、`pnpm lint`、`pnpm test` 与 `pnpm build`（含类型检查）验证，与 CI 保持一致。
 - 修改持久化数据结构或备份格式时，注意升级 `BackupData.version`（当前 4）并兼容旧数据；
   工作区结构变化请走 `lib/workspaceMigration.ts` 的归一化，保证旧单栏数据不丢。
