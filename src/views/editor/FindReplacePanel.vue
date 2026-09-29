@@ -309,6 +309,17 @@ function runJoin() {
   runToOtherSide((input) => {
     const r = joinText(input, { delimiter: delimiter.value, customRegex: customRegex.value });
     if (r.error) return { error: r.error };
+    // 组合符为换行时结果仍是多行（只是顺带规整了空行与首尾空白），提示要如实说明
+    if (r.separator === "\n") {
+      return {
+        text: r.text,
+        message: `组合符为换行，已规整 ${r.count} 行后写入另一侧编辑器（结果仍是多行）`,
+      };
+    }
+    // 只有一行时谈不上「组合成一行」，如实说明是原样搬运
+    if (r.count <= 1) {
+      return { text: r.text, message: "内容只有 1 行，已原样写入另一侧编辑器" };
+    }
     return { text: r.text, message: `已把 ${r.count} 行组合为一行并写入另一侧编辑器` };
   });
 }

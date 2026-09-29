@@ -33,6 +33,11 @@ describe("resolveSeparator", () => {
     const r = resolveSeparator("苹果\n香蕉", { delimiter: "custom", customRegex: "\\d+" });
     expect("error" in r && r.error).toContain("没有在文本中匹配");
   });
+
+  it("自定义正则只能匹配到空串时报错，避免各行被无分隔地粘连", () => {
+    const r = resolveSeparator("苹果\n香蕉", { delimiter: "custom", customRegex: "\\d*" });
+    expect("error" in r && r.error).toContain("空内容");
+  });
 });
 
 describe("joinText", () => {

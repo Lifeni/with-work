@@ -45,13 +45,19 @@ export function resolveSeparator(text: string, opts: JoinOptions): SeparatorResu
     } catch {
       return { error: "正则表达式无效" };
     }
-    // 正则本身不能直接当分隔字符串（如 [，,]），取它在文本里实际匹配到的文本；
-    // 匹配不到时不能拿正则源码去拼接（那会把 "\d+" 之类原样写进内容），如实报错
+    // 正则本身不能直接当分隔字符串（如 [，,]），取它在文本里实际匹配到的文本。
+    // 取舍：取的是整段文本里的「首个匹配」，所以自定义正则应当描述真实分隔符号；
+    // 若写成 "\\d+" 这类会命中行内片段的模式，拼出来的结果可能不合预期（与「分割」的语义差异即在此）。
+    // 匹配不到、或只匹配到空串时都不能硬拼：前者会把正则源码写进内容，后者会把各行无分隔地粘连。
     const matched = text.match(re);
     if (!matched || matched.length === 0) {
       return { error: "自定义组合正则没有在文本中匹配到内容" };
     }
-    return { separator: matched[0] };
+    const separator = matched[0];
+    if (!separator) {
+      return { error: "自定义组合正则只匹配到空内容，请改用能匹配具体分隔符号的正则" };
+    }
+    return { separator };
   }
 
   return { separator: DELIMITER_LITERALS[delimiter] };

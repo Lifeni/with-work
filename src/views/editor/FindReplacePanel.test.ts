@@ -260,6 +260,44 @@ describe("FindReplacePanel 分割边界", () => {
   });
 });
 
+describe("FindReplacePanel 组合提示", () => {
+  it("组合符为换行时如实说明结果仍是多行", async () => {
+    const { wrapper, other } = mountPanel("苹果\n香蕉");
+    await wrapper.find('select[title="分割 / 组合分隔符"]').setValue("newline");
+
+    await wrapper
+      .findAll("button")
+      .find((b) => b.text() === "组合")!
+      .trigger("click");
+
+    const message = useToastStore()
+      .toasts.map((t) => t.message)
+      .join("|");
+    expect(message).toContain("换行");
+    expect(message).not.toContain("组合为一行");
+    expect(other.getValue()).toBe("苹果\n香蕉");
+    wrapper.unmount();
+  });
+
+  it("输入只有一行时说明是原样写入", async () => {
+    const { wrapper, other } = mountPanel("只有一行");
+    await wrapper.find('select[title="分割 / 组合分隔符"]').setValue("comma");
+
+    await wrapper
+      .findAll("button")
+      .find((b) => b.text() === "组合")!
+      .trigger("click");
+
+    const message = useToastStore()
+      .toasts.map((t) => t.message)
+      .join("|");
+    expect(message).toContain("1 行");
+    expect(message).toContain("原样");
+    expect(other.getValue()).toBe("只有一行");
+    wrapper.unmount();
+  });
+});
+
 describe("FindReplacePanel 工具栏分组", () => {
   it("四个功能组各自不拆行，分割与组合属于同一组", () => {
     const { wrapper } = mountPanel();
