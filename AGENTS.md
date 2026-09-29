@@ -43,7 +43,7 @@ with-work/
 │   ├── stores/               # Pinia stores（workspace/staging/rules/templates/textTemplates/settings/ui/status/toast，自动持久化）
 │   ├── tools/                # 全局工具注册表（文本处理工具，新增工具只需追加一条）
 │   ├── hooks/                # 自定义 composables（useDebounce）
-│   ├── lib/                  # 纯函数与桥接（split/sort/replace/backup/transfer/workspaceModels/detect/theme/monaco/applyTool/editorBridge/storageKeys/utils）
+│   ├── lib/                  # 纯函数与桥接（split/join/sort/replace/backup/transfer/workspaceModels/workspaceMigration/settingsMigration/detect/theme/monaco/applyTool/editorBridge/storageKeys/utils）
 │   ├── test/                 # 测试基础设施（mockMonaco、mockEditor、resetStores、setup）
 │   ├── types/                # 全局类型定义
 │   └── assets/               # 静态资源（favicon.svg 源文件，模块导入会被内联）
@@ -59,7 +59,7 @@ with-work/
 - **编辑器**：固定双栏（左右两个独立 Monaco Editor），聚焦侧有高亮边框；中间操作栏有复制/粘贴/对比弹窗/交换/左右互传/导出到暂存区与模板/清空按钮，支持拖动调节左右宽度；窄屏（<1024px）自动纵向堆叠且两边等高。
 - **悬浮工具栏**（`FloatingEditorToolbar.vue`）：跟随聚焦编辑器悬浮于其底部（宽窄屏均适用），包含文本工具（行排序/去空行/大小写等）+ 撤销/重做；工具执行后自动恢复编辑器焦点，Ctrl+Z 可直接撤销。
 - **工作区模型**：每个工作区持有独立的 Monaco Model（`lib/workspaceModels.ts` 缓存），切换工作区时换绑 Model，撤销/重做历史按工作区独立保留；store ↔ Model 双向同步（`ww-sync`）。内容变化事件携带 Model 引用、按 `findWorkspaceIdByModel` 归属写入，换绑滞后窗口内也不会把内容串到其他工作区。
-- **查找替换面板**（`views/editor/FindReplacePanel.vue`）：编辑器顶部一体面板，包含查找（正则/大小写/计数高亮）、替换（全部替换/规则下拉）、分割、排序四个功能；排序支持开头匹配（模板属性或工具栏开关），作用于聚焦编辑器，替换/分割结果写入另一侧。
+- **查找替换面板**（`views/editor/FindReplacePanel.vue`）：编辑器顶部一体面板，包含查找（正则/大小写/计数高亮）、替换（全部替换/规则下拉）、分割、组合、排序五个功能；工具栏按功能分组换行（组内不拆行）。分割（一行拆多行）与组合（多行拼一行，`lib/join.ts`）共用同一个分隔符下拉，共用「选区优先 → 写另一侧」流程，空输入只提示不清空另一侧；排序支持开头匹配（模板属性或工具栏开关），作用于聚焦编辑器；替换就地生效。
 - **暂存区**（`StagingPanel.vue`）：编辑器左侧面板，多工作区共用；包含全局暂存区（文本条目）、文本模板、排序模板、替换规则四个模块，条目可拖到编辑器（规则拖入 = 按规则替换全文），双击编辑，支持分组与导入/导出。宽度可拖动调节（记忆于设置）；开关在标题栏左侧（宽窄屏均可用），窄屏抽屉模式下面板标题前另有折叠按钮，窄屏自动收起。
 - **图标**：界面图标用 @vicons/tabler（无 Icon 前缀命名）；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联；PWA 图标由 `pnpm run icons` 生成到 `public/`）。
 - **主题**：CSS 变量（oklch）+ `.dark` 类切换（Tailwind 语义色），Naive 主题在 `App.vue` 通过 `n-config-provider` 跟随同一设置（themeOverrides 主色对齐品牌色）；Monaco 主题跟随同一设置（`lib/theme.ts`）。

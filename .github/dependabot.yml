@@ -1,0 +1,23 @@
+version: 2
+
+updates:
+  # 依赖更新：项目用 pnpm（dependabot 会读 pnpm-lock.yaml），避免再生成 npm 的 package-lock.json
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+    ignore:
+      # monaco 0.53+ 的 worker 加载方式无法内联进单文件构建，项目刻意锁在 0.52.x
+      - dependency-name: monaco-editor
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
