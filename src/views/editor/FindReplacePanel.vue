@@ -440,15 +440,20 @@ defineExpose({ open });
 <template>
   <div class="bg-background p-0">
     <!-- 四组功能：查找 → 替换 → 分割/组合 → 排序 -->
-    <!-- 外层 space 允许换行，每组自身 flex-nowrap：整组一起换行，组内不被拆散 -->
-    <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+    <!-- 外层允许换行、每组自身 flex-nowrap：整组一起换行，组内不被拆散；
+         组间不加竖线分隔条（换行时会残留在行首），靠间距区分分组；
+         两个输入框同宽且 shrink-0（不参与收缩）：行内空间不足时整组换行，
+         而不是各自被同组按钮挤成不同宽度；极窄屏下整行可横向滚动兜底 -->
+    <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 overflow-x-auto">
       <!-- 组 1：查找（输入 + 匹配模式 + 上/下一个） -->
-      <div data-ww-group class="flex min-w-0 flex-[1_1_16rem] flex-nowrap items-center gap-1.5">
-        <div class="relative min-w-24 flex-1">
+      <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
+        <!-- 两个输入框都用同一款容器：固定同宽 + 不收缩，避免被同组不同数量的按钮挤成不一致 -->
+        <div data-ww-input-box class="relative w-72 shrink-0">
           <Input
             ref="findInputRef"
             v-model="find"
             placeholder="查找"
+            data-ww-input="find"
             class="w-full"
             :style="{ '--n-padding-right': '48px' }"
           />
@@ -468,7 +473,7 @@ defineExpose({ open });
           :active="isRegex"
           title="正则表达式"
           @click="isRegex = !isRegex"
-          class="h-6.5 px-1.5 text-[10px]"
+          class="h-6.5 shrink-0 px-1.5 text-[10px]"
         >
           <Braces />
         </Toggle>
@@ -476,7 +481,7 @@ defineExpose({ open });
           :active="matchCase"
           title="区分大小写"
           @click="matchCase = !matchCase"
-          class="h-6.5 px-1.5 text-[10px]"
+          class="h-6.5 shrink-0 px-1.5 text-[10px]"
         >
           <LetterCase />
         </Toggle>
@@ -484,14 +489,14 @@ defineExpose({ open });
           :active="highlightAll"
           title="全部高亮"
           @click="highlightAll = !highlightAll"
-          class="h-6.5 px-1.5 text-[10px]"
+          class="h-6.5 shrink-0 px-1.5 text-[10px]"
         >
           <Highlight />
         </Toggle>
         <Button
           variant="ghost"
           size="icon-sm"
-          class="w-6.5"
+          class="w-6.5 shrink-0"
           title="上一个"
           :disabled="matches.length === 0"
           @click="navigate(current - 1)"
@@ -501,7 +506,7 @@ defineExpose({ open });
         <Button
           variant="ghost"
           size="icon-sm"
-          class="w-6.5"
+          class="w-6.5 shrink-0"
           title="下一个"
           :disabled="matches.length === 0"
           @click="navigate(current + 1)"
@@ -512,9 +517,9 @@ defineExpose({ open });
 
       <!-- 组 2：替换（替换内容 + 规则 + 执行 + 管理） -->
       <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
-        <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
-
-        <Input v-model="replace" placeholder="替换为" class="min-w-24 flex-1 basis-32" />
+        <div data-ww-input-box class="relative w-72 shrink-0">
+          <Input v-model="replace" placeholder="替换为" data-ww-input="replace" class="w-full" />
+        </div>
         <select
           :value="ruleSelect"
           @change="
@@ -527,7 +532,7 @@ defineExpose({ open });
             }
           "
           title="替换规则"
-          class="h-6.5 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+          class="h-6.5 max-w-28 shrink-0 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
         >
           <option value="">替换规则</option>
           <option v-for="r in rulesStore.rules" :key="r.id" :value="r.id">{{ r.name }}</option>
@@ -547,7 +552,7 @@ defineExpose({ open });
         <Button
           variant="ghost"
           size="icon-sm"
-          class="w-6.5"
+          class="w-6.5 shrink-0"
           title="管理替换规则"
           @click="
             () => {
@@ -562,8 +567,6 @@ defineExpose({ open });
 
       <!-- 组 3：分割 / 组合（共用同一组分隔符选项） -->
       <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
-        <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
-
         <select
           :value="delimiter"
           @change="delimiter = ($event.target as HTMLSelectElement).value as SplitDelimiter"
@@ -598,8 +601,6 @@ defineExpose({ open });
 
       <!-- 组 4：排序（模板 + 开头匹配 + 执行 + 管理） -->
       <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
-        <span class="mx-0.5 h-4 w-px shrink-0 bg-border" />
-
         <select
           :value="templateSelect"
           @change="

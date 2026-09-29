@@ -317,6 +317,27 @@ describe("FindReplacePanel 工具栏分组", () => {
     expect(groups[3].text()).toContain("排序");
     wrapper.unmount();
   });
+
+  it("分组之间没有竖线分割条（避免换行时残留在行首）", () => {
+    const { wrapper } = mountPanel();
+    expect(wrapper.findAll("[data-ww-group] span.bg-border")).toHaveLength(0);
+    wrapper.unmount();
+  });
+
+  it("查找与替换两个输入框宽度行为一致（同宽、且不随所在组内容变化）", () => {
+    const { wrapper } = mountPanel();
+    const boxes = wrapper.findAll("[data-ww-input-box]");
+    expect(boxes).toHaveLength(2);
+    // 两个输入框容器类完全一致：固定同宽（w-72）+ 不收缩（shrink-0）
+    expect(boxes[0].classes()).toEqual(boxes[1].classes());
+    expect(boxes[0].classes()).toContain("w-72");
+    expect(boxes[0].classes()).toContain("shrink-0");
+    // 内部输入框也保持同一写法（撑满容器）
+    expect(wrapper.find('[data-ww-input="find"]').classes()).toEqual(
+      wrapper.find('[data-ww-input="replace"]').classes(),
+    );
+    wrapper.unmount();
+  });
 });
 
 describe("FindReplacePanel 排序", () => {
