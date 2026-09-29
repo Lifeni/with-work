@@ -2,10 +2,11 @@ version: 2
 
 updates:
   # 依赖更新：项目用 pnpm（dependabot 会读 pnpm-lock.yaml），避免再生成 npm 的 package-lock.json
+  # 频率每月一次：每周检查会频繁开 PR，连带触发通知与部署
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
     open-pull-requests-limit: 5
     commit-message:
       prefix: chore
