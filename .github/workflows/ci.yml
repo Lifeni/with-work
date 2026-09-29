@@ -1,11 +1,13 @@
 name: CI
 
+# 只在推 tag 时运行：部署走 Vercel，push main / PR 都不跑 CI
 on:
   push:
-    branches: [main]
-  pull_request:
+    tags:
+      - "v*" # 例：v100.2.0
+      - "[0-9]*" # 例：100.1.0
 
-# 同一分支的重复推送只保留最新一次校验
+# 同一个 ref 的重复推送只保留最新一次校验
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

@@ -66,7 +66,7 @@ with-work/
 - **路径别名**：`@/` 指向 `src/`。
 - **全局工具**：`src/tools/registry.ts` 注册表 + 悬浮工具栏入口（跟随聚焦编辑器显示于其底部）；工具是纯函数（输入文本 → 输出文本），作用于聚焦编辑器（选区优先，无选区时处理全文），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。
 - **测试**：Vitest + @vue/test-utils（jsdom）。测试模式通过 vite alias 将 `monaco-editor` 替换为 `src/test/mockMonaco.ts`（构建不受影响）；编辑器组件用 `src/test/stubs.ts` 的 `monacoEditorStub` 代替（`vi.mock` 时参考 `src/App.test.ts`）。改动画布组件后跑 `pnpm test`。**本地与 CI 跑测试都需要 Node ≥ 22.22.2**（jsdom 30 的 engines 要求，Node 20 下 vitest 无法启动 worker；CI 用 Node 24）。
-- **CI**：`.github/workflows/ci.yml` 在 push / PR 上依次执行 `pnpm format:check`、`pnpm lint`、`pnpm test`、`pnpm build`；提交前跑同样四项。
+- **CI**：`.github/workflows/ci.yml` **只在推 tag 时**依次执行 `pnpm format:check`、`pnpm lint`、`pnpm test`、`pnpm build`（push main / PR 不跑）；本地提交前跑同样四项。
 - **内置数据**：`lib/defaultData.ts` 维护内置替换规则与排序模板（增量注入：新内置项对老用户可见，删除不复活，下架项自动移除）；`main.ts` 启动时调用 `seedDefaultData()`。
 
 ## 代码约定
@@ -84,12 +84,14 @@ with-work/
   - 需要补充说明时，主题下空一行写正文，正文每行 ≤ 72 字符；
   - 常用前缀：`feat` / `fix` / `docs` / `refactor` / `chore` / `style` / `test` / `perf` / `build` / `ci`。
 - 主分支名为 `main`；功能开发在独立分支进行，完成后通过 PR 合并。
-- 推送 / 部署前必须先征得开发者确认。
+- 推送 / 部署前必须先征得开发者确认（推送会自动触发 Vercel 部署）。
 - **不要在 PR / Issue 下留言、评论或回复**（每一条都会给开发者发邮件通知）；
   关闭 PR 时也不要附理由评论。
-- **不要创建 GitHub Release 或 tag，也不要代为发版**；部署由 Vercel 随 push 自动完成。
-- **不要启用或新增 GitHub Actions 工作流**（开发者明确不要走 CI）：
-  `.github/workflows/ci.yml` 已在 GitHub 侧停用（`gh workflow disable CI`），不要恢复。
+- **不要擅自创建 Release**：Release 只能由开发者创建。
+- **tag 只在开发者明确要求时创建**（本次已创建的 `v100.2.0` 保留，不要删）。
+- **CI 只在推 tag 时运行**（`.github/workflows/ci.yml` 的 `on: push: tags`）；
+  不要改成 push main 或 pull_request 触发，也不要新增其他工作流。
+- **不要擅自发版**：Release 只由开发者创建；推送 / 创建 tag 前都要先问。
 
 ## 给 AI 助手的提示
 
