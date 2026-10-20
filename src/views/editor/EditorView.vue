@@ -12,6 +12,7 @@ import {
   Copy,
   FileDiff,
   FileText,
+  Filter,
   Inbox,
   ListNumbers,
   Trash,
@@ -24,6 +25,7 @@ import Button from "@/components/ui/button.vue";
 import FindReplacePanel from "@/views/editor/FindReplacePanel.vue";
 import { detectLanguage } from "@/lib/detect";
 import { getActiveEditor, setActiveEditor } from "@/lib/editorBridge";
+import { extractUniqueDifferences } from "@/lib/extractDifferences";
 import { applyReplacements } from "@/lib/replace";
 import { splitLines } from "@/lib/split";
 import { resolveTheme } from "@/lib/theme";
@@ -303,6 +305,27 @@ function clearFocusedContent() {
   toast("已清空聚焦编辑器（Ctrl+Z 可撤销）");
 }
 
+/** 原地保留两侧各自独有的行，用于对比后去重 */
+function extractEditorDifferences() {
+  const current = ws.value;
+  if (!current) {
+    toast("没有可处理的工作区");
+    return;
+  }
+  const result = extractUniqueDifferences(left.value, right.value);
+  if (!result.left && !result.right) {
+    toast("两侧没有独有差异");
+    return;
+  }
+  if (!result.hasDuplicates) {
+    toast("两侧已无重复项");
+    return;
+  }
+  wsStore.setLeft(current.id, result.left);
+  wsStore.setRight(current.id, result.right);
+  toast("已提取两侧独有差异（两侧可分别 Ctrl+Z 撤销）");
+}
+
 /** 拖拽悬停（捕获阶段，先于 Monaco 内部处理）：允许规则/文本拖入 */
 function handleEditorDragOver(e: DragEvent) {
   const dt = e.dataTransfer;
@@ -504,7 +527,7 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
 
       <!-- 中间操作区：交换 / 复制 / 导出等（按钮组整体居中对齐） -->
       <div
-        class="relative flex shrink-0 items-center justify-center gap-2 px-1 lg:w-9 lg:flex-col lg:justify-center lg:px-0"
+        class="relative flex shrink-0 items-center justify-center gap-2 px-1 max-lg:flex-wrap lg:w-9 lg:flex-col lg:justify-center lg:px-0"
       >
         <div
           class="absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-transparent hover:bg-primary/25 lg:block"
@@ -531,6 +554,9 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
           @click="pasteToFocused"
         >
           <ClipboardCheck />
+        </Button>
+        <Button variant="ghost" size="icon-sm" title="提取差异" @click="extractEditorDifferences">
+          <Filter />
         </Button>
         <Button
           variant="ghost"

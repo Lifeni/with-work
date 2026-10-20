@@ -41,13 +41,13 @@
 | 目录                     | 职责                 | 说明                                                                                                                                                                                                                                                      |
 | ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/App.vue`            | 应用布局壳           | 左侧品牌栏 / 暂存区（编辑器左侧）/ 编辑器区 / 顶栏 / 状态栏 / 设置弹窗                                                                                                                                                                                    |
-| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                                                                                                 |
+| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏/提取差异 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                                                                                        |
 | `src/views/settings/`    | 设置内容             | `SettingsView.vue`，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                                                                                    |
 | `src/components/ui/`     | 无业务语义的基础组件 | Button、Dialog、DropdownMenu、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 为原生实现                                                                                                                                             |
 | `src/components/shared/` | 业务共享组件         | TitleBar、StagingPanel（暂存区+模板+规则）、FloatingEditorToolbar（悬浮工具栏）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail（品牌栏+设置/导入/导出）、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
 | `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件（防抖写盘 + `flushPersist`）                                                                                         |
 | `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                                                                                            |
-| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`storageKeys.ts`、`utils.ts`                                                              |
+| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`extractDifferences.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`storageKeys.ts`、`utils.ts`                                     |
 | `src/hooks/`             | 自定义 composables   | `useDebounce`                                                                                                                                                                                                                                             |
 | `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                                                                                      |
 | `src/types/`             | 全局类型定义         | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等                                                                                                                                                                              |
@@ -107,6 +107,12 @@
   `diff` 回填激活工作区的双栏内容；v3+ 的工作区自带 left/right，回填反而会串内容。
 - 清空所有数据会连同内置数据标记 `ww:seeded` 一起清除，因此内置规则与排序模板
   会在下次启动时重新注入；工作区导出（`.txt`）取左栏，双栏时以分隔线拼接。
+
+### 差异去重
+
+- 中间操作栏「提取差异」调用 `lib/extractDifferences.ts`：仅忽略空白行，按原始行内容
+  去重后各自移除另一侧也存在的行，保留缩进、行尾空白与原有顺序。
+- 结果原地覆盖当前工作区的左右编辑器，不新建或切换工作区；两侧都无独有行时仅提示。
 
 ## 测试体系
 

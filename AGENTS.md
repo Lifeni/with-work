@@ -43,7 +43,7 @@ with-work/
 │   ├── stores/               # Pinia stores（workspace/staging/rules/templates/textTemplates/settings/ui/status/toast，自动持久化）
 │   ├── tools/                # 全局工具注册表（文本处理工具，新增工具只需追加一条）
 │   ├── hooks/                # 自定义 composables（useDebounce）
-│   ├── lib/                  # 纯函数与桥接（split/join/sort/replace/backup/transfer/workspaceModels/workspaceMigration/settingsMigration/detect/theme/monaco/applyTool/editorBridge/storageKeys/utils）
+│   ├── lib/                  # 纯函数与桥接（split/join/sort/replace/extractDifferences/backup/transfer/workspaceModels/workspaceMigration/settingsMigration/detect/theme/monaco/applyTool/editorBridge/storageKeys/utils）
 │   ├── test/                 # 测试基础设施（mockMonaco、mockEditor、resetStores、setup）
 │   ├── types/                # 全局类型定义
 │   └── assets/               # 静态资源（favicon.svg 源文件，模块导入会被内联）
@@ -56,7 +56,8 @@ with-work/
 ## 关键设计
 
 - **状态**：Pinia + 自定义持久化插件（`stores/persist.ts`），key 前缀 `ww:`（兼容旧版 Zustand 的 `{ state, version }` 存储格式，老数据自动解包）；所有数据（工作区/暂存区/规则/模板/设置）自动保存到 localStorage，写盘经 250ms 防抖合并，页面隐藏/关闭前 `flushPersist()` 落盘。存储键统一在 `lib/storageKeys.ts` 维护（含内置数据标记 `ww:seeded`），「清空所有数据」会连标记一起清除以便内置数据重新注入。备份格式升级时递增 `BackupData.version` 并兼容旧数据。
-- **编辑器**：固定双栏（左右两个独立 Monaco Editor），聚焦侧有高亮边框；中间操作栏有复制/粘贴/对比弹窗/交换/左右互传/导出到暂存区与模板/清空按钮，支持拖动调节左右宽度；窄屏（<1024px）自动纵向堆叠且两边等高。
+- **编辑器**：固定双栏（左右两个独立 Monaco Editor），聚焦侧有高亮边框；中间操作栏有复制/粘贴/提取差异/对比弹窗/交换/左右互传/导出到暂存区与模板/清空按钮，支持拖动调节左右宽度；窄屏（<1024px）自动纵向堆叠且两边等高。
+- **差异去重**：中间操作栏「提取差异」按原始行内容去重（仅忽略空白行）并移除另一侧已有行，原地覆盖左右编辑器；无独有行时仅提示，不新建或切换工作区。
 - **悬浮工具栏**（`FloatingEditorToolbar.vue`）：跟随聚焦编辑器悬浮于其底部（宽窄屏均适用），包含文本工具（行排序/去空行/大小写等）+ 撤销/重做；工具执行后自动恢复编辑器焦点，Ctrl+Z 可直接撤销。
 - **工作区模型**：每个工作区持有独立的 Monaco Model（`lib/workspaceModels.ts` 缓存），切换工作区时换绑 Model，撤销/重做历史按工作区独立保留；store ↔ Model 双向同步（`ww-sync`）。内容变化事件携带 Model 引用、按 `findWorkspaceIdByModel` 归属写入，换绑滞后窗口内也不会把内容串到其他工作区。
 - **查找替换面板**（`views/editor/FindReplacePanel.vue`）：编辑器顶部一体面板，包含查找（正则/大小写/计数高亮）、替换（全部替换/规则下拉）、分割、组合、排序五个功能；工具栏按功能分组换行（组内不拆行）。分割（一行拆多行）与组合（多行拼一行，`lib/join.ts`）共用同一个分隔符下拉，共用「选区优先 → 写另一侧」流程，空输入只提示不清空另一侧；排序支持开头匹配（模板属性或工具栏开关），作用于聚焦编辑器；替换就地生效。

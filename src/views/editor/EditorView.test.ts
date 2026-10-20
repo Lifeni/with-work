@@ -197,6 +197,68 @@ describe("EditorView 设置联动", () => {
   });
 });
 
+describe("EditorView 提取差异", () => {
+  it("点击后原地更新两侧内容且不新建或切换工作区", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setLeft(id, "甲\n共同\n乙");
+    store.setRight(id, "共同\n丙");
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+
+    await wrapper.get('button[aria-label="提取差异"]').trigger("click");
+    await nextTick();
+
+    expect(store.workspaces).toHaveLength(1);
+    expect(store.activeId).toBe(id);
+    expect(store.workspaces[0]).toMatchObject({ left: "甲\n乙", right: "丙" });
+
+    wrapper.unmount();
+  });
+
+  it("两侧没有独有行时保持原内容并提示", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setLeft(id, "甲\n共同");
+    store.setRight(id, "共同\n甲");
+    const { useToastStore } = await import("@/stores/toast");
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+
+    await wrapper.get('button[aria-label="提取差异"]').trigger("click");
+    await nextTick();
+
+    expect(store.workspaces[0]).toMatchObject({
+      left: "甲\n共同",
+      right: "共同\n甲",
+    });
+    expect(useToastStore().toasts.map((item) => item.message)).toContain("两侧没有独有差异");
+
+    wrapper.unmount();
+  });
+
+  it("两侧已无重复项时不提示替换内容", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setLeft(id, "甲\n");
+    store.setRight(id, "乙\r\n");
+    const { useToastStore } = await import("@/stores/toast");
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+
+    await wrapper.get('button[aria-label="提取差异"]').trigger("click");
+    await nextTick();
+
+    expect(useToastStore().toasts.map((item) => item.message)).toContain("两侧已无重复项");
+    expect(store.workspaces[0]).toMatchObject({ left: "甲\n", right: "乙\r\n" });
+
+    wrapper.unmount();
+  });
+});
+
 describe("EditorView 工作区切换防串写", () => {
   it("切换工作区时不会把旧编辑器内容串入新工作区", async () => {
     const store = useWorkspaceStore();
