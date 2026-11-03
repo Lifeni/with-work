@@ -39,10 +39,8 @@ interface MatchInfo {
 }
 
 interface Props {
-  /** 当前聚焦的编辑器（查找/替换/预览的源） */
+  /** 当前聚焦的编辑器（查找、替换与列表工具的处理目标） */
   focusedEditor: monaco.editor.IStandaloneCodeEditor | null;
-  /** 另一侧编辑器：分割结果与排序未匹配项的写入目标 */
-  otherEditor: monaco.editor.IStandaloneCodeEditor | null;
 }
 const props = defineProps<Props>();
 
@@ -236,7 +234,7 @@ function applyRule(rule: ReplaceRule) {
   toast(`已应用规则：${rule.name}`);
 }
 
-// ---------- 列表工具（分割：聚焦 → 另一侧；排序规则：作用于另一侧） ----------
+// ---------- 列表工具（分割 / 组合 / 排序均原地作用于聚焦编辑器） ----------
 const delimiter = ref<SplitDelimiter>("auto");
 const customRegex = ref("");
 const templatesOpen = ref(false);
@@ -246,22 +244,25 @@ const templateSelect = ref("");
 // 排序匹配模式：以模板列表项开头即匹配
 const prefixMatch = ref(false);
 
-/** 把文本写入目标编辑器（整体替换，可撤销） */
-const writeToEditor = (dst: monaco.editor.IStandaloneCodeEditor | null, text: string) => {
-  const model = dst?.getModel();
-  if (!dst || !model) return false;
-  dst.executeEdits("ww-list", [{ range: model.getFullModelRange(), text }]);
-  return true;
-};
+type InPlaceResult = { text: string; message: string } | { error: string };
 
-type OtherSideResult = { text: string; message: string } | { error: string };
+/** 把结果写回聚焦编辑器：有选区替换选区，否则替换全文（可撤销） */
+function applyToFocused(
+  sel: monaco.Selection | null,
+  model: monaco.editor.ITextModel,
+  text: string,
+) {
+  const src = props.focusedEditor;
+  if (!src) return;
+  const range = sel && !sel.isEmpty() ? sel : model.getFullModelRange();
+  src.executeEdits("ww-in-place", [{ range, text }]);
+}
 
 /**
- * 「聚焦编辑器 → 另一侧」类操作（分割 / 组合）的公共流程：
- * 取输入（选区优先）→ 计算 → 写入另一侧 → 提示。
- * 空输入在这里统一拦住：否则会把另一侧已有内容整体替换成空串，等同于静默清空。
+ * 分割 / 组合的公共流程：取输入（选区优先）→ 计算 → 原地写回 → 提示。
+ * 空输入在这里统一拦住，避免把聚焦编辑器清空。
  */
-function runToOtherSide(build: (input: string) => OtherSideResult) {
+function runInPlace(build: (input: string) => InPlaceResult) {
   const src = props.focusedEditor;
   const model = src?.getModel();
   if (!src || !model) {
@@ -279,16 +280,13 @@ function runToOtherSide(build: (input: string) => OtherSideResult) {
     toast(r.error);
     return;
   }
-  if (!writeToEditor(props.otherEditor, r.text)) {
-    toast("另一侧编辑器尚未就绪");
-    return;
-  }
+  applyToFocused(sel, model, r.text);
   toast(r.message);
 }
 
-/** 分割：作用于当前聚焦编辑器（选区优先），结果自动写入另一侧 */
+/** 分割：作用于当前聚焦编辑器（选区优先），结果原地写回 */
 function runSplit() {
-  runToOtherSide((input) => {
+  runInPlace((input) => {
     const r = splitText(input, {
       delimiter: delimiter.value,
       customRegex: customRegex.value,
@@ -297,19 +295,19 @@ function runSplit() {
       dedupe: false,
     });
     if (r.error) return { error: r.error };
-    return { text: r.items.join("\n"), message: `已分割 ${r.items.length} 项并写入另一侧编辑器` };
+    return { text: r.items.join("\n"), message: `已分割 ${r.items.length} 项并原地更新编辑器` };
   });
 }
 
 /**
- * 组合：把聚焦编辑器的多行（选区优先）拼成一行写入另一侧，是「分割」的逆操作。
- * 组合符与分割共用同一个分隔符下拉；结果写另一侧便于与原文本对照，也能再分割回来。
+ * 组合：把聚焦编辑器的多行（选区优先）拼成一行并原地写回，是「分割」的逆操作。
+ * 组合符与分割共用同一个分隔符下拉。
  */
 function runJoin() {
-  runToOtherSide((input) => {
+  runInPlace((input) => {
     const r = joinText(input, { delimiter: delimiter.value, customRegex: customRegex.value });
     if (r.error) return { error: r.error };
-    // 兜底：全空白输入（正常路径已被 runToOtherSide 拦掉）不得把另一侧写成空；
+    // 兜底：全空白输入（正常路径已被 runInPlace 拦掉）不得把编辑器写成空；
     // 放在最前面，换行等分支才不会有绕过它的机会
     if (r.count === 0) {
       return { error: "没有可组合的内容（输入为空或只有空白行）" };
@@ -318,14 +316,14 @@ function runJoin() {
     if (r.separator === "\n") {
       return {
         text: r.text,
-        message: `组合符为换行，已规整 ${r.count} 行后写入另一侧编辑器（结果仍是多行）`,
+        message: `组合符为换行，已规整 ${r.count} 行并原地更新编辑器（结果仍是多行）`,
       };
     }
-    // 只有一行时谈不上「组合成一行」，如实说明是原样搬运
+    // 只有一行时谈不上「组合成一行」，如实说明操作结果
     if (r.count === 1) {
-      return { text: r.text, message: "内容只有 1 行，已原样写入另一侧编辑器" };
+      return { text: r.text, message: "内容只有 1 行，已原样保留" };
     }
-    return { text: r.text, message: `已把 ${r.count} 行组合为一行并写入另一侧编辑器` };
+    return { text: r.text, message: `已把 ${r.count} 行组合为一行并原地更新编辑器` };
   });
 }
 
@@ -357,14 +355,11 @@ function runSort() {
       toast("没有匹配的项目");
       return;
     }
-    applyToFocused(sel, model, r.sorted.join("\n"));
+    applyToFocused(sel, model, [...r.sorted, ...r.unmatched].join("\n"));
     if (r.unmatched.length > 0) {
-      const moved = writeToEditor(props.otherEditor, r.unmatched.join("\n"));
       toast(
         `已按「${t.name}」排序 ${r.sorted.length} 项` +
-          (moved
-            ? `，${r.unmatched.length} 项未匹配已移至另一侧`
-            : `，${r.unmatched.length} 项未匹配（另一侧未就绪）`),
+          `，${r.unmatched.length} 项未匹配已保留在末尾`,
       );
     } else {
       toast(`已按「${t.name}」排序 ${r.sorted.length} 项`);
@@ -390,21 +385,6 @@ function runSort() {
   applyToFocused(sel, model, next);
   toast(`已按${order}排序 ${items.length} 项`);
 }
-
-/** 把结果写入聚焦编辑器：有选区替换选区，否则替换全文（可撤销） */
-const applyToFocused = (
-  sel: monaco.Selection | null,
-  model: monaco.editor.ITextModel,
-  text: string,
-) => {
-  const src = props.focusedEditor;
-  if (!src) return;
-  if (sel && !sel.isEmpty()) {
-    src.executeEdits("ww-sort", [{ range: sel, text }]);
-  } else {
-    src.executeEdits("ww-sort", [{ range: model.getFullModelRange(), text }]);
-  }
-};
 
 // 接收来自暂存区等入口的规则应用请求，把规则填入查找/替换输入框
 const ruleListener = (rule: ReplaceRule) => {

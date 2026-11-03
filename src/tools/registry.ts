@@ -10,6 +10,7 @@ import {
   Replace,
   SortAscending,
   SortDescending,
+  Space,
 } from "@vicons/tabler";
 import { applyReplacements } from "@/lib/replace";
 import { splitText, type SplitDelimiter } from "@/lib/split";
@@ -88,6 +89,13 @@ export const tools: GlobalTool[] = [
     description: "删除空白行",
     icon: Eraser,
     run: (i) => join(lines(i).filter((s) => s.trim() !== "")),
+  },
+  {
+    id: "text-remove-spaces-tabs",
+    name: "去除空格和 Tab",
+    description: "删除所有空格和 Tab，保留换行",
+    icon: Space,
+    run: (i) => i.replace(/[^\S\r\n]/g, ""),
   },
   {
     id: "text-upper",

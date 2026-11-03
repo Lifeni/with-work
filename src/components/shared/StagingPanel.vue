@@ -169,7 +169,7 @@ function applyTemplate(t: SortTemplate) {
   }
   const lines = splitLines(input);
   const r = sortByReference(lines, t.items);
-  const text = r.sorted.join("\n");
+  const text = [...r.sorted, ...r.unmatched].join("\n");
   const editor = getActiveEditor();
   const model = editor?.getModel();
   const sel = editor?.getSelection();
@@ -183,7 +183,7 @@ function applyTemplate(t: SortTemplate) {
   }
   toast(
     `已按模板「${t.name}」排序` +
-      (r.unmatched.length > 0 ? `，${r.unmatched.length} 项未匹配` : ""),
+      (r.unmatched.length > 0 ? `，${r.unmatched.length} 项未匹配已保留在末尾` : ""),
   );
 }
 

@@ -23,6 +23,9 @@
 - **`pnpm build`**：Vercel 静态部署。输出 `dist/`（index.html + assets/），启用 PWA（vite-plugin-pwa，离线可用）；
   构建时额外执行单文件构建并复制为 `dist/with-work-single.html`——设置页「关于」在**部署版**提供
   「下载单文件版」入口；**单文件版**则不提供下载并标注「单文件版」。
+- **PWA 更新**：部署版使用 `registerType: "prompt"` 并由 `PwaUpdatePrompt` 手动注册 Service Worker；
+  启动、每小时、页面重新可见与网络恢复时检查更新。新版本就绪后右下角提示「稍后 / 立即更新」，
+  确认更新时先执行 `flushPersist()` 保存编辑，再让新 worker 接管并刷新页面。
 - **`pnpm build:single`**：`vite build --mode single` 触发 `vite-plugin-singlefile`，
   输出 `dist-single/index.html`。JS / CSS / 字体 / Monaco worker（`?worker&inline`）/ 品牌图标
   （模块导入）全部内嵌为 data URI，PWA 在单文件模式不启用；
@@ -38,21 +41,21 @@
 
 ## 目录职责
 
-| 目录                     | 职责                 | 说明                                                                                                                                                                                                                                                      |
-| ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/App.vue`            | 应用布局壳           | 左侧品牌栏 / 暂存区（编辑器左侧）/ 编辑器区 / 顶栏 / 状态栏 / 设置弹窗                                                                                                                                                                                    |
-| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏/提取差异 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                                                                                        |
-| `src/views/settings/`    | 设置内容             | `SettingsView.vue`，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                                                                                    |
-| `src/components/ui/`     | 无业务语义的基础组件 | Button、Dialog、DropdownMenu、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 为原生实现                                                                                                                                             |
-| `src/components/shared/` | 业务共享组件         | TitleBar、StagingPanel（暂存区+模板+规则）、FloatingEditorToolbar（悬浮工具栏）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail（品牌栏+设置/导入/导出）、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
-| `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件（防抖写盘 + `flushPersist`）                                                                                         |
-| `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                                                                                            |
-| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`extractDifferences.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`storageKeys.ts`、`utils.ts`                                     |
-| `src/hooks/`             | 自定义 composables   | `useDebounce`                                                                                                                                                                                                                                             |
-| `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                                                                                      |
-| `src/types/`             | 全局类型定义         | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等                                                                                                                                                                              |
-| `src/assets/`            | 静态资源             | `favicon.svg`（品牌 Logo 源文件，模块导入 → 两种构建均内联）                                                                                                                                                                                              |
-| `scripts/`               | 构建辅助脚本         | `icons.mjs`（PWA 图标与 favicon.ico 生成）、`ship-single.mjs`（单文件图标内联与产物分发）                                                                                                                                                                 |
+| 目录                     | 职责                 | 说明                                                                                                                                                                                                                                                                                       |
+| ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/App.vue`            | 应用布局壳           | 左侧品牌栏 / 暂存区（编辑器左侧）/ 编辑器区 / 顶栏 / 状态栏 / 设置弹窗                                                                                                                                                                                                                     |
+| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏/提取差异 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                                                                                                                         |
+| `src/views/settings/`    | 设置内容             | `SettingsView.vue`，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                                                                                                                     |
+| `src/components/ui/`     | 无业务语义的基础组件 | Button、Dialog、DropdownMenu、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 为原生实现                                                                                                                                                                              |
+| `src/components/shared/` | 业务共享组件         | TitleBar、StagingPanel（暂存区+模板+规则）、FloatingEditorToolbar（悬浮工具栏）、PwaUpdatePrompt（PWA 更新提示）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail（品牌栏+设置/导入/导出）、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
+| `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件（防抖写盘 + `flushPersist`）                                                                                                                          |
+| `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                                                                                                                             |
+| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`extractDifferences.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`pwaUpdate.ts`、`storageKeys.ts`、`utils.ts`                                                      |
+| `src/hooks/`             | 自定义 composables   | `useDebounce`                                                                                                                                                                                                                                                                              |
+| `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                                                                                                                       |
+| `src/types/`             | 全局类型定义         | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等                                                                                                                                                                                                               |
+| `src/assets/`            | 静态资源             | `favicon.svg`（品牌 Logo 源文件，模块导入 → 两种构建均内联）                                                                                                                                                                                                                               |
+| `scripts/`               | 构建辅助脚本         | `icons.mjs`（PWA 图标与 favicon.ico 生成）、`ship-single.mjs`（单文件图标内联与产物分发）                                                                                                                                                                                                  |
 
 ## 关键机制
 
@@ -76,10 +79,12 @@
 - 分割与组合共用同一个分隔符下拉（`lib/split.ts` 的 `DELIMITER_LITERALS` 是字面量唯一来源）；
   自定义正则模式下，组合取它在文本中匹配到的字面量，匹配不到或只匹配到空串时如实报错。
 - 排序支持**开头匹配**（前缀匹配）：模板可自带 `prefixMatch` 属性，工具栏开关可临时开启；
-  全部不匹配时提示且不清空内容，部分匹配时未匹配项写入另一侧编辑器。
-- 全部作用于当前聚焦编辑器（高亮边框者）；替换就地生效，分割/组合结果写入另一侧；
-  分割与组合共用「取输入（选区优先）→ 计算 → 写另一侧」流程，空输入会提示而不是把另一侧清空。
+  全部不匹配时提示且不清空内容，部分匹配时匹配项按模板顺序排列，未匹配项保留在末尾。
+- 全部作用于当前聚焦编辑器（高亮边框者）；替换、分割、组合与排序都原地生效；
+  分割与组合共用「取输入（选区优先）→ 计算 → 原地写回」流程，空输入会提示且不清空编辑器。
 - 替换规则（`stores/rules.ts`）与排序模板（`stores/templates.ts`）可导入/导出。
+- 悬浮工具栏提供行排序、删除空行、去除空格和 Tab、大小写转换等文本工具；
+  去除空格和 Tab 会删除选区或全文中的横向空白字符并保留换行。
 
 ### 暂存区（StagingPanel）
 

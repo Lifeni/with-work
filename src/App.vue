@@ -14,6 +14,7 @@ import StatusBar from "@/components/shared/StatusBar.vue";
 import StagingPanel from "@/components/shared/StagingPanel.vue";
 import SettingsDialog from "@/components/shared/SettingsDialog.vue";
 import ToastViewport from "@/components/shared/ToastViewport.vue";
+import PwaUpdatePrompt from "@/components/shared/PwaUpdatePrompt.vue";
 import EditorView from "@/views/editor/EditorView.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
@@ -91,6 +92,7 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
       </div>
       <StatusBar />
       <SettingsDialog :open="uiStore.settingsOpen" @update:open="uiStore.setSettingsOpen($event)" />
+      <PwaUpdatePrompt />
       <ToastViewport />
     </div>
   </NConfigProvider>

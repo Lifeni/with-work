@@ -11,7 +11,7 @@
 - **包管理器**：pnpm（勿混用其他包管理器，依赖变更通过 `pnpm add <pkg>` 完成，勿手动改 lockfile）
 - **部署**：Vercel（`vercel.json` 已配置，构建输出 `dist/`）
 - **双构建模式**：`pnpm run build`（Vercel 静态部署，启用 PWA；构建时额外执行单文件构建并复制为 `dist/with-work-single.html`，设置页关于在部署版提供下载、单文件版标注「单文件版」）与 `pnpm run build:single`（单文件 HTML，输出 `dist-single/`，所有资源内嵌、favicon 亦内联，双击可离线运行）
-- **PWA**：vite-plugin-pwa（仅部署版启用），manifest 图标由 `scripts/icons.mjs` 生成（`pnpm run icons`）
+- **PWA**：vite-plugin-pwa（仅部署版启用），manifest 图标由 `scripts/icons.mjs` 生成（`pnpm run icons`）；Service Worker 使用等待确认模式，启动、每小时、页面重新可见和网络恢复时检查更新，发现新版本后在右下角提示用户，确认前先落盘再刷新
 - **开源状态**：已开源（MIT 许可证），GitHub 仓库：Lifeni/with-work
 
 ## 常用命令
@@ -58,14 +58,15 @@ with-work/
 - **状态**：Pinia + 自定义持久化插件（`stores/persist.ts`），key 前缀 `ww:`（兼容旧版 Zustand 的 `{ state, version }` 存储格式，老数据自动解包）；所有数据（工作区/暂存区/规则/模板/设置）自动保存到 localStorage，写盘经 250ms 防抖合并，页面隐藏/关闭前 `flushPersist()` 落盘。存储键统一在 `lib/storageKeys.ts` 维护（含内置数据标记 `ww:seeded`），「清空所有数据」会连标记一起清除以便内置数据重新注入。备份格式升级时递增 `BackupData.version` 并兼容旧数据。
 - **编辑器**：固定双栏（左右两个独立 Monaco Editor），聚焦侧有高亮边框；中间操作栏有复制/粘贴/提取差异/对比弹窗/交换/左右互传/导出到暂存区与模板/清空按钮，支持拖动调节左右宽度；窄屏（<1024px）自动纵向堆叠且两边等高。
 - **差异去重**：中间操作栏「提取差异」按原始行内容去重（仅忽略空白行）并移除另一侧已有行，原地覆盖左右编辑器；无独有行时仅提示，不新建或切换工作区。
-- **悬浮工具栏**（`FloatingEditorToolbar.vue`）：跟随聚焦编辑器悬浮于其底部（宽窄屏均适用），包含文本工具（行排序/去空行/大小写等）+ 撤销/重做；工具执行后自动恢复编辑器焦点，Ctrl+Z 可直接撤销。
+- **悬浮工具栏**（`FloatingEditorToolbar.vue`）：跟随聚焦编辑器悬浮于其底部（宽窄屏均适用），包含文本工具（行排序/去空行/去除空格和 Tab/大小写等）+ 撤销/重做；工具执行后自动恢复编辑器焦点，Ctrl+Z 可直接撤销。
 - **工作区模型**：每个工作区持有独立的 Monaco Model（`lib/workspaceModels.ts` 缓存），切换工作区时换绑 Model，撤销/重做历史按工作区独立保留；store ↔ Model 双向同步（`ww-sync`）。内容变化事件携带 Model 引用、按 `findWorkspaceIdByModel` 归属写入，换绑滞后窗口内也不会把内容串到其他工作区。
-- **查找替换面板**（`views/editor/FindReplacePanel.vue`）：编辑器顶部一体面板，包含查找（正则/大小写/计数高亮）、替换（全部替换/规则下拉）、分割、组合、排序五个功能；工具栏按功能分组换行（组内不拆行）。分割（一行拆多行）与组合（多行拼一行，`lib/join.ts`）共用同一个分隔符下拉，共用「选区优先 → 写另一侧」流程，空输入只提示不清空另一侧；排序支持开头匹配（模板属性或工具栏开关），作用于聚焦编辑器；替换就地生效。
+- **查找替换面板**（`views/editor/FindReplacePanel.vue`）：编辑器顶部一体面板，包含查找（正则/大小写/计数高亮）、替换（全部替换/规则下拉）、分割、组合、排序五个功能；工具栏按功能分组换行（组内不拆行）。分割（一行拆多行）与组合（多行拼一行，`lib/join.ts`）共用同一个分隔符下拉与「选区优先 → 原地写回」流程，空输入只提示且不清空编辑器；排序支持开头匹配（模板属性或工具栏开关），模板匹配项按顺序排在前面，未匹配项保留在末尾；所有列表工具都作用于聚焦编辑器并可就地撤销。
 - **暂存区**（`StagingPanel.vue`）：编辑器左侧面板，多工作区共用；包含全局暂存区（文本条目）、文本模板、排序模板、替换规则四个模块，条目可拖到编辑器（规则拖入 = 按规则替换全文），双击编辑，支持分组与导入/导出。宽度可拖动调节（记忆于设置）；开关在标题栏左侧（宽窄屏均可用），窄屏抽屉模式下面板标题前另有折叠按钮，窄屏自动收起。
 - **图标**：界面图标用 @vicons/tabler（无 Icon 前缀命名）；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联；PWA 图标由 `pnpm run icons` 生成到 `public/`）。
 - **主题**：CSS 变量（oklch）+ `.dark` 类切换（Tailwind 语义色），Naive 主题在 `App.vue` 通过 `n-config-provider` 跟随同一设置（themeOverrides 主色对齐品牌色）；Monaco 主题跟随同一设置（`lib/theme.ts`）。
 - **路径别名**：`@/` 指向 `src/`。
 - **全局工具**：`src/tools/registry.ts` 注册表 + 悬浮工具栏入口（跟随聚焦编辑器显示于其底部）；工具是纯函数（输入文本 → 输出文本），作用于聚焦编辑器（选区优先，无选区时处理全文），编辑器内可 Ctrl+Z 撤销；新增工具只需在注册表追加一条。
+- **PWA 更新提示**：`components/shared/PwaUpdatePrompt.vue` 负责注册 Service Worker 与右下角提示；`lib/pwaUpdate.ts` 统一处理更新检查、等待中的 worker、更新前落盘和刷新；单文件版与测试环境不注册。
 - **测试**：Vitest + @vue/test-utils（jsdom）。测试模式通过 vite alias 将 `monaco-editor` 替换为 `src/test/mockMonaco.ts`（构建不受影响）；编辑器组件用 `src/test/stubs.ts` 的 `monacoEditorStub` 代替（`vi.mock` 时参考 `src/App.test.ts`）。改动画布组件后跑 `pnpm test`。**本地与 CI 跑测试都需要 Node ≥ 22.22.2**（jsdom 30 的 engines 要求，Node 20 下 vitest 无法启动 worker；CI 用 Node 24）。
 - **CI**：`.github/workflows/ci.yml` **只在推 tag 时**依次执行 `pnpm format:check`、`pnpm lint`、`pnpm test`、`pnpm build`（push main / PR 不跑）；本地提交前跑同样四项。
 - **内置数据**：`lib/defaultData.ts` 维护内置替换规则与排序模板（增量注入：新内置项对老用户可见，删除不复活，下架项自动移除）；`main.ts` 启动时调用 `seedDefaultData()`。
@@ -102,8 +103,7 @@ with-work/
 ## 给 AI 助手的提示
 
 - 新任务开始前，先阅读本文件与 `docs/` 下相关文档。
-- **改动完成后必须用 `ocr` 做代码审查**（`@alibaba-group/open-code-review`，已全局安装）：
-  按提交范围审查，如 `ocr review --from <上一个已审查的提交> --to HEAD`；逐条判断反馈，
+- **改动完成后必须用 Codex 做代码审查**：按改动范围审查，逐条判断反馈，
   确属缺陷的就补测试修掉，不认同的要在回复里说明理由。审查通过才算完成一个改动。
 - 改动后运行 `pnpm format:check`、`pnpm lint`、`pnpm test` 与 `pnpm build`（含类型检查）验证，与 CI 保持一致。
 - 修改持久化数据结构或备份格式时，注意升级 `BackupData.version`（当前 4）并兼容旧数据；

@@ -6,6 +6,8 @@ import { useSettingsStore } from "@/stores/settings";
 import { useStagingStore } from "@/stores/staging";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
+import { useToastStore } from "@/stores/toast";
+import { useWorkspaceStore } from "@/stores/workspace";
 
 beforeEach(() => {
   resetStores();
@@ -167,6 +169,26 @@ describe("StagingPanel 模板区", () => {
     // n-modal 的卡片由 AppDialog 自绘（.ww-dialog-content）
     const dialog = document.querySelector(".ww-dialog-content");
     expect(dialog?.textContent).toContain("自定义文本模板");
+  });
+
+  it("按模板排序时未匹配项保留在编辑器末尾", async () => {
+    const workspace = useWorkspaceStore();
+    const id = workspace.createWorkspace();
+    workspace.setLeft(id, "青岛\n北京\n济南");
+    useTemplatesStore().addTemplate({
+      id: "t1",
+      name: "城市顺序",
+      items: ["济南", "青岛"],
+    });
+    const wrapper = mountPanel();
+
+    const sortTab = wrapper.findAll("button").find((b) => b.text() === "排序模板")!;
+    await sortTab.trigger("click");
+    await wrapper.get('[title="按此模板排序编辑器文本"]').trigger("click");
+
+    expect(workspace.workspaces.find((w) => w.id === id)?.left).toBe("济南\n青岛\n北京");
+    expect(useToastStore().toasts.some((t) => t.message.includes("未匹配已保留在末尾"))).toBe(true);
+    wrapper.unmount();
   });
 
   it("拖入文本保存为文本模板（来源标记相同不重复添加）", async () => {

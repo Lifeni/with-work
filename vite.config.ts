@@ -34,7 +34,10 @@ export default defineConfig(({ mode }) => {
       ...(isPwa
         ? [
             VitePWA({
-              registerType: "autoUpdate",
+              // 新版本先等待用户确认：编辑器数据落盘后再刷新
+              registerType: "prompt",
+              // 由 PwaUpdatePrompt 手动注册，避免插件额外注入无 UI 的注册脚本
+              injectRegister: false,
               includeAssets: ["favicon.ico", "favicon.svg"],
               manifest: {
                 name: "一点微小的工作",
@@ -73,6 +76,8 @@ export default defineConfig(({ mode }) => {
                 globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
                 // monaco 主包约 4MB，默认 2MB 上限会跳过，调大以完整预缓存
                 maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
+                // 用户确认 SKIP_WAITING 后立即接管当前页面，触发 controllerchange 后再刷新
+                clientsClaim: true,
                 navigateFallback: "/index.html",
               },
             }),

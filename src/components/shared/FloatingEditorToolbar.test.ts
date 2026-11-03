@@ -17,6 +17,7 @@ describe("FloatingEditorToolbar 悬浮工具栏", () => {
     const wrapper = mountToolbar();
     expect(wrapper.find('[aria-label="行排序 · 升序"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label="删除空行"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="去除空格和 Tab"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label="撤销 (Ctrl+Z)"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label="重做"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label^="自动换行"]').exists()).toBe(false);

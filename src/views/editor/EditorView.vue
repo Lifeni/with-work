@@ -251,9 +251,6 @@ watch([left, right], () => {
 const focusedEditor = computed(() =>
   focused.value === "left" ? leftEditor.value : rightEditor.value,
 );
-const otherEditor = computed(() =>
-  focused.value === "left" ? rightEditor.value : leftEditor.value,
-);
 
 const copyLeftToRight = () => wsStore.setRight(ws.value!.id, left.value);
 const copyRightToLeft = () => wsStore.setLeft(ws.value!.id, right.value);
@@ -491,11 +488,7 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
   <div class="flex h-full flex-col">
     <!-- 顶部工具面板：查找替换 + 分割 + 排序规则（单卡片） -->
     <div class="shrink-0 px-2 pt-2">
-      <FindReplacePanel
-        ref="panelRef"
-        :focused-editor="focusedEditor"
-        :other-editor="otherEditor"
-      />
+      <FindReplacePanel ref="panelRef" :focused-editor="focusedEditor" />
     </div>
 
     <!-- 双编辑器区（窄屏纵向堆叠，宽屏左右并排） -->
