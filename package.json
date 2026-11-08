@@ -53,7 +53,7 @@
     "vue-tsc": "^3.3.13"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.22.2"
   },
   "allowScripts": {
     "esbuild@0.25.12": true
