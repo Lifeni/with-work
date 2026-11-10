@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { Check } from "@vicons/tabler";
 import { formatTime } from "@/lib/utils";
 import { useWorkspaceStore } from "@/stores/workspace";
@@ -17,8 +17,17 @@ const right = computed(() => ws.value?.right ?? "");
 // 内容变化即视为“已自动保存”时刻
 const contentKey = computed(() => `${left.value}\u0000${right.value}`);
 const savedAt = ref(new Date());
+let savedAtTimer: ReturnType<typeof setTimeout> | null = null;
 watch(contentKey, () => {
-  savedAt.value = new Date();
+  if (savedAtTimer) clearTimeout(savedAtTimer);
+  // 避免连续输入时 live region 每个按键都播报一次；停下来后再确认已保存。
+  savedAtTimer = setTimeout(() => {
+    savedAt.value = new Date();
+    savedAtTimer = null;
+  }, 400);
+});
+onUnmounted(() => {
+  if (savedAtTimer) clearTimeout(savedAtTimer);
 });
 </script>
 
@@ -40,8 +49,8 @@ watch(contentKey, () => {
     <span class="hidden sm:inline">左 {{ left.length }} 字符 · 右 {{ right.length }} 字符</span>
 
     <div class="flex-1" />
-    <span class="flex items-center gap-1">
-      <Check class="size-3" />
+    <span class="flex items-center gap-1" role="status" aria-live="polite">
+      <Check class="size-3" aria-hidden="true" />
       已自动保存 {{ formatTime(savedAt.getTime()) }}
     </span>
   </footer>

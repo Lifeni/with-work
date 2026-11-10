@@ -195,6 +195,21 @@ describe("EditorView 设置联动", () => {
     expect(opts.wordWrap).toBe("off");
     wrapper.unmount();
   });
+
+  it("左右宽度分隔条可用方向键调节并播报当前比例", async () => {
+    const { useSettingsStore } = await import("@/stores/settings");
+    const settings = useSettingsStore();
+    useWorkspaceStore().createWorkspace();
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+
+    const handle = wrapper.get('[role="separator"][aria-label="调节左右编辑器宽度"]');
+    expect(handle.attributes("aria-valuenow")).toBe("50");
+    await handle.trigger("keydown", { key: "ArrowRight" });
+    expect(settings.editorSplit).toBeCloseTo(0.52);
+    expect(handle.attributes("aria-valuenow")).toBe("52");
+    wrapper.unmount();
+  });
 });
 
 describe("EditorView 提取差异", () => {

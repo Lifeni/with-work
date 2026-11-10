@@ -25,15 +25,18 @@ export interface ToolConfig {
   ruleId?: string;
 }
 
+export type ToolCategory = "行处理" | "文本转换" | "分割与规则";
+
 export interface GlobalTool {
   id: string;
   name: string;
   description: string;
   icon: Component;
+  category: ToolCategory;
   /** 需要配置参数时置为 true，点击后弹出配置对话框 */
   needsConfig?: boolean;
-  /** 不在左侧工具栏显示（功能已融入查找替换面板等位置） */
-  hideFromRail?: boolean;
+  /** 默认不在悬浮工具栏显示，用户仍可在自定义菜单中开启 */
+  defaultHidden?: boolean;
   run: (input: string, config?: ToolConfig) => string;
 }
 
@@ -53,6 +56,7 @@ export const tools: GlobalTool[] = [
     name: "行排序 · 升序",
     description: "按字母顺序升序排列每一行",
     icon: SortAscending,
+    category: "行处理",
     run: (i) => join([...lines(i)].sort(compare)),
   },
   {
@@ -60,6 +64,7 @@ export const tools: GlobalTool[] = [
     name: "行排序 · 降序",
     description: "按字母顺序降序排列每一行",
     icon: SortDescending,
+    category: "行处理",
     run: (i) => join([...lines(i)].sort((a, b) => -compare(a, b))),
   },
   {
@@ -67,6 +72,7 @@ export const tools: GlobalTool[] = [
     name: "反转行序",
     description: "把每一行的顺序颠倒",
     icon: FlipVertical,
+    category: "行处理",
     run: (i) => join([...lines(i)].reverse()),
   },
   {
@@ -74,6 +80,7 @@ export const tools: GlobalTool[] = [
     name: "去重行",
     description: "删除重复的行（保留首次出现的位置）",
     icon: Filter,
+    category: "行处理",
     run: (i) => join([...new Set(lines(i))]),
   },
   {
@@ -81,6 +88,7 @@ export const tools: GlobalTool[] = [
     name: "去除行首尾空格",
     description: "清理每一行两端的空白字符",
     icon: AlignLeft,
+    category: "行处理",
     run: (i) => join(lines(i).map((s) => s.trim())),
   },
   {
@@ -88,6 +96,7 @@ export const tools: GlobalTool[] = [
     name: "删除空行",
     description: "删除空白行",
     icon: Eraser,
+    category: "行处理",
     run: (i) => join(lines(i).filter((s) => s.trim() !== "")),
   },
   {
@@ -95,6 +104,7 @@ export const tools: GlobalTool[] = [
     name: "去除空格和 Tab",
     description: "删除所有空格和 Tab，保留换行",
     icon: Space,
+    category: "文本转换",
     run: (i) => i.replace(/[^\S\r\n]/g, ""),
   },
   {
@@ -102,6 +112,7 @@ export const tools: GlobalTool[] = [
     name: "转大写",
     description: "全部转为大写字母",
     icon: LetterCaseUpper,
+    category: "文本转换",
     run: (i) => i.toUpperCase(),
   },
   {
@@ -109,6 +120,7 @@ export const tools: GlobalTool[] = [
     name: "转小写",
     description: "全部转为小写字母",
     icon: LetterCaseLower,
+    category: "文本转换",
     run: (i) => i.toLowerCase(),
   },
   {
@@ -116,8 +128,9 @@ export const tools: GlobalTool[] = [
     name: "分割为列表",
     description: "按分隔符把文本拆成一行一条的列表",
     icon: List,
+    category: "分割与规则",
     needsConfig: true,
-    hideFromRail: true,
+    defaultHidden: true,
     run: (i, cfg) => {
       const r = splitText(i, {
         delimiter: cfg?.delimiter ?? "newline",
@@ -134,8 +147,9 @@ export const tools: GlobalTool[] = [
     name: "按规则替换",
     description: "把一条替换规则应用到当前文本（选区优先）",
     icon: Replace,
+    category: "分割与规则",
     needsConfig: true,
-    hideFromRail: true,
+    defaultHidden: true,
     run: (i, cfg) => {
       const rule = useRulesStore().rules.find((r) => r.id === cfg?.ruleId);
       if (!rule) return i;

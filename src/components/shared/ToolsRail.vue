@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { Download, Settings, Trash, Upload } from "@vicons/tabler";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import DropdownMenu from "@/components/ui/dropdown-menu.vue";
+import TooltipIconButton from "@/components/ui/tooltip-icon-button.vue";
 import favicon from "@/assets/favicon.svg";
 import {
   applyBackup,
@@ -143,6 +144,7 @@ const onTemplatesFile = (e: Event) => {
 
 <template>
   <aside
+    aria-label="全局工具与数据入口"
     class="flex w-12 shrink-0 flex-col items-center gap-1.5 border-r border-border bg-card py-2.5"
   >
     <!-- 品牌区：Logo + 中文左列 / 英文右列 竖排（底部对齐） -->
@@ -163,28 +165,39 @@ const onTemplatesFile = (e: Event) => {
 
     <!-- 底部全局入口：导入、导出、设置 -->
     <div class="flex min-h-0 w-full flex-1 flex-col items-center justify-end gap-1 pb-1">
-      <DropdownMenu :options="importMenuOptions" @select="onImportMenuSelect">
-        <button
-          type="button"
+      <DropdownMenu
+        v-slot="{ open }"
+        aria-label="导入数据"
+        :options="importMenuOptions"
+        @select="onImportMenuSelect"
+      >
+        <TooltipIconButton
           title="导入"
           aria-label="导入"
+          aria-haspopup="menu"
+          :aria-expanded="open"
           class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           <Upload class="size-[18px]" />
-        </button>
+        </TooltipIconButton>
       </DropdownMenu>
-      <DropdownMenu :options="exportMenuOptions" @select="onExportMenuSelect">
-        <button
-          type="button"
+      <DropdownMenu
+        v-slot="{ open }"
+        aria-label="导出数据"
+        :options="exportMenuOptions"
+        @select="onExportMenuSelect"
+      >
+        <TooltipIconButton
           title="导出"
           aria-label="导出"
+          aria-haspopup="menu"
+          :aria-expanded="open"
           class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           <Download class="size-[18px]" />
-        </button>
+        </TooltipIconButton>
       </DropdownMenu>
-      <button
-        type="button"
+      <TooltipIconButton
         title="设置"
         aria-label="设置"
         :aria-pressed="uiStore.settingsOpen"
@@ -199,7 +212,7 @@ const onTemplatesFile = (e: Event) => {
         "
       >
         <Settings class="size-[18px]" />
-      </button>
+      </TooltipIconButton>
     </div>
 
     <input

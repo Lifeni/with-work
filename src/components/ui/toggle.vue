@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { useAttrs } from "vue";
+import Button from "@/components/ui/button.vue";
 import { cn } from "@/lib/utils";
 
 /**
- * Toggle：开关按钮（原生实现，Naive 无对应小控件）。
- * title 属性作为原生 title 透传（与 Button 组件一致，使用浏览器原生提示）。
+ * Toggle：紧凑的开关键，底层复用 Naive n-button。
+ * Naive 的 NSwitch / NCheckbox 体积不适合高密度工具栏，因此只保留按钮外观适配层。
  */
-const props = withDefaults(defineProps<{ active?: boolean; type?: "button" | "submit" }>(), {
-  active: false,
-  type: "button",
-});
+const props = withDefaults(
+  defineProps<{ active?: boolean; type?: "button" | "submit"; iconOnly?: boolean }>(),
+  {
+    active: false,
+    type: "button",
+    iconOnly: false,
+  },
+);
 
 const attrs = useAttrs();
 const rest = (() => {
@@ -19,20 +24,20 @@ const rest = (() => {
 </script>
 
 <template>
-  <button
+  <Button
     :type="props.type"
+    :variant="props.active ? 'default' : 'outline'"
+    :size="props.iconOnly ? 'icon-sm' : 'sm'"
     :aria-pressed="props.active"
     :class="
       cn(
-        'inline-flex h-7 items-center justify-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors [&_svg]:size-3.5',
-        props.active
-          ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+        'items-center justify-center text-xs font-medium [&_svg]:size-3.5',
+        props.iconOnly ? 'h-6.5 w-6.5 px-0' : 'h-7 gap-1 px-2',
         $attrs.class as string,
       )
     "
     v-bind="rest"
   >
     <slot />
-  </button>
+  </Button>
 </template>

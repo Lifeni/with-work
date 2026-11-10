@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, useAttrs } from "vue";
-import { NButton } from "naive-ui";
+import { NButton, NTooltip } from "naive-ui";
 import { cn } from "@/lib/utils";
+
+defineOptions({ inheritAttrs: false });
 
 /**
  * Button：Naive UI n-button 的薄封装，保持原有 variant/size 语义。
  * - 尺寸映射：default→medium、sm→small、lg→large；图标按钮使用固定宽高的圆角矩形。
- * - title 属性作为原生 title 透传，同时转为 aria-label（可访问性与测试定位）。
+ * - title 转为 aria-label；图标按钮使用 Naive tooltip，带文字按钮保留原生 title。
  * - 激活态使用 ww-active 类（通过 CSS 变量覆盖 Naive 按钮色，避免被库样式覆盖）。
  */
 
@@ -17,11 +19,17 @@ const props = withDefaults(
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm";
     /** 激活态：通过内联 CSS 变量覆盖按钮底色（Naive 按钮样式是内联变量，CSS 类无法覆盖） */
     active?: boolean;
+    /** 非 icon 尺寸但在某些断点只显示图标时，可强制启用 tooltip */
+    tooltip?: boolean;
   }>(),
-  { type: "button", variant: "default", size: "default", active: false },
+  { type: "button", variant: "default", size: "default", active: false, tooltip: false },
 );
 
 const attrs = useAttrs();
+const tooltipText = computed(() => {
+  const title = attrs.title;
+  return typeof title === "string" && title.trim() ? title : undefined;
+});
 
 const naiveType = computed(() => {
   switch (props.variant) {
@@ -61,9 +69,12 @@ const naiveSize = computed(() => {
 // 图标按钮：统一圆角矩形（不用 Naive 的 circle，避免圆形/矩形混用）；
 // 固定宽高 + 去掉内边距保证图标完全居中（配合 index.css 的 .ww-icon-btn 强制规则）
 const isIconSize = computed(() => props.size === "icon" || props.size === "icon-sm");
+const useTooltip = computed(
+  () => (isIconSize.value || props.tooltip) && Boolean(tooltipText.value),
+);
 const sizeStyle = computed(() => {
   if (props.size === "icon") return { width: "36px", height: "36px" };
-  if (props.size === "icon-sm") return { width: "26px", height: "26px" };
+  if (props.size === "icon-sm") return { width: "28px", height: "28px" };
   return undefined;
 });
 
@@ -108,7 +119,7 @@ const mergedStyle = computed(() => {
   return base;
 });
 
-// 分离 title（原生 title 透传 + aria-label），class 单独合并
+// 分离 title（tooltip / 原生 title + aria-label），class 单独合并
 const forwarding = computed(() => {
   const { title, disabled, class: _cls, ...rest } = attrs as Record<string, unknown>;
   const titleVal = typeof title === "string" ? title : undefined;
@@ -116,24 +127,47 @@ const forwarding = computed(() => {
     title: titleVal,
     ariaLabel: titleVal,
     disabled: Boolean(disabled),
-    rest: { ...rest, title: titleVal },
+    rest: { ...rest, title: useTooltip.value ? undefined : titleVal },
     className: _cls,
   };
 });
 </script>
 
 <template>
-  <NButton
-    :attr-type="props.type"
-    :type="naiveType"
-    :size="naiveSize"
-    :bordered="bordered"
-    :disabled="forwarding.disabled"
-    :aria-label="forwarding.ariaLabel"
-    :style="mergedStyle"
-    :class="cn(forwarding.className as string, 'align-middle', isIconSize && 'ww-icon-btn')"
-    v-bind="forwarding.rest"
-  >
-    <slot />
-  </NButton>
+  <span class="contents">
+    <NTooltip v-if="useTooltip" placement="top" :delay="250">
+      <template #trigger>
+        <NButton
+          :attr-type="props.type"
+          :type="naiveType"
+          :size="naiveSize"
+          :bordered="bordered"
+          :disabled="forwarding.disabled"
+          :aria-label="forwarding.ariaLabel"
+          :style="mergedStyle"
+          :class="
+            cn(forwarding.className as string, 'shrink-0 align-middle', isIconSize && 'ww-icon-btn')
+          "
+          v-bind="forwarding.rest"
+        >
+          <slot />
+        </NButton>
+      </template>
+      {{ tooltipText }}
+    </NTooltip>
+    <NButton
+      v-else
+      :attr-type="props.type"
+      :type="naiveType"
+      :size="naiveSize"
+      :bordered="bordered"
+      :disabled="forwarding.disabled"
+      :aria-label="forwarding.ariaLabel"
+      :style="mergedStyle"
+      :class="cn(forwarding.className as string, 'align-middle', isIconSize && 'ww-icon-btn')"
+      v-bind="forwarding.rest"
+    >
+      <slot />
+    </NButton>
+  </span>
 </template>

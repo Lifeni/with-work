@@ -6,6 +6,9 @@ const toastStore = useToastStore();
 
 <template>
   <div
+    role="status"
+    aria-live="polite"
+    aria-atomic="false"
     class="pointer-events-none fixed bottom-10 left-1/2 z-[200] flex -translate-x-1/2 flex-col items-center gap-2"
   >
     <div

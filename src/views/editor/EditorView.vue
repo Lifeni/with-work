@@ -453,6 +453,19 @@ function importFromFocused(target: "staging" | "text-template" | "sort-template"
 
 // 左右宽度比例（可拖动，记忆在设置中；增量式避免按下时突跳）
 const split = computed(() => settingsStore.editorSplit ?? 0.5);
+const SPLIT_KEYBOARD_STEP = 0.02;
+
+function setEditorSplit(ratio: number) {
+  settingsStore.setEditorSplit(Math.min(MAX_EDITOR_SPLIT, Math.max(MIN_EDITOR_SPLIT, ratio)));
+}
+
+function handleSplitKeydown(event: KeyboardEvent) {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  const step = event.shiftKey ? 0.1 : SPLIT_KEYBOARD_STEP;
+  setEditorSplit(split.value + (event.key === "ArrowRight" ? step : -step));
+}
+
 function startSplitResize(e: PointerEvent) {
   e.preventDefault();
   const startX = e.clientX;
@@ -461,16 +474,20 @@ function startSplitResize(e: PointerEvent) {
     const rect = editorAreaRef.value?.getBoundingClientRect();
     if (!rect) return;
     const ratio = startRatio + (ev.clientX - startX) / rect.width;
-    settingsStore.setEditorSplit(Math.min(MAX_EDITOR_SPLIT, Math.max(MIN_EDITOR_SPLIT, ratio)));
+    setEditorSplit(ratio);
   };
-  const onUp = () => {
+  const finish = () => {
     window.removeEventListener("pointermove", onMove);
-    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointerup", finish);
+    window.removeEventListener("pointercancel", finish);
+    window.removeEventListener("blur", finish);
     document.body.style.userSelect = "";
   };
   document.body.style.userSelect = "none";
   window.addEventListener("pointermove", onMove);
-  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointerup", finish);
+  window.addEventListener("pointercancel", finish);
+  window.addEventListener("blur", finish);
 }
 
 /** 编辑器内容变化：写入 store（Model 变化事件，工作区切换/撤销重做同样触发） */
@@ -523,13 +540,21 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
         class="relative flex shrink-0 items-center justify-center gap-2 px-1 max-lg:flex-wrap lg:w-9 lg:flex-col lg:justify-center lg:px-0"
       >
         <div
+          role="separator"
+          tabindex="0"
+          aria-orientation="vertical"
+          aria-label="调节左右编辑器宽度"
+          :aria-valuemin="Math.round(MIN_EDITOR_SPLIT * 100)"
+          :aria-valuemax="Math.round(MAX_EDITOR_SPLIT * 100)"
+          :aria-valuenow="Math.round(split * 100)"
+          @keydown="handleSplitKeydown"
           class="absolute inset-y-0 -left-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-transparent hover:bg-primary/25 lg:block"
           title="拖动调节左右宽度"
           @pointerdown="startSplitResize"
         />
         <div
+          aria-hidden="true"
           class="absolute inset-y-0 -right-1.5 z-10 hidden w-3 cursor-ew-resize touch-none select-none rounded bg-transparent hover:bg-primary/25 lg:block"
-          title="拖动调节左右宽度"
           @pointerdown="startSplitResize"
         />
         <Button
@@ -560,16 +585,31 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
         >
           <FileDiff />
         </Button>
-        <Button variant="ghost" size="icon-sm" title="交换内容" @click="wsStore.swapSides(ws!.id)">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="交换左右编辑器内容"
+          @click="wsStore.swapSides(ws!.id)"
+        >
           <!-- 窄屏上下堆叠时用上下交换图标，宽屏左右并排用左右交换图标 -->
           <ArrowsUpDown class="lg:hidden" />
           <ArrowsLeftRight class="hidden lg:block" />
         </Button>
-        <Button variant="ghost" size="icon-sm" title="复制到另一侧" @click="copyLeftToRight">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="复制左编辑器到右编辑器"
+          @click="copyLeftToRight"
+        >
           <ChevronDown class="lg:hidden" />
           <ChevronRight class="hidden lg:block" />
         </Button>
-        <Button variant="ghost" size="icon-sm" title="复制到另一侧" @click="copyRightToLeft">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="复制右编辑器到左编辑器"
+          @click="copyRightToLeft"
+        >
           <ChevronUp class="lg:hidden" />
           <ChevronLeft class="hidden lg:block" />
         </Button>

@@ -41,6 +41,16 @@ describe("App 整体布局", () => {
     wrapper.unmount();
   });
 
+  it("提供页面主标题和跳到编辑器的键盘捷径", async () => {
+    const wrapper = mount(App, { attachTo: document.body });
+    await tick();
+
+    expect(wrapper.get("h1").text()).toBe("一点微小的工作");
+    expect(wrapper.get('a[href="#ww-editor-main"]').text()).toBe("跳到编辑器");
+    expect(wrapper.get("main").attributes("id")).toBe("ww-editor-main");
+    wrapper.unmount();
+  });
+
   it("点击设置按钮打开设置弹窗", async () => {
     const wrapper = mount(App, { attachTo: document.body });
     await tick();
@@ -61,14 +71,27 @@ describe("App 整体布局", () => {
     expect(useWorkspaceStore().workspaces).toHaveLength(2);
     wrapper.unmount();
   });
+
+  it("左右复制按钮使用可区分的方向名称", async () => {
+    const wrapper = mount(App, { attachTo: document.body });
+    await tick();
+
+    expect(wrapper.find('[aria-label="复制左编辑器到右编辑器"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="复制右编辑器到左编辑器"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="复制到另一侧"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
 });
 
 describe("App 底部状态栏", () => {
-  it("显示当前工作区名称与自动保存提示", async () => {
+  it("显示当前工作区名称，并以非打断式状态播报自动保存", async () => {
     const wrapper = mount(App, { attachTo: document.body });
     await tick();
     expect(wrapper.text()).toContain("工作区 1");
     expect(wrapper.text()).toContain("已自动保存");
+    const saveStatus = wrapper.get("footer [role='status']");
+    expect(saveStatus.attributes("aria-live")).toBe("polite");
+    expect(saveStatus.text()).toContain("已自动保存");
     wrapper.unmount();
   });
 });

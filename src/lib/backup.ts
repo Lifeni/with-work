@@ -11,6 +11,7 @@ import { normalizeWorkspaces } from "./workspaceMigration";
 import { normalizeSettings } from "./settingsMigration";
 import { downloadText, sanitizeFileName } from "./utils";
 import { applyTheme } from "./theme";
+import { DEFAULT_HIDDEN_TEXT_TOOL_IDS } from "@/tools/toolbarVisibility";
 
 export function collectBackup(): BackupData {
   const wsStore = useWorkspaceStore();
@@ -18,7 +19,7 @@ export function collectBackup(): BackupData {
   const settings = useSettingsStore();
   return {
     app: "with-work",
-    version: 4,
+    version: 5,
     exportedAt: new Date().toISOString(),
     workspaces: wsStore.workspaces,
     staging: useStagingStore().items,
@@ -33,6 +34,8 @@ export function collectBackup(): BackupData {
       stagingWidth: settings.stagingWidth,
       editorSplit: settings.editorSplit,
       stagingTemplateHeight: settings.stagingTemplateHeight,
+      hiddenEditorToolbarItems: settings.hiddenEditorToolbarItems,
+      hiddenTextToolIds: settings.hiddenTextToolIds,
     },
     diff: { left: activeWs?.left ?? "", right: activeWs?.right ?? "" },
   };
@@ -60,7 +63,7 @@ export function parseBackup(
     if (typeof version !== "number") {
       return { ok: false, error: "备份文件已损坏：缺少有效的版本号" };
     }
-    if (version !== 1 && version !== 2 && version !== 3 && version !== 4) {
+    if (version !== 1 && version !== 2 && version !== 3 && version !== 4 && version !== 5) {
       return { ok: false, error: `不支持的备份版本：${version}` };
     }
     // workspaces 缺失/非数组说明文件残缺：此时归一化会得到空数组，
@@ -105,7 +108,11 @@ export function applyBackup(d: BackupData) {
   useTemplatesStore().replaceAll(d.templates);
   useTextTemplatesStore().replaceAll(d.textTemplates);
   const settings = normalizeSettings(d.settings);
-  useSettingsStore().replaceAll(settings);
+  useSettingsStore().replaceAll({
+    ...settings,
+    hiddenEditorToolbarItems: settings.hiddenEditorToolbarItems ?? [],
+    hiddenTextToolIds: settings.hiddenTextToolIds ?? [...DEFAULT_HIDDEN_TEXT_TOOL_IDS],
+  });
   // v1/v2 备份的工作区只有单栏 content，双栏内容只存在于 diff 里，需要回填；
   // v3+ 的工作区本身已带 left/right，diff 只是导出时那个工作区的快照，
   // 无条件回填会把「另一个工作区」的内容覆盖到恢复后的首个工作区上。

@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
+import { NInputNumber } from "naive-ui";
 import SettingsView from "@/views/settings/SettingsView.vue";
 import { resetStores } from "@/test/resetStores";
+import { useSettingsStore } from "@/stores/settings";
 
 beforeEach(() => {
   resetStores();
@@ -39,14 +41,30 @@ describe("SettingsView 关于板块", () => {
     wrapper.unmount();
   });
 
-  it("外观设置可切换主题与字号", async () => {
+  it("主题使用分段单选控件并可清晰切换选中状态", async () => {
     const wrapper = mount(SettingsView, { attachTo: document.body });
+    const settings = useSettingsStore();
 
-    // 切换到深色主题按钮
-    const darkBtn = [...document.querySelectorAll("button")].find((b) => b.textContent === "深色");
+    const themeGroup = document.querySelector(".n-radio-group");
+    expect(themeGroup).not.toBeNull();
+    expect(themeGroup?.classList.contains("ww-theme-switch")).toBe(true);
+    expect(themeGroup?.classList.contains("ww-control-text")).toBe(true);
+    expect(themeGroup?.getAttribute("aria-label")).toBe("主题");
+    expect(document.querySelector(".n-input-number")?.classList.contains("ww-control-text")).toBe(
+      true,
+    );
+    const fontSizeInput = wrapper.findComponent(NInputNumber);
+    expect(fontSizeInput.props("showButton")).toBe(false);
+    expect(fontSizeInput.props("inputProps")).toMatchObject({ "aria-label": "编辑器字号" });
+    const darkBtn = [...document.querySelectorAll<HTMLElement>(".n-radio-button")].find(
+      (button) => button.textContent?.trim() === "深色",
+    );
+    expect(darkBtn).toBeDefined();
     darkBtn!.click();
     await wrapper.vm.$nextTick();
-    // theme 变化经设置 store 生效（applyTheme 已在 setup.ts 中 mock）
+
+    expect(settings.theme).toBe("dark");
+    expect(darkBtn!.classList.contains("n-radio-button--checked")).toBe(true);
     wrapper.unmount();
   });
 });

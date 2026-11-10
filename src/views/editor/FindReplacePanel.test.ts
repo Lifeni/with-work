@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
+import { NDropdown, NSelect } from "naive-ui";
 import FindReplacePanel from "@/views/editor/FindReplacePanel.vue";
+import ToolbarVisibilityMenu from "@/components/shared/ToolbarVisibilityMenu.vue";
 import { resetStores } from "@/test/resetStores";
 import { createMockEditor } from "@/test/mockEditor";
 import { useRulesStore } from "@/stores/rules";
+import { useSettingsStore } from "@/stores/settings";
 import { useTemplatesStore } from "@/stores/templates";
 import { useToastStore } from "@/stores/toast";
 
@@ -31,7 +34,84 @@ async function typeFind(wrapper: ReturnType<typeof mountPanel>["wrapper"], text:
   await wrapper.vm.$nextTick();
 }
 
+function dropdownForOption(wrapper: ReturnType<typeof mountPanel>["wrapper"], key: string) {
+  const dropdown = wrapper
+    .findAllComponents(NDropdown)
+    .find((candidate) =>
+      (candidate.props("options") as Array<{ key?: string }> | undefined)?.some(
+        (option) => option.key === key,
+      ),
+    );
+  if (!dropdown) throw new Error(`找不到包含 ${key} 的下拉菜单`);
+  return dropdown;
+}
+
+function selectForPlaceholder(
+  wrapper: ReturnType<typeof mountPanel>["wrapper"],
+  placeholder: string,
+) {
+  const select = wrapper
+    .findAllComponents(NSelect)
+    .find((candidate) => candidate.props("placeholder") === placeholder);
+  if (!select) throw new Error(`找不到占位文本为 ${placeholder} 的下拉选择`);
+  return select;
+}
+
 describe("FindReplacePanel 查找", () => {
+  it("查找、替换和筛选控件具有可访问名称", async () => {
+    const { wrapper } = mountPanel();
+
+    expect(wrapper.get('input[placeholder="查找"]').attributes("aria-label")).toBe("查找文本");
+    expect(wrapper.get('input[placeholder="替换为"]').attributes("aria-label")).toBe("替换为");
+    const ruleSelect = selectForPlaceholder(wrapper, "替换规则");
+    expect(ruleSelect.props("inputProps")).toMatchObject({
+      role: "combobox",
+      "aria-label": "替换规则",
+      "aria-autocomplete": "list",
+      "aria-expanded": false,
+    });
+    expect(ruleSelect.props("filterable")).toBe(true);
+    expect(ruleSelect.props("menuProps")).toMatchObject({
+      role: "listbox",
+      "aria-label": "替换规则",
+    });
+    expect(
+      (ruleSelect.props("nodeProps") as (option: { value: string }) => Record<string, unknown>)({
+        value: "rule-1",
+      }),
+    ).toMatchObject({
+      role: "option",
+      "aria-selected": "false",
+    });
+
+    const sortSelect = selectForPlaceholder(wrapper, "排序规则");
+    expect(sortSelect.props("inputProps")).toMatchObject({
+      role: "combobox",
+      "aria-label": "排序规则",
+      "aria-autocomplete": "list",
+      "aria-expanded": false,
+    });
+    expect(sortSelect.props("filterable")).toBe(true);
+    expect(sortSelect.props("menuProps")).toMatchObject({
+      role: "listbox",
+      "aria-label": "排序规则",
+    });
+
+    ruleSelect.vm.$emit("update:show", true);
+    await wrapper.vm.$nextTick();
+    expect(ruleSelect.props("inputProps")).toMatchObject({ "aria-expanded": true });
+    wrapper.unmount();
+  });
+
+  it("无效正则使用 alert 实时播报", async () => {
+    const { wrapper } = mountPanel();
+    await wrapper.get('[aria-label="正则表达式"]').trigger("click");
+    await typeFind(wrapper, "[");
+
+    expect(wrapper.get('[role="alert"]').text()).toContain("正则表达式无效");
+    wrapper.unmount();
+  });
+
   it("输入查找词后显示匹配计数并自动高亮", async () => {
     const { wrapper } = mountPanel();
     await typeFind(wrapper, "hello");
@@ -48,6 +128,7 @@ describe("FindReplacePanel 查找", () => {
     const { wrapper } = mountPanel();
     await typeFind(wrapper, "不存在的内容");
     expect(wrapper.text()).toContain("0");
+    expect(wrapper.get('[role="status"]').attributes("aria-label")).toBe("没有匹配项");
     wrapper.unmount();
   });
 });
@@ -139,8 +220,8 @@ describe("FindReplacePanel 替换", () => {
       matchCase: false,
     });
     const { wrapper } = mountPanel("hello vue");
-    const select = wrapper.find('select[title="替换规则"]');
-    await select.setValue("r1");
+    selectForPlaceholder(wrapper, "替换规则").vm.$emit("update:value", "r1");
+    await wrapper.vm.$nextTick();
 
     // 规则应用后查找/替换输入框被填入
     expect((wrapper.find('input[placeholder="查找"]').element as HTMLInputElement).value).toBe(
@@ -156,8 +237,8 @@ describe("FindReplacePanel 替换", () => {
 describe("FindReplacePanel 分割", () => {
   it("分割聚焦编辑器内容并原地更新", async () => {
     const { wrapper, focused } = mountPanel("a,b,c");
-    const select = wrapper.find('select[title="分割 / 组合分隔符"]');
-    await select.setValue("comma");
+    dropdownForOption(wrapper, "comma").vm.$emit("select", "comma");
+    await wrapper.vm.$nextTick();
     const btn = wrapper.findAll("button").find((b) => b.text() === "分割");
     await btn!.trigger("click");
 
@@ -179,7 +260,8 @@ describe("FindReplacePanel 分割", () => {
 describe("FindReplacePanel 组合", () => {
   it("把聚焦编辑器多行按所选组合符拼成一行并原地更新", async () => {
     const { wrapper, focused } = mountPanel("苹果\n香蕉\n橘子");
-    await wrapper.find('select[title="分割 / 组合分隔符"]').setValue("cn-dunhao");
+    dropdownForOption(wrapper, "cn-dunhao").vm.$emit("select", "cn-dunhao");
+    await wrapper.vm.$nextTick();
     const btn = wrapper.findAll("button").find((b) => b.text() === "组合");
     expect(btn).toBeDefined();
     await btn!.trigger("click");
@@ -210,7 +292,8 @@ describe("FindReplacePanel 组合", () => {
     const wrapper = mount(FindReplacePanel, {
       props: { focusedEditor: focused.editor },
     });
-    await wrapper.find('select[title="分割 / 组合分隔符"]').setValue("comma");
+    dropdownForOption(wrapper, "comma").vm.$emit("select", "comma");
+    await wrapper.vm.$nextTick();
     await wrapper
       .findAll("button")
       .find((b) => b.text() === "组合")!
@@ -257,7 +340,8 @@ describe("FindReplacePanel 分割边界", () => {
 describe("FindReplacePanel 组合提示", () => {
   it("组合符为换行时如实说明结果仍是多行", async () => {
     const { wrapper, focused } = mountPanel("苹果\n香蕉");
-    await wrapper.find('select[title="分割 / 组合分隔符"]').setValue("newline");
+    dropdownForOption(wrapper, "newline").vm.$emit("select", "newline");
+    await wrapper.vm.$nextTick();
 
     await wrapper
       .findAll("button")
@@ -275,7 +359,8 @@ describe("FindReplacePanel 组合提示", () => {
 
   it("输入只有一行时说明是原样保留", async () => {
     const { wrapper, focused } = mountPanel("只有一行");
-    await wrapper.find('select[title="分割 / 组合分隔符"]').setValue("comma");
+    dropdownForOption(wrapper, "comma").vm.$emit("select", "comma");
+    await wrapper.vm.$nextTick();
 
     await wrapper
       .findAll("button")
@@ -293,43 +378,108 @@ describe("FindReplacePanel 组合提示", () => {
 });
 
 describe("FindReplacePanel 工具栏分组", () => {
-  it("四个功能组各自不拆行，分割与组合属于同一组", () => {
+  it("桌面工具栏始终单行，空间不足时横向滚动", () => {
+    const { wrapper } = mountPanel();
+    const toolbar = wrapper.get("[data-ww-toolbar]");
+    expect(toolbar.classes()).toContain("flex-nowrap");
+    expect(toolbar.classes()).toContain("overflow-x-auto");
+    expect(toolbar.classes()).not.toContain("flex-wrap");
+    wrapper.unmount();
+  });
+
+  it("默认展示查找、替换、分割组合、排序与自定义入口", () => {
     const { wrapper } = mountPanel();
     const groups = wrapper.findAll("[data-ww-group]");
-    expect(groups).toHaveLength(4);
-    for (const g of groups) expect(g.classes()).toContain("flex-nowrap");
-
-    // 第 1 组：查找（输入框 + 匹配模式 + 上下切换）
-    expect(groups[0].find('input[placeholder="查找"]').exists()).toBe(true);
-    expect(groups[0].findAll("button").length).toBeGreaterThanOrEqual(5);
-    // 第 2 组：替换
-    expect(groups[1].text()).toContain("全部替换");
-    // 第 3 组：分割 / 组合
-    expect(groups[2].text()).toContain("分割");
-    expect(groups[2].text()).toContain("组合");
-    // 第 4 组：排序
-    expect(groups[3].text()).toContain("排序");
+    expect(groups.length).toBeGreaterThanOrEqual(6);
+    expect(wrapper.find("[data-ww-item=find-options]").exists()).toBe(true);
+    expect(wrapper.find("[data-ww-item=find-navigation]").exists()).toBe(true);
+    expect(wrapper.find("[data-ww-group=replace-actions]").text()).toContain("全部替换");
+    expect(wrapper.find("[data-ww-group=split-join]").text()).toContain("分割");
+    expect(wrapper.find("[data-ww-group=split-join]").text()).toContain("组合");
+    expect(wrapper.find("[data-ww-group=sort]").text()).toContain("排序");
+    expect(wrapper.findComponent(ToolbarVisibilityMenu).exists()).toBe(true);
     wrapper.unmount();
   });
 
-  it("分组之间没有竖线分割条（避免换行时残留在行首）", () => {
+  it("按设置隐藏顶部功能组", () => {
+    useSettingsStore().setHiddenEditorToolbarItems([
+      "find-options",
+      "replace-rules",
+      "split-join",
+      "sort-manage",
+    ]);
     const { wrapper } = mountPanel();
-    expect(wrapper.findAll("[data-ww-group] span.bg-border")).toHaveLength(0);
+
+    expect(wrapper.find("[data-ww-item=find-options]").exists()).toBe(false);
+    expect(wrapper.find("[data-ww-item=replace-rules]").exists()).toBe(false);
+    expect(wrapper.find("[data-ww-group=split-join]").exists()).toBe(false);
+    expect(wrapper.find("[data-ww-item=sort-manage]").exists()).toBe(false);
+    expect(wrapper.find('input[placeholder="查找"]').exists()).toBe(true);
+    expect(wrapper.find('input[placeholder="替换为"]').exists()).toBe(true);
     wrapper.unmount();
   });
 
-  it("查找与替换两个输入框宽度行为一致（同宽、且不随所在组内容变化）", () => {
+  it("工具栏显示菜单的选择结果写入设置", async () => {
+    const { wrapper } = mountPanel();
+    const settings = useSettingsStore();
+    wrapper
+      .findComponent(ToolbarVisibilityMenu)
+      .vm.$emit("update:hiddenIds", ["replace-rules", "sort-manage"]);
+    await wrapper.vm.$nextTick();
+
+    expect(settings.hiddenEditorToolbarItems).toEqual(["replace-rules", "sort-manage"]);
+    wrapper.unmount();
+  });
+
+  it("查找与替换输入框按剩余空间收缩，不侵入后置控件", () => {
     const { wrapper } = mountPanel();
     const boxes = wrapper.findAll("[data-ww-input-box]");
     expect(boxes).toHaveLength(2);
-    // 两个输入框容器类完全一致：固定同宽（w-72）+ 不收缩（shrink-0）
     expect(boxes[0].classes()).toEqual(boxes[1].classes());
-    expect(boxes[0].classes()).toContain("w-72");
-    expect(boxes[0].classes()).toContain("shrink-0");
-    // 内部输入框也保持同一写法（撑满容器）
+    expect(boxes[0].classes()).toContain("min-w-[7rem]");
+    expect(boxes[0].classes()).not.toContain("min-w-0");
+    expect(boxes[0].classes()).toContain("flex-1");
+    expect(boxes[0].classes()).toContain("basis-0");
+    expect(boxes[0].classes()).not.toContain("shrink-0");
+    expect(boxes[0].classes()).not.toContain("w-72");
     expect(wrapper.find('[data-ww-input="find"]').classes()).toEqual(
       wrapper.find('[data-ww-input="replace"]').classes(),
     );
+    expect(wrapper.find('[data-ww-input="find"]').classes()).toContain("min-w-0");
+    expect(wrapper.find('[data-ww-input="find"]').classes()).not.toContain("min-w-[7rem]");
+    const findGroup = wrapper.get("[data-ww-group=find]");
+    expect(findGroup.classes()).toContain("flex-nowrap");
+    expect(findGroup.get("[data-ww-item=find-options]").classes()).toContain("relative");
+    expect(findGroup.get("[data-ww-item=find-navigation]").classes()).toContain("relative");
+    wrapper.unmount();
+  });
+
+  it("下拉框触发器和选项菜单使用统一控件字号", () => {
+    const { wrapper } = mountPanel();
+    const ruleSelect = selectForPlaceholder(wrapper, "替换规则");
+    const sortSelect = selectForPlaceholder(wrapper, "排序规则");
+
+    for (const select of [ruleSelect, sortSelect]) {
+      expect(select.classes()).toContain("ww-control-text");
+      expect(select.props("menuProps")).toMatchObject({ class: "ww-select-menu" });
+    }
+    wrapper.unmount();
+  });
+
+  it("工具栏动作使用统一的尺寸、间距和分层强调样式", () => {
+    const { wrapper } = mountPanel();
+    const buttonByTitle = (title: string) => wrapper.get(`[aria-label="${title}"]`);
+
+    for (const title of ["上一个", "下一个"]) {
+      expect(buttonByTitle(title).classes()).toContain("n-button--tertiary-type");
+    }
+    expect(buttonByTitle("替换当前匹配").classes()).toContain("n-button--default-type");
+    for (const title of ["全部替换", "分割", "组合", "排序"]) {
+      expect(buttonByTitle(title).classes()).toContain("n-button--primary-type");
+    }
+    expect(wrapper.get("[data-ww-group=replace-actions]").classes()).toContain("gap-2");
+    expect(wrapper.get("[data-ww-group=split-join]").classes()).toContain("gap-2");
+    expect(wrapper.get("[data-ww-group=split-join]").find(".n-button-group").exists()).toBe(false);
     wrapper.unmount();
   });
 });
@@ -355,8 +505,8 @@ describe("FindReplacePanel 排序", () => {
       prefixMatch: false,
     });
     const { wrapper, focused } = mountPanel("青岛\n北京\n济南");
-    const select = wrapper.find('select[title="排序规则"]');
-    await select.setValue("t1");
+    selectForPlaceholder(wrapper, "排序规则").vm.$emit("update:value", "t1");
+    await wrapper.vm.$nextTick();
     const btn = wrapper.findAll("button").find((b) => b.text() === "排序");
     await btn!.trigger("click");
 
@@ -368,8 +518,8 @@ describe("FindReplacePanel 排序", () => {
     const store = useTemplatesStore();
     store.addTemplate({ id: "t1", name: "城市", items: ["济南"] });
     const { wrapper, focused } = mountPanel("苹果\n香蕉");
-    const select = wrapper.find('select[title="排序规则"]');
-    await select.setValue("t1");
+    selectForPlaceholder(wrapper, "排序规则").vm.$emit("update:value", "t1");
+    await wrapper.vm.$nextTick();
     const btn = wrapper.findAll("button").find((b) => b.text() === "排序");
     await btn!.trigger("click");
 
