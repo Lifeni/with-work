@@ -131,9 +131,19 @@ const onImportFile = (e: Event) => {
   >
     <div class="space-y-2 rounded-md border border-border p-2.5">
       <div class="grid grid-cols-3 gap-2">
-        <Input v-model="name" placeholder="规则名称（可选）" class="" />
-        <Input v-model="find" placeholder="查找内容" class="h-8 font-mono text-xs" />
-        <Input v-model="replace" placeholder="替换为" class="h-8 font-mono text-xs" />
+        <Input v-model="name" aria-label="规则名称" placeholder="规则名称（可选）" class="" />
+        <Input
+          v-model="find"
+          aria-label="查找内容"
+          placeholder="查找内容"
+          class="h-8 font-mono text-xs"
+        />
+        <Input
+          v-model="replace"
+          aria-label="替换为"
+          placeholder="替换为"
+          class="h-8 font-mono text-xs"
+        />
       </div>
       <div class="flex items-center gap-2">
         <Toggle :active="isRegex" @click="isRegex = !isRegex">正则</Toggle>

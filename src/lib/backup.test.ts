@@ -80,11 +80,11 @@ describe("parseBackup", () => {
     }
   });
 
-  it("接受最新 v4 备份", () => {
-    const d = { ...BASE_BACKUP, version: 4, templates: [], textTemplates: [] };
+  it("接受最新 v5 备份", () => {
+    const d = { ...BASE_BACKUP, version: 5, templates: [], textTemplates: [] };
     const r = parseBackup(JSON.stringify(d));
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.data.version).toBe(4);
+    if (r.ok) expect(r.data.version).toBe(5);
   });
 
   it("非 with-work 文件被拒绝", () => {
@@ -103,7 +103,7 @@ describe("parseBackup", () => {
 });
 
 describe("collectBackup", () => {
-  it("收集全部数据且版本为 4", () => {
+  it("收集全部数据且版本为 5", () => {
     useWorkspaceStore().createWorkspace();
     useStagingStore().add("hello");
     useRulesStore().addRule({
@@ -119,7 +119,7 @@ describe("collectBackup", () => {
 
     const d = collectBackup();
     expect(d.app).toBe("with-work");
-    expect(d.version).toBe(4);
+    expect(d.version).toBe(5);
     expect(d.workspaces).toHaveLength(1);
     expect(d.workspaces[0].name).toBe("工作区 1");
     expect(d.staging).toHaveLength(1);
@@ -130,6 +130,21 @@ describe("collectBackup", () => {
     expect(d.textTemplates).toHaveLength(1);
     expect(d.settings).toHaveProperty("theme");
     expect(d.exportedAt).toBeTruthy();
+  });
+
+  it("备份并恢复工具栏显隐设置", () => {
+    useSettingsStore().setHiddenEditorToolbarItems(["replace-rules", "sort-manage"]);
+    useSettingsStore().setHiddenTextToolIds(["lines-dedupe", "text-upper"]);
+
+    const d = collectBackup();
+    expect(d.settings.hiddenEditorToolbarItems).toEqual(["replace-rules", "sort-manage"]);
+    expect(d.settings.hiddenTextToolIds).toEqual(["lines-dedupe", "text-upper"]);
+
+    useSettingsStore().setHiddenEditorToolbarItems([]);
+    useSettingsStore().setHiddenTextToolIds([]);
+    applyBackup(d);
+    expect(useSettingsStore().hiddenEditorToolbarItems).toEqual(["replace-rules", "sort-manage"]);
+    expect(useSettingsStore().hiddenTextToolIds).toEqual(["lines-dedupe", "text-upper"]);
   });
 
   it("diff 反映当前激活工作区的左右内容", () => {
@@ -156,7 +171,7 @@ describe("collectBackup", () => {
   });
 
   it("宽容处理缺字段的备份：补默认值而不是让恢复流程抛错", () => {
-    const r = parseBackup(JSON.stringify({ app: "with-work", version: 4, workspaces: [] }));
+    const r = parseBackup(JSON.stringify({ app: "with-work", version: 5, workspaces: [] }));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
 
@@ -172,13 +187,13 @@ describe("collectBackup", () => {
   });
 
   it("缺少 workspaces 的残缺备份被拒绝，避免静默清空现有工作区", () => {
-    const r = parseBackup(JSON.stringify({ app: "with-work", version: 4 }));
+    const r = parseBackup(JSON.stringify({ app: "with-work", version: 5 }));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("工作区");
   });
 
   it("workspaces 非数组时同样拒绝", () => {
-    const r = parseBackup(JSON.stringify({ app: "with-work", version: 4, workspaces: "坏数据" }));
+    const r = parseBackup(JSON.stringify({ app: "with-work", version: 5, workspaces: "坏数据" }));
     expect(r.ok).toBe(false);
   });
 
@@ -194,7 +209,7 @@ describe("collectBackup", () => {
     const r = parseBackup(
       JSON.stringify({
         ...BASE_BACKUP,
-        version: 4,
+        version: 5,
         workspaces: [],
         settings: { theme: "dark", fontSize: "big", wordWrap: 0 },
       }),
@@ -284,10 +299,10 @@ describe("collectBackup", () => {
     expect(ws.right).toBe("右栏");
   });
 
-  it("导入 v3/v4 备份时不把 diff 快照覆盖到恢复出的工作区", () => {
+  it("导入 v3 及更新备份时不把 diff 快照覆盖到恢复出的工作区", () => {
     const d = {
       ...BASE_BACKUP,
-      version: 4,
+      version: 5,
       templates: [],
       textTemplates: [],
       workspaces: [{ id: "w1", name: "一号", left: "一号自己的内容", right: "右栏" }],

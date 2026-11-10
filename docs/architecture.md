@@ -41,21 +41,21 @@
 
 ## 目录职责
 
-| 目录                     | 职责                 | 说明                                                                                                                                                                                                                                                                                       |
-| ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/App.vue`            | 应用布局壳           | 左侧品牌栏 / 暂存区（编辑器左侧）/ 编辑器区 / 顶栏 / 状态栏 / 设置弹窗                                                                                                                                                                                                                     |
-| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏/提取差异 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                                                                                                                         |
-| `src/views/settings/`    | 设置内容             | `SettingsView.vue`，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                                                                                                                     |
-| `src/components/ui/`     | 无业务语义的基础组件 | Button、Dialog、DropdownMenu、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 为原生实现                                                                                                                                                                              |
-| `src/components/shared/` | 业务共享组件         | TitleBar、StagingPanel（暂存区+模板+规则）、FloatingEditorToolbar（悬浮工具栏）、PwaUpdatePrompt（PWA 更新提示）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail（品牌栏+设置/导入/导出）、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
-| `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件（防抖写盘 + `flushPersist`）                                                                                                                          |
-| `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                                                                                                                             |
-| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`extractDifferences.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`pwaUpdate.ts`、`storageKeys.ts`、`utils.ts`                                                      |
-| `src/hooks/`             | 自定义 composables   | `useDebounce`                                                                                                                                                                                                                                                                              |
-| `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                                                                                                                       |
-| `src/types/`             | 全局类型定义         | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等                                                                                                                                                                                                               |
-| `src/assets/`            | 静态资源             | `favicon.svg`（品牌 Logo 源文件，模块导入 → 两种构建均内联）                                                                                                                                                                                                                               |
-| `scripts/`               | 构建辅助脚本         | `icons.mjs`（PWA 图标与 favicon.ico 生成）、`ship-single.mjs`（单文件图标内联与产物分发）                                                                                                                                                                                                  |
+| 目录                     | 职责                 | 说明                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/App.vue`            | 应用布局壳           | 左侧品牌栏 / 暂存区（编辑器左侧）/ 编辑器区 / 顶栏 / 状态栏 / 设置弹窗                                                                                                                                                                                                                                                                                |
+| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏/提取差异 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                                                                                                                                                                                    |
+| `src/views/settings/`    | 设置内容             | `SettingsView.vue`，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                                                                                                                                                                                |
+| `src/components/ui/`     | 无业务语义的基础组件 | Button、TooltipIconButton、Dialog、DropdownMenu/NDropdown、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 基于 NButton；`dropdown.ts` 统一补齐菜单 ARIA 与键盘焦点                                                                                                                                                              |
+| `src/components/shared/` | 业务共享组件         | TitleBar（工作区标签与右键菜单）、StagingPanel（暂存区+模板+规则）、FloatingEditorToolbar（悬浮工具栏与自定义显隐）、ToolbarVisibilityMenu、PwaUpdatePrompt（PWA 更新提示）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail（品牌栏+设置/导入/导出）、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
+| `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件（防抖写盘 + `flushPersist`）                                                                                                                                                                                     |
+| `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                                                                                                                                                                                        |
+| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`extractDifferences.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`pwaUpdate.ts`、`storageKeys.ts`、`utils.ts`                                                                                                                 |
+| `src/hooks/`             | 自定义 composables   | `useDebounce`                                                                                                                                                                                                                                                                                                                                         |
+| `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                                                                                                                                                                                  |
+| `src/types/`             | 全局类型定义         | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等                                                                                                                                                                                                                                                                          |
+| `src/assets/`            | 静态资源             | `favicon.svg`（品牌 Logo 源文件，模块导入 → 两种构建均内联）                                                                                                                                                                                                                                                                                          |
+| `scripts/`               | 构建辅助脚本         | `icons.mjs`（PWA 图标与 favicon.ico 生成）、`ship-single.mjs`（单文件图标内联与产物分发）                                                                                                                                                                                                                                                             |
 
 ## 关键机制
 
@@ -74,8 +74,10 @@
 - 五个功能一体：**查找**（正则/大小写/计数/高亮）、**替换**（全部替换 + 规则下拉 + 规则管理）、
   **分割**（按分隔符把一行拆成多行）、**组合**（把多行按同一分隔符拼成一行，即 `lib/join.ts`）、
   **排序**（升序/降序/按排序模板）。
-- 工具栏按功能分组（查找 / 替换 / 分割·组合 / 排序）：外层允许换行、组内 `flex-nowrap`，
-  窄屏时整组一起换行，不会把「全部替换」和它的设置按钮之类拆开。
+- 命令栏始终单行且 `flex-nowrap`，宽度不足时整条横向滚动；中等宽度收起动作文字并保留图标与 tooltip，
+  宽屏恢复文字。查找/替换输入框可伸缩，不再使用固定大宽度。
+- 分隔符选择按钮与分割/组合按钮保持同一紧凑分组，但各自是独立按钮并保留间距：下拉按钮展示当前分隔符，
+  分割和组合保持为直接动作；替换规则和排序模板使用可筛选 `NSelect`，并补齐 combobox/listbox/option 语义。
 - 分割与组合共用同一个分隔符下拉（`lib/split.ts` 的 `DELIMITER_LITERALS` 是字面量唯一来源）；
   自定义正则模式下，组合取它在文本中匹配到的字面量，匹配不到或只匹配到空串时如实报错。
 - 排序支持**开头匹配**（前缀匹配）：模板可自带 `prefixMatch` 属性，工具栏开关可临时开启；
@@ -85,6 +87,15 @@
 - 替换规则（`stores/rules.ts`）与排序模板（`stores/templates.ts`）可导入/导出。
 - 悬浮工具栏提供行排序、删除空行、去除空格和 Tab、大小写转换等文本工具；
   去除空格和 Tab 会删除选区或全文中的横向空白字符并保留换行。
+- 顶部和悬浮工具栏均有基于 `NPopover + NCheckboxGroup` 的自定义入口，可逐项控制显示；选择写入设置并进入备份。
+  `NDropdown` 的菜单与菜单项由 `components/ui/dropdown.ts` 补齐 ARIA，支持方向键、Enter、Esc 和焦点恢复；
+  工具按钮右键或 Shift+F10 菜单支持运行、打开配置和从工具栏隐藏。
+
+### 工作区标签右键
+
+- 标签页右键使用 `NDropdown` 的 manual 定位（`x/y`），支持重命名、关闭、关闭其他和关闭右侧。
+- 关闭一个或多个有内容工作区前统一走确认；关闭其他/右侧会以右键目标为基准。
+- 标签使用 tablist / roving tabindex，支持左右方向键、Home、End；右键菜单可用 ContextMenu 或 Shift+F10 打开。
 
 ### 暂存区（StagingPanel）
 
@@ -94,6 +105,17 @@
 - 拖拽交互为自绘 pointer 拖拽（绕开原生 draggable 的启动判定不稳定问题）：
   卡片按住拖动，拖到编辑器上方高亮落点，松开后文本条目/模板插入落点纯文本、替换规则按规则替换全文（可撤销）；
   未拖出卡片即松开视为点击，双击编辑/按钮不受影响。
+- 每种卡片都有不依赖拖拽的按钮替代路径：文本模板可插入，排序模板和替换规则可应用，条目可复制或导入左右侧。
+- 面板宽度与模板区高度使用 `role=separator`，方向键可调节；窄屏抽屉支持 Esc 收起并恢复焦点。
+
+### 无障碍与键盘
+
+- `App.vue` 提供页面 h1 与「跳到编辑器」链接；主编辑器、全局工具栏和暂存区均有可访问名称。
+- 纯图标按钮保留 `aria-label` 与 tooltip；标准关闭 X 只保留 `aria-label`。图标按钮点击区域不小于 24×24px。
+- 表单输入通过 Naive `input-props` 将名称传到原生 input/textarea；查找错误使用 `role=alert`，
+  toast 与自动保存状态使用 polite live region，动态状态不会打断当前朗读。
+- 对话框由 `NModal` 管理焦点陷阱与 Esc，自绘卡片暴露 `role=dialog` / `aria-modal` 与标题。
+- 所有可聚焦控件有统一 `:focus-visible` 焦点环；`prefers-reduced-motion` 下压缩动画与过渡时长。
 
 ### 数据流
 
@@ -104,9 +126,9 @@
   页面隐藏 / 关闭时用 `flushPersist()` 立即落盘；`clearAllStoredData()` 会先取消待写任务，
   防止旧内容被 flush 写回。
 - 暂存区 → `stagingStore` → 拖拽或按钮（`lib/transfer.ts`）分发到编辑器左右侧。
-- 备份 → `lib/backup.ts` 收集全部 store 为 JSON（`app: "with-work"`，`version: 4`）导出/导入；
-  `parseBackup` 兼容 1~4 版本并保留源版本号（迁移判断需要）：补齐缺失字段
-  （templates、textTemplates），工作区经 `lib/workspaceMigration.ts` 归一化——
+- 备份 → `lib/backup.ts` 收集全部 store 为 JSON（`app: "with-work"`，`version: 5`）导出/导入；
+  `parseBackup` 兼容 1~5 版本并保留源版本号（迁移判断需要）：补齐缺失字段
+  （templates、textTemplates、工具栏显隐设置），工作区经 `lib/workspaceMigration.ts` 归一化——
   旧版单栏 `content` 迁到左栏、`content` 原值保留以便备份往返，
   view/editorMode/language 等废弃字段丢弃。导入时只有 v1/v2 会用备份里的
   `diff` 回填激活工作区的双栏内容；v3+ 的工作区自带 left/right，回填反而会串内容。
@@ -127,8 +149,8 @@
   `MonacoEditor.vue` / `DiffEditor.vue` 的组件时用 `src/test/stubs.ts` 的替身
   （`vi.mock` 写法参考 `src/App.test.ts`）。
 - 新增功能建议配套测试；改动后运行 `pnpm test`、`pnpm lint`、`pnpm build`。
-- CI（`.github/workflows/ci.yml`）在 push 与 PR 上依次执行 `format:check`、`lint`、
-  `test`、`build`，本地提交前跑同样四项即可对齐。
+- CI（`.github/workflows/ci.yml`）仅在 push tag 时依次执行 `format:check`、`lint`、
+  `test`、`build`；本地提交前仍建议跑同样四项。
 
 ## 内置数据
 

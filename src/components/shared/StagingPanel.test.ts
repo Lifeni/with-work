@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import StagingPanel from "@/components/shared/StagingPanel.vue";
 import { resetStores } from "@/test/resetStores";
+import { useRulesStore } from "@/stores/rules";
 import { useSettingsStore } from "@/stores/settings";
 import { useStagingStore } from "@/stores/staging";
 import { useTemplatesStore } from "@/stores/templates";
@@ -27,6 +28,12 @@ async function confirmDialog(confirmText: string) {
 }
 
 describe("StagingPanel 全局暂存区", () => {
+  it("暂存输入框具有可访问名称", () => {
+    const wrapper = mountPanel();
+    expect(wrapper.get("textarea").attributes("aria-label")).toBe("暂存区输入");
+    wrapper.unmount();
+  });
+
   it("通过添加按钮把输入文本加入暂存区", async () => {
     const staging = useStagingStore();
     const wrapper = mountPanel();
@@ -95,7 +102,7 @@ describe("StagingPanel 全局暂存区", () => {
     staging.add("要删除的条目");
     const wrapper = mountPanel();
 
-    await wrapper.get('[title="删除此条目"]').trigger("click");
+    await wrapper.get('[aria-label="删除此条目"]').trigger("click");
     await confirmDialog("删除");
     expect(staging.items).toHaveLength(0);
   });
@@ -149,16 +156,18 @@ describe("StagingPanel 全局暂存区", () => {
 });
 
 describe("StagingPanel 模板区", () => {
-  it("切换标签显示排序模板与替换规则", async () => {
+  it("模板类型使用 tablist，并可通过方向键切换", async () => {
     useTemplatesStore().addTemplate({ id: "t1", name: "城市顺序", items: ["济南", "青岛"] });
     const wrapper = mountPanel();
 
-    const tabs = wrapper
-      .findAll("button")
-      .filter((b) => ["文本模板", "排序模板", "替换规则"].includes(b.text()));
+    expect(wrapper.get('[role="tablist"][aria-label="模板类型"]').element).toBeTruthy();
+    const tabs = wrapper.findAll('[role="tab"]');
+    expect(tabs[0].attributes("aria-selected")).toBe("true");
+
     const sortTab = tabs.find((b) => b.text() === "排序模板")!;
-    await sortTab.trigger("click");
+    await tabs[0].trigger("keydown", { key: "ArrowRight" });
     await wrapper.vm.$nextTick();
+    expect(sortTab.attributes("aria-selected")).toBe("true");
     expect(wrapper.text()).toContain("城市顺序");
   });
 
@@ -169,6 +178,30 @@ describe("StagingPanel 模板区", () => {
     // n-modal 的卡片由 AppDialog 自绘（.ww-dialog-content）
     const dialog = document.querySelector(".ww-dialog-content");
     expect(dialog?.textContent).toContain("自定义文本模板");
+  });
+
+  it("替换规则提供不依赖拖拽的键盘可操作应用按钮", async () => {
+    const workspace = useWorkspaceStore();
+    const id = workspace.createWorkspace();
+    workspace.setLeft(id, "foo bar foo");
+    useRulesStore().addRule({
+      id: "r1",
+      name: "替换 foo",
+      find: "foo",
+      replace: "baz",
+      isRegex: false,
+      matchCase: false,
+    });
+    const wrapper = mountPanel();
+
+    await wrapper
+      .findAll('[role="tab"]')
+      .find((tab) => tab.text() === "替换规则")!
+      .trigger("click");
+    await wrapper.get('[aria-label="应用规则到编辑器"]').trigger("click");
+
+    expect(workspace.workspaces.find((item) => item.id === id)?.left).toBe("baz bar baz");
+    wrapper.unmount();
   });
 
   it("按模板排序时未匹配项保留在编辑器末尾", async () => {
@@ -184,7 +217,7 @@ describe("StagingPanel 模板区", () => {
 
     const sortTab = wrapper.findAll("button").find((b) => b.text() === "排序模板")!;
     await sortTab.trigger("click");
-    await wrapper.get('[title="按此模板排序编辑器文本"]').trigger("click");
+    await wrapper.get('[aria-label="按此模板排序编辑器文本"]').trigger("click");
 
     expect(workspace.workspaces.find((w) => w.id === id)?.left).toBe("济南\n青岛\n北京");
     expect(useToastStore().toasts.some((t) => t.message.includes("未匹配已保留在末尾"))).toBe(true);
@@ -256,6 +289,36 @@ describe("StagingPanel 收起与尺寸调节", () => {
     // 模板区根元素高度直接写入 DOM
     const zone = wrapper.get('[data-testid="template-drop-zone"]').element as HTMLElement;
     expect(zone.style.height).toBe("280px");
+    wrapper.unmount();
+  });
+
+  it("面板宽度与模板区高度提供键盘分隔条操作", async () => {
+    const settings = useSettingsStore();
+    const wrapper = mountPanel();
+
+    const widthHandle = wrapper.get('[role="separator"][aria-label="调节暂存区宽度"]');
+    expect(widthHandle.attributes("aria-valuenow")).toBe("320");
+    await widthHandle.trigger("keydown", { key: "ArrowRight" });
+    expect(settings.stagingWidth).toBe(336);
+
+    const heightHandle = wrapper.get('[role="separator"][aria-label="调节模板区高度"]');
+    expect(heightHandle.attributes("aria-valuenow")).toBe("240");
+    await heightHandle.trigger("keydown", { key: "ArrowUp" });
+    expect(settings.stagingTemplateHeight).toBe(256);
+    wrapper.unmount();
+  });
+
+  it("面板内折叠后把焦点还给标题栏开关", async () => {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      '<button type="button" aria-controls="ww-staging-panel" aria-label="展开暂存区"></button>',
+    );
+    const wrapper = mountPanel();
+
+    await wrapper.get('[aria-label="折叠暂存区"]').trigger("click");
+    await wrapper.vm.$nextTick();
+
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("展开暂存区");
     wrapper.unmount();
   });
 });

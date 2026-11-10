@@ -11,6 +11,8 @@ describe("normalizeSettings", () => {
       stagingWidth: 400,
       editorSplit: 0.4,
       stagingTemplateHeight: 300,
+      hiddenEditorToolbarItems: ["replace-rules", "split-join"],
+      hiddenTextToolIds: ["lines-dedupe"],
     });
     expect(s).toEqual({
       theme: "dark",
@@ -20,6 +22,8 @@ describe("normalizeSettings", () => {
       stagingWidth: 400,
       editorSplit: 0.4,
       stagingTemplateHeight: 300,
+      hiddenEditorToolbarItems: ["replace-rules", "split-join"],
+      hiddenTextToolIds: ["lines-dedupe"],
     });
   });
 
@@ -63,5 +67,15 @@ describe("normalizeSettings", () => {
   it("非对象输入返回默认设置", () => {
     expect(normalizeSettings(null).fontSize).toBe(DEFAULT_FONT_SIZE);
     expect(normalizeSettings("坏数据").theme).toBe("system");
+  });
+
+  it("过滤工具栏显隐配置中的非法值和重复项", () => {
+    const s = normalizeSettings({
+      hiddenEditorToolbarItems: ["split-join", 42, "split-join", " sort-rules "],
+      hiddenTextToolIds: ["lines-dedupe", null, "lines-dedupe"],
+    });
+
+    expect(s.hiddenEditorToolbarItems).toEqual(["split-join", "sort-rules"]);
+    expect(s.hiddenTextToolIds).toEqual(["lines-dedupe"]);
   });
 });

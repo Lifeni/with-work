@@ -59,12 +59,16 @@ export interface AppSettings {
   editorSplit?: number;
   /** 暂存区下方模板区高度（px），可拖动调节 */
   stagingTemplateHeight?: number;
+  /** 顶部编辑工具栏中隐藏的功能组 id */
+  hiddenEditorToolbarItems?: string[];
+  /** 悬浮文字工具栏中隐藏的工具 id */
+  hiddenTextToolIds?: string[];
 }
 
 export interface BackupData {
   app: "with-work";
-  /** 备份格式版本：导出时写最新版（4），解析旧文件时保留源版本供迁移判断 */
-  version: 1 | 2 | 3 | 4;
+  /** 备份格式版本：导出时写最新版（5），解析旧文件时保留源版本供迁移判断 */
+  version: 1 | 2 | 3 | 4 | 5;
   exportedAt: string;
   workspaces: Workspace[];
   staging: StagingItem[];

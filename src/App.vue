@@ -64,6 +64,14 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
       primaryColorSuppl: dark ? "#a78bfa" : "#6d28d9",
       borderRadius: "6px",
     },
+    Tooltip: {
+      padding: "5px 8px",
+      peers: {
+        Popover: {
+          fontSize: "12px",
+        },
+      },
+    },
   };
 });
 </script>
@@ -76,6 +84,13 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
     :date-locale="dateZhCN"
   >
     <div class="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+      <a
+        href="#ww-editor-main"
+        class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[300] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-xs focus:text-primary-foreground focus:shadow-lg"
+      >
+        跳到编辑器
+      </a>
+      <h1 class="sr-only">一点微小的工作</h1>
       <div class="flex min-h-0 flex-1">
         <ToolsRail />
         <!-- 暂存区（全局共用）在编辑器左侧；窄屏降级为左侧悬浮抽屉 -->
@@ -84,7 +99,12 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
           <TitleBar />
           <div class="flex min-h-0 flex-1">
             <!-- 编辑器常驻：切换工作区复用实例，避免重建闪烁 -->
-            <main class="min-w-0 flex-1 overflow-hidden">
+            <main
+              id="ww-editor-main"
+              aria-label="编辑器工作区"
+              tabindex="-1"
+              class="min-w-0 flex-1 overflow-hidden"
+            >
               <EditorView />
             </main>
           </div>

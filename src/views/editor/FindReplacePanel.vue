@@ -4,21 +4,31 @@ import * as monaco from "monaco-editor";
 import {
   ArrowBigUpLine,
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   ArrowsJoin,
   LetterCase,
   Highlight,
   ListNumbers,
   Braces,
+  ChevronDown,
   Replace,
   Scissors,
   Settings,
 } from "@vicons/tabler";
+import { NDropdown, NSelect, type SelectNodeProps } from "naive-ui";
 import Button from "@/components/ui/button.vue";
 import Input from "@/components/ui/input.vue";
 import Toggle from "@/components/ui/toggle.vue";
 import RulesDialog from "@/components/shared/RulesDialog.vue";
 import TemplatesDialog from "@/components/shared/TemplatesDialog.vue";
+import ToolbarVisibilityMenu from "@/components/shared/ToolbarVisibilityMenu.vue";
+import {
+  dropdownMenuProps,
+  dropdownNodeProps,
+  focusFirstDropdownItem,
+  restoreDropdownTriggerFocus,
+} from "@/components/ui/dropdown";
 import { setRuleApplyListener } from "@/lib/editorBridge";
 import { joinText } from "@/lib/join";
 import { computeReplacement } from "@/lib/replace";
@@ -26,8 +36,10 @@ import { sortAlphabetical, sortByReference } from "@/lib/sort";
 import { splitLines, splitText, type SplitDelimiter } from "@/lib/split";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRulesStore } from "@/stores/rules";
+import { useSettingsStore } from "@/stores/settings";
 import { useTemplatesStore } from "@/stores/templates";
 import { useToastStore } from "@/stores/toast";
+import type { ToolbarVisibilityGroup } from "@/tools/toolbarVisibility";
 import type { ReplaceRule } from "@/types";
 
 interface MatchInfo {
@@ -67,7 +79,123 @@ const currentRef = ref(0);
 
 const rulesStore = useRulesStore();
 const templatesStore = useTemplatesStore();
+const settingsStore = useSettingsStore();
 const toast = useToastStore().push;
+const delimiter = ref<SplitDelimiter>("auto");
+
+const EDITOR_TOOLBAR_GROUPS: ToolbarVisibilityGroup[] = [
+  {
+    key: "find-replace",
+    label: "查找与替换",
+    items: [
+      { id: "find-options", label: "查找模式", icon: Highlight },
+      { id: "find-navigation", label: "上一个 / 下一个", icon: ArrowUp },
+      { id: "replace-rules", label: "替换规则", icon: Replace },
+      { id: "replace-actions", label: "执行替换", icon: ArrowRight },
+      { id: "replace-manage", label: "管理替换规则", icon: Settings },
+    ],
+  },
+  {
+    key: "text-tools",
+    label: "文本处理",
+    items: [
+      { id: "split-join", label: "分割与组合", icon: Scissors },
+      { id: "sort-rules", label: "排序规则", icon: ListNumbers },
+      { id: "sort-manage", label: "管理排序模板", icon: Settings },
+    ],
+  },
+];
+
+const DELIMITER_OPTIONS: Array<{
+  value: SplitDelimiter;
+  label: string;
+  shortLabel: string;
+}> = [
+  { value: "auto", label: "自动检测", shortLabel: "自动" },
+  { value: "newline", label: "换行", shortLabel: "换行" },
+  { value: "comma", label: "英文逗号", shortLabel: "," },
+  { value: "cn-comma", label: "中文逗号", shortLabel: "，" },
+  { value: "semicolon", label: "英文分号", shortLabel: ";" },
+  { value: "cn-semicolon", label: "中文分号", shortLabel: "；" },
+  { value: "cn-dunhao", label: "顿号", shortLabel: "、" },
+  { value: "space", label: "空格 / Tab", shortLabel: "空格" },
+  { value: "custom", label: "自定义正则", shortLabel: "正则" },
+];
+
+const delimiterMenuOptions = DELIMITER_OPTIONS.map((option) => ({
+  key: option.value,
+  label: option.label,
+}));
+const delimiterOption = computed(() =>
+  DELIMITER_OPTIONS.find((option) => option.value === delimiter.value)!,
+);
+
+const ruleSelectOptions = computed(() =>
+  rulesStore.rules.map((rule) => ({ label: rule.name, value: rule.id })),
+);
+const templateSelectOptions = computed(() =>
+  templatesStore.templates.map((template) => ({ label: template.name, value: template.id })),
+);
+const SELECT_MENU_PROPS = { class: "ww-select-menu" };
+const RULE_SELECT_MENU_PROPS = {
+  ...SELECT_MENU_PROPS,
+  id: "ww-replace-rule-options",
+  role: "listbox",
+  "aria-label": "替换规则",
+};
+const TEMPLATE_SELECT_MENU_PROPS = {
+  ...SELECT_MENU_PROPS,
+  id: "ww-sort-template-options",
+  role: "listbox",
+  "aria-label": "排序规则",
+};
+const RULE_SELECT_INPUT_PROPS = {
+  role: "combobox" as const,
+  "aria-label": "替换规则",
+  "aria-autocomplete": "list" as const,
+  "aria-haspopup": "listbox" as const,
+  "aria-controls": "ww-replace-rule-options",
+};
+const TEMPLATE_SELECT_INPUT_PROPS = {
+  role: "combobox" as const,
+  "aria-label": "排序规则",
+  "aria-autocomplete": "list" as const,
+  "aria-haspopup": "listbox" as const,
+  "aria-controls": "ww-sort-template-options",
+};
+const ruleSelectOpen = ref(false);
+const templateSelectOpen = ref(false);
+const ruleSelectInputProps = computed(() => ({
+  ...RULE_SELECT_INPUT_PROPS,
+  "aria-expanded": ruleSelectOpen.value,
+}));
+const templateSelectInputProps = computed(() => ({
+  ...TEMPLATE_SELECT_INPUT_PROPS,
+  "aria-expanded": templateSelectOpen.value,
+}));
+const ruleNodeProps: SelectNodeProps = (option) => ({
+  role: "option",
+  "aria-selected":
+    String((option as { value?: string | number }).value ?? "") === String(ruleSelect.value ?? "")
+      ? "true"
+      : "false",
+});
+const templateNodeProps: SelectNodeProps = (option) => ({
+  role: "option",
+  "aria-selected":
+    String((option as { value?: string | number }).value ?? "") ===
+    String(templateSelect.value ?? "")
+      ? "true"
+      : "false",
+});
+
+function editorToolbarVisible(id: string) {
+  return !settingsStore.hiddenEditorToolbarItems.includes(id);
+}
+
+function updateHiddenEditorToolbarItems(ids: string[]) {
+  settingsStore.setHiddenEditorToolbarItems(ids);
+}
 
 // 监听目标编辑器内容版本：内容变化时自动重跑搜索
 const modelVersion = ref(0);
@@ -154,6 +282,20 @@ watch(
       findError.value = null;
       return;
     }
+    if (isRegex.value) {
+      try {
+        // Monaco 的模型搜索在部分版本/替身中会把无效正则吞成空结果；先显式校验，
+        // 确保用户能收到可操作的语法错误，而不是误以为“没有匹配项”。
+        new RegExp(debouncedFind.value, matchCase.value ? "" : "i");
+      } catch {
+        decorationsRef.value?.clear();
+        decorationsRef.value = null;
+        findError.value = "正则表达式无效";
+        matches.value = [];
+        current.value = 0;
+        return;
+      }
+    }
     let ms: monaco.editor.FindMatch[];
     try {
       ms = model.findMatches(
@@ -235,14 +377,43 @@ function applyRule(rule: ReplaceRule) {
 }
 
 // ---------- 列表工具（分割 / 组合 / 排序均原地作用于聚焦编辑器） ----------
-const delimiter = ref<SplitDelimiter>("auto");
 const customRegex = ref("");
 const templatesOpen = ref(false);
+const delimiterMenuOpen = ref(false);
+const delimiterTriggerRef = ref<HTMLElement | null>(null);
+const delimiterMenuProps = dropdownMenuProps("分隔符选项");
 // 规则下拉框（受控，选中后应用并复位）
-const ruleSelect = ref("");
-const templateSelect = ref("");
+const ruleSelect = ref<string | null>(null);
+const templateSelect = ref<string | null>(null);
 // 排序匹配模式：以模板列表项开头即匹配
 const prefixMatch = ref(false);
+
+function selectDelimiter(key: string | number) {
+  delimiter.value = String(key) as SplitDelimiter;
+  delimiterMenuOpen.value = false;
+  restoreDropdownTriggerFocus();
+}
+
+function updateDelimiterMenu(show: boolean) {
+  delimiterMenuOpen.value = show;
+  if (show) focusFirstDropdownItem(delimiterTriggerRef.value);
+  else restoreDropdownTriggerFocus();
+}
+
+function selectRule(value: string | number | null) {
+  if (value == null) return;
+  const rule = rulesStore.rules.find((candidate) => candidate.id === String(value));
+  if (rule) applyRule(rule);
+  ruleSelect.value = null;
+}
+
+function selectTemplate(value: string | number | null) {
+  templateSelect.value = value == null ? null : String(value);
+  const template = templatesStore.templates.find(
+    (candidate) => candidate.id === templateSelect.value,
+  );
+  prefixMatch.value = template?.prefixMatch ?? false;
+}
 
 type InPlaceResult = { text: string; message: string } | { error: string };
 
@@ -419,120 +590,178 @@ defineExpose({ open });
 
 <template>
   <div class="bg-background p-0">
-    <!-- 四组功能：查找 → 替换 → 分割/组合 → 排序 -->
-    <!-- 外层允许换行、每组自身 flex-nowrap：整组一起换行，组内不被拆散；
-         组间不加竖线分隔条（换行时会残留在行首），靠间距区分分组；
-         两个输入框同宽且 shrink-0（不参与收缩）：行内空间不足时整组换行，
-         而不是各自被同组按钮挤成不同宽度；极窄屏下整行可横向滚动兜底 -->
-    <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 overflow-x-auto">
-      <!-- 组 1：查找（输入 + 匹配模式 + 上/下一个） -->
-      <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
-        <!-- 两个输入框都用同一款容器：固定同宽 + 不收缩，避免被同组不同数量的按钮挤成不一致 -->
-        <div data-ww-input-box class="relative w-72 shrink-0">
-          <Input
-            ref="findInputRef"
-            v-model="find"
-            placeholder="查找"
-            data-ww-input="find"
-            class="w-full"
-            :style="{ '--n-padding-right': '48px' }"
-          />
-          <!-- 匹配数：显示在查找输入框内部右对齐（有输入才显示） -->
-          <span
-            v-if="find.trim()"
-            title="匹配数（当前 / 总数）"
-            :class="[
-              'pointer-events-none absolute inset-y-0 right-2.5 flex items-center font-mono text-[10px]',
-              findError ? 'text-destructive' : 'text-muted-foreground',
-            ]"
+    <div class="flex min-w-0 items-center gap-2">
+      <!-- 主命令栏始终单行：输入框先收缩，仍超出时整条横向滚动 -->
+      <div
+        data-ww-toolbar
+        class="no-scrollbar flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto py-0.5"
+      >
+        <div
+          data-ww-group="find"
+          class="flex min-w-[17rem] flex-[1_1_24rem] flex-nowrap items-center gap-2"
+        >
+          <div data-ww-input-box class="relative min-w-[7rem] flex-1 basis-0">
+            <Input
+              ref="findInputRef"
+              v-model="find"
+              aria-label="查找文本"
+              placeholder="查找"
+              data-ww-input="find"
+              class="w-full min-w-0"
+              :style="{ '--n-padding-right': '48px' }"
+            />
+            <span
+              v-if="find.trim()"
+              title="匹配数（当前 / 总数）"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              :aria-label="
+                findError
+                  ? '正则表达式无效'
+                  : matches.length > 0
+                    ? `第 ${current + 1} 项，共 ${matches.length} 项匹配`
+                    : '没有匹配项'
+              "
+              :class="[
+                'pointer-events-none absolute inset-y-0 right-2.5 flex items-center font-mono text-[10px]',
+                findError ? 'text-destructive' : 'text-muted-foreground',
+              ]"
+            >
+              {{
+                findError ? "无效" : matches.length > 0 ? `${current + 1}/${matches.length}` : "0"
+              }}
+            </span>
+          </div>
+          <div
+            v-if="editorToolbarVisible('find-options')"
+            data-ww-item="find-options"
+            class="relative z-10 flex shrink-0 items-center gap-2"
           >
-            {{ findError ? "无效" : matches.length > 0 ? `${current + 1}/${matches.length}` : "0" }}
-          </span>
+            <Toggle
+              :active="isRegex"
+              icon-only
+              title="正则表达式"
+              @click="isRegex = !isRegex"
+              class="shrink-0"
+            >
+              <Braces />
+            </Toggle>
+            <Toggle
+              :active="matchCase"
+              icon-only
+              title="区分大小写"
+              @click="matchCase = !matchCase"
+              class="shrink-0"
+            >
+              <LetterCase />
+            </Toggle>
+            <Toggle
+              :active="highlightAll"
+              icon-only
+              title="全部高亮"
+              @click="highlightAll = !highlightAll"
+              class="shrink-0"
+            >
+              <Highlight />
+            </Toggle>
+          </div>
+          <div
+            v-if="editorToolbarVisible('find-navigation')"
+            data-ww-item="find-navigation"
+            class="relative z-10 flex shrink-0 items-center gap-2"
+          >
+            <Button
+              variant="outline"
+              size="icon-sm"
+              class="shrink-0"
+              title="上一个"
+              :disabled="matches.length === 0"
+              @click="navigate(current - 1)"
+            >
+              <ArrowUp />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              class="shrink-0"
+              title="下一个"
+              :disabled="matches.length === 0"
+              @click="navigate(current + 1)"
+            >
+              <ArrowDown />
+            </Button>
+          </div>
         </div>
-        <Toggle
-          :active="isRegex"
-          title="正则表达式"
-          @click="isRegex = !isRegex"
-          class="h-6.5 shrink-0 px-1.5 text-[10px]"
-        >
-          <Braces />
-        </Toggle>
-        <Toggle
-          :active="matchCase"
-          title="区分大小写"
-          @click="matchCase = !matchCase"
-          class="h-6.5 shrink-0 px-1.5 text-[10px]"
-        >
-          <LetterCase />
-        </Toggle>
-        <Toggle
-          :active="highlightAll"
-          title="全部高亮"
-          @click="highlightAll = !highlightAll"
-          class="h-6.5 shrink-0 px-1.5 text-[10px]"
-        >
-          <Highlight />
-        </Toggle>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          class="w-6.5 shrink-0"
-          title="上一个"
-          :disabled="matches.length === 0"
-          @click="navigate(current - 1)"
-        >
-          <ArrowUp />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          class="w-6.5 shrink-0"
-          title="下一个"
-          :disabled="matches.length === 0"
-          @click="navigate(current + 1)"
-        >
-          <ArrowDown />
-        </Button>
-      </div>
 
-      <!-- 组 2：替换（替换内容 + 规则 + 执行 + 管理） -->
-      <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
-        <div data-ww-input-box class="relative w-72 shrink-0">
-          <Input v-model="replace" placeholder="替换为" data-ww-input="replace" class="w-full" />
+        <div
+          data-ww-group="replace"
+          class="flex min-w-[14.75rem] flex-[1_1_22rem] items-center gap-2"
+        >
+          <div data-ww-input-box class="relative min-w-[7rem] flex-1 basis-0">
+            <Input
+              v-model="replace"
+              aria-label="替换为"
+              placeholder="替换为"
+              data-ww-input="replace"
+              class="w-full min-w-0"
+            />
+          </div>
+          <NSelect
+            v-if="editorToolbarVisible('replace-rules')"
+            data-ww-item="replace-rules"
+            size="small"
+            clearable
+            filterable
+            placeholder="替换规则"
+            :value="ruleSelect"
+            :options="ruleSelectOptions"
+            :consistent-menu-width="false"
+            :menu-props="RULE_SELECT_MENU_PROPS"
+            :node-props="ruleNodeProps"
+            :input-props="ruleSelectInputProps"
+            class="ww-control-text shrink-0"
+            style="width: 7.5rem"
+            @update:value="selectRule"
+            @update:show="(show: boolean) => (ruleSelectOpen = show)"
+          />
         </div>
-        <select
-          :value="ruleSelect"
-          @change="
-            (e: Event) => {
-              const rule = rulesStore.rules.find(
-                (r) => r.id === (e.target as HTMLSelectElement).value,
-              );
-              if (rule) applyRule(rule);
-              ruleSelect = '';
-            }
-          "
-          title="替换规则"
-          class="h-6.5 max-w-28 shrink-0 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+
+        <div
+          v-if="editorToolbarVisible('replace-actions')"
+          data-ww-group="replace-actions"
+          data-ww-item="replace-actions"
+          class="flex shrink-0 items-center gap-2"
         >
-          <option value="">替换规则</option>
-          <option v-for="r in rulesStore.rules" :key="r.id" :value="r.id">{{ r.name }}</option>
-        </select>
+          <Button
+            size="sm"
+            variant="secondary"
+            class="h-6.5 shrink-0 px-2 text-[11px]"
+            title="替换当前匹配"
+            tooltip
+            @click="replaceOne"
+          >
+            <ArrowRight class="size-3" />
+            <span class="max-[1700px]:sr-only">替换</span>
+          </Button>
+          <Button
+            size="sm"
+            class="h-6.5 shrink-0 px-2 text-[11px]"
+            title="全部替换"
+            tooltip
+            @click="replaceAll"
+          >
+            <Replace class="size-3" />
+            <span class="max-[1700px]:sr-only">全部替换</span>
+          </Button>
+        </div>
+
         <Button
-          size="sm"
-          variant="secondary"
-          class="h-6.5 shrink-0 px-2 text-[11px]"
-          @click="replaceOne"
-        >
-          替换
-        </Button>
-        <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="replaceAll">
-          <Replace class="size-3" />
-          全部替换
-        </Button>
-        <Button
-          variant="ghost"
+          v-if="editorToolbarVisible('replace-manage')"
+          data-ww-item="replace-manage"
+          variant="outline"
           size="icon-sm"
-          class="w-6.5 shrink-0"
+          class="shrink-0"
           title="管理替换规则"
           @click="
             () => {
@@ -543,87 +772,133 @@ defineExpose({ open });
         >
           <Settings />
         </Button>
-      </div>
 
-      <!-- 组 3：分割 / 组合（共用同一组分隔符选项） -->
-      <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
-        <select
-          :value="delimiter"
-          @change="delimiter = ($event.target as HTMLSelectElement).value as SplitDelimiter"
-          title="分割 / 组合分隔符"
-          class="h-6.5 min-w-0 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+        <div
+          v-if="editorToolbarVisible('split-join')"
+          data-ww-group="split-join"
+          class="flex shrink-0 items-center gap-2"
         >
-          <option value="auto">自动检测</option>
-          <option value="newline">换行</option>
-          <option value="comma">英文逗号</option>
-          <option value="cn-comma">中文逗号</option>
-          <option value="semicolon">英文分号</option>
-          <option value="cn-semicolon">中文分号</option>
-          <option value="cn-dunhao">顿号</option>
-          <option value="space">空格 / Tab</option>
-          <option value="custom">自定义正则</option>
-        </select>
-        <Input
-          v-if="delimiter === 'custom'"
-          v-model="customRegex"
-          placeholder="分隔正则"
-          class="min-w-24 flex-1 basis-32 font-mono"
-        />
-        <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSplit">
-          <Scissors class="size-3" />
-          分割
-        </Button>
-        <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runJoin">
-          <ArrowsJoin class="size-3" />
-          组合
-        </Button>
-      </div>
+          <NDropdown
+            trigger="click"
+            size="small"
+            placement="bottom-start"
+            :options="delimiterMenuOptions"
+            :menu-props="delimiterMenuProps"
+            :node-props="dropdownNodeProps"
+            @select="selectDelimiter"
+            @update:show="updateDelimiterMenu"
+          >
+            <span ref="delimiterTriggerRef" class="inline-flex">
+              <Button
+                variant="outline"
+                size="sm"
+                class="h-6.5 gap-1 px-2 text-[11px]"
+                aria-label="选择分隔符"
+                aria-haspopup="menu"
+                :aria-expanded="delimiterMenuOpen"
+                :title="`分隔符：${delimiterOption.label}`"
+              >
+                <span class="font-mono">{{ delimiterOption.shortLabel }}</span>
+                <ChevronDown class="size-3" />
+              </Button>
+            </span>
+          </NDropdown>
+          <Button
+            size="sm"
+            class="h-6.5 shrink-0 px-2 text-[11px]"
+            title="分割"
+            tooltip
+            @click="runSplit"
+          >
+            <Scissors class="size-3" />
+            <span class="max-[1700px]:sr-only">分割</span>
+          </Button>
+          <Button
+            size="sm"
+            class="h-6.5 shrink-0 px-2 text-[11px]"
+            title="组合"
+            tooltip
+            @click="runJoin"
+          >
+            <ArrowsJoin class="size-3" />
+            <span class="max-[1700px]:sr-only">组合</span>
+          </Button>
+          <Input
+            v-if="delimiter === 'custom'"
+            v-model="customRegex"
+            aria-label="自定义分隔符正则"
+            placeholder="分隔正则"
+            class="w-24 shrink-0 font-mono"
+          />
+        </div>
 
-      <!-- 组 4：排序（模板 + 开头匹配 + 执行 + 管理） -->
-      <div data-ww-group class="flex flex-nowrap items-center gap-1.5">
-        <select
-          :value="templateSelect"
-          @change="
-            (e: Event) => {
-              templateSelect = (e.target as HTMLSelectElement).value;
-              // 选中模板后同步开头匹配开关状态（模板自带属性或关闭）
-              const t = templatesStore.templates.find((x) => x.id === templateSelect);
-              prefixMatch = t?.prefixMatch ?? false;
-            }
-          "
-          title="排序规则"
-          class="h-6.5 min-w-0 max-w-28 rounded-md border border-border bg-card px-1.5 text-xs outline-none"
+        <div
+          v-if="editorToolbarVisible('sort-rules')"
+          data-ww-group="sort"
+          class="flex shrink-0 items-center gap-2"
         >
-          <option value="">排序规则</option>
-          <option v-for="t in templatesStore.templates" :key="t.id" :value="t.id">
-            {{ t.name }}
-          </option>
-        </select>
-        <Toggle
-          :active="prefixMatch"
-          @click="prefixMatch = !prefixMatch"
-          title="开头匹配：文本以模板列表项开头即算匹配"
-          class="h-6.5 w-6.5 px-0"
-        >
-          <ArrowBigUpLine class="size-3.5" />
-        </Toggle>
-        <Button size="sm" class="h-6.5 shrink-0 px-2 text-[11px]" @click="runSort">
-          <ListNumbers class="size-3" />
-          排序
-        </Button>
+          <NSelect
+            size="small"
+            clearable
+            filterable
+            placeholder="排序规则"
+            :value="templateSelect"
+            :options="templateSelectOptions"
+            :consistent-menu-width="false"
+            :menu-props="TEMPLATE_SELECT_MENU_PROPS"
+            :node-props="templateNodeProps"
+            :input-props="templateSelectInputProps"
+            class="ww-control-text shrink-0"
+            style="width: 7rem"
+            @update:value="selectTemplate"
+            @update:show="(show: boolean) => (templateSelectOpen = show)"
+          />
+          <Toggle
+            :active="prefixMatch"
+            icon-only
+            @click="prefixMatch = !prefixMatch"
+            title="开头匹配：文本以模板列表项开头即算匹配"
+          >
+            <ArrowBigUpLine class="size-3.5" />
+          </Toggle>
+          <Button
+            size="sm"
+            class="h-6.5 shrink-0 px-2 text-[11px]"
+            title="排序"
+            tooltip
+            @click="runSort"
+          >
+            <ListNumbers class="size-3" />
+            <span class="max-[1700px]:sr-only">排序</span>
+          </Button>
+        </div>
+
         <Button
-          variant="ghost"
+          v-if="editorToolbarVisible('sort-manage')"
+          data-ww-group="sort-manage"
+          data-ww-item="sort-manage"
+          variant="outline"
           size="icon-sm"
-          class="w-6.5"
+          class="shrink-0"
           title="管理排序规则"
           @click="templatesOpen = true"
         >
           <Settings />
         </Button>
       </div>
+
+      <ToolbarVisibilityMenu
+        :groups="EDITOR_TOOLBAR_GROUPS"
+        :hidden-ids="settingsStore.hiddenEditorToolbarItems"
+        title="自定义顶部工具栏"
+        trigger-variant="outline"
+        @update:hiddenIds="updateHiddenEditorToolbarItems"
+      />
     </div>
 
-    <p v-if="findError" class="mt-1 text-xs text-destructive">正则表达式无效，请检查语法</p>
+    <p v-if="findError" role="alert" class="mt-1 text-xs text-destructive">
+      正则表达式无效，请检查语法
+    </p>
 
     <RulesDialog
       :key="

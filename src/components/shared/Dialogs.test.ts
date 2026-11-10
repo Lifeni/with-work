@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
+import { NTooltip } from "naive-ui";
+import AppDialog from "@/components/ui/dialog.vue";
 import RulesDialog from "@/components/shared/RulesDialog.vue";
 import TemplatesDialog from "@/components/shared/TemplatesDialog.vue";
 import TextTemplatesDialog from "@/components/shared/TextTemplatesDialog.vue";
@@ -26,6 +28,23 @@ function dialogButton(text: string) {
   return dialogButtons().find((b) => b.textContent?.trim() === text);
 }
 const tick = () => new Promise((r) => setTimeout(r, 20));
+
+describe("AppDialog 关闭按钮", () => {
+  it("标准关闭按钮不显示 tooltip，但保留 aria-label", async () => {
+    const wrapper = mount(AppDialog, { props: { open: true, title: "测试弹窗" } });
+    await tick();
+
+    const close = document.querySelector('[aria-label="关闭对话框"]');
+    expect(close).not.toBeNull();
+    expect(close?.getAttribute("title")).toBeNull();
+    expect(wrapper.findComponent(NTooltip).exists()).toBe(false);
+    const dialog = document.querySelector(".ww-dialog-content");
+    expect(dialog?.getAttribute("role")).toBe("dialog");
+    expect(dialog?.getAttribute("aria-modal")).toBe("true");
+    expect(dialog?.getAttribute("aria-label")).toBe("测试弹窗");
+    wrapper.unmount();
+  });
+});
 
 describe("RulesDialog 替换规则管理", () => {
   it("填写表单保存新规则", async () => {

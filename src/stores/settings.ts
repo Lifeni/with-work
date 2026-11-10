@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import type { AppSettings, ThemeMode } from "@/types";
 import { applyTheme } from "@/lib/theme";
 import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE } from "@/lib/settingsMigration";
+import { DEFAULT_HIDDEN_TEXT_TOOL_IDS } from "@/tools/toolbarVisibility";
 
 // 默认值定义收敛在 lib/settingsMigration.ts（持久化恢复与备份导入共用）；
 // 修改默认字号 / 字体请改那个文件，这里仅转出以兼容既有引用
@@ -16,6 +17,8 @@ export const useSettingsStore = defineStore("settings", () => {
   const stagingWidth = ref<number | undefined>(undefined);
   const editorSplit = ref<number | undefined>(undefined);
   const stagingTemplateHeight = ref<number | undefined>(undefined);
+  const hiddenEditorToolbarItems = ref<string[]>([]);
+  const hiddenTextToolIds = ref<string[]>([...DEFAULT_HIDDEN_TEXT_TOOL_IDS]);
 
   function setTheme(mode: ThemeMode) {
     theme.value = mode;
@@ -46,6 +49,14 @@ export const useSettingsStore = defineStore("settings", () => {
     stagingTemplateHeight.value = h;
   }
 
+  function setHiddenEditorToolbarItems(ids: string[]) {
+    hiddenEditorToolbarItems.value = [...new Set(ids)];
+  }
+
+  function setHiddenTextToolIds(ids: string[]) {
+    hiddenTextToolIds.value = [...new Set(ids)];
+  }
+
   function replaceAll(partial: AppSettings) {
     if (partial.theme !== undefined) theme.value = partial.theme;
     if (partial.fontSize !== undefined) fontSize.value = partial.fontSize;
@@ -55,6 +66,12 @@ export const useSettingsStore = defineStore("settings", () => {
     if (partial.editorSplit !== undefined) editorSplit.value = partial.editorSplit;
     if (partial.stagingTemplateHeight !== undefined) {
       stagingTemplateHeight.value = partial.stagingTemplateHeight;
+    }
+    if (partial.hiddenEditorToolbarItems !== undefined) {
+      setHiddenEditorToolbarItems(partial.hiddenEditorToolbarItems);
+    }
+    if (partial.hiddenTextToolIds !== undefined) {
+      setHiddenTextToolIds(partial.hiddenTextToolIds);
     }
   }
 
@@ -66,6 +83,8 @@ export const useSettingsStore = defineStore("settings", () => {
     stagingWidth,
     editorSplit,
     stagingTemplateHeight,
+    hiddenEditorToolbarItems,
+    hiddenTextToolIds,
     setTheme,
     setFontSize,
     setWordWrap,
@@ -73,6 +92,8 @@ export const useSettingsStore = defineStore("settings", () => {
     setStagingWidth,
     setEditorSplit,
     setStagingTemplateHeight,
+    setHiddenEditorToolbarItems,
+    setHiddenTextToolIds,
     replaceAll,
   };
 });

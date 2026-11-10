@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAttrs } from "vue";
+import { computed, useAttrs } from "vue";
 import { NInput } from "naive-ui";
 import { cn } from "@/lib/utils";
 
@@ -10,12 +10,31 @@ const props = withDefaults(defineProps<{ modelValue?: string; rows?: number }>()
 });
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
-// 分离 attrs：rows 由 prop 管理，避免与 v-bind 重复
 const attrs = useAttrs();
-const rest = (() => {
-  const { class: _c, rows: _r, ...remain } = attrs as Record<string, unknown>;
-  return remain;
-})();
+
+const NATIVE_INPUT_ATTRS = new Set(["id", "name", "autocomplete", "spellcheck"]);
+const inputProps = computed(() => {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key.startsWith("aria-") || NATIVE_INPUT_ATTRS.has(key)) result[key] = value;
+  }
+  return result;
+});
+const rootAttrs = computed(() => {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(attrs)) {
+    if (
+      key === "class" ||
+      key === "rows" ||
+      key.startsWith("aria-") ||
+      NATIVE_INPUT_ATTRS.has(key)
+    ) {
+      continue;
+    }
+    result[key] = value;
+  }
+  return result;
+});
 
 function onUpdate(value: string) {
   emit("update:modelValue", value);
@@ -29,7 +48,8 @@ function onUpdate(value: string) {
     :rows="props.rows"
     :style="{ '--n-font-size': '12px' }"
     :class="cn(attrs.class as string)"
-    v-bind="rest"
+    :input-props="inputProps"
+    v-bind="rootAttrs"
     size="small"
     @update:value="onUpdate"
   />

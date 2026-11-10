@@ -8,6 +8,22 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  :where(
+      button,
+      a[href],
+      summary,
+      input,
+      textarea,
+      select,
+      [role="button"],
+      [role="tab"],
+      [role="radio"],
+      [role="menuitem"],
+      [role="separator"][tabindex]
+    ):not(.monaco-editor *):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
   /* xicons 等 svg 图标无内置尺寸，兜底为 1em（有 size-* 工具类时由工具类覆盖） */
   svg {
     width: 1em;
@@ -155,6 +171,88 @@
   padding: 0 !important;
 }
 
+/* 工具栏显隐菜单中的文字动作使用中性色，避免默认主色在多选项菜单里过于抢眼 */
+.ww-menu-neutral-action {
+  --n-text-color: var(--muted-foreground) !important;
+  --n-text-color-hover: var(--foreground) !important;
+  --n-text-color-pressed: var(--foreground) !important;
+  --n-text-color-focus: var(--foreground) !important;
+}
+
+/* 工具栏显隐菜单：用原生复选框语义承载多选，同时保持紧凑列表外观 */
+.ww-toolbar-visibility-menu .n-checkbox-group {
+  width: 100%;
+}
+
+.ww-toolbar-visibility-checkbox {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.ww-toolbar-visibility-checkbox:hover {
+  background: var(--accent);
+}
+
+.ww-toolbar-visibility-checkbox:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.ww-toolbar-visibility-checkbox .n-checkbox__label {
+  order: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.ww-toolbar-visibility-checkbox .n-checkbox-box-wrapper {
+  order: 2;
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+/* 主题切换使用明确的主色选中段，避免浅色主题下仅靠文字色难以辨认 */
+.ww-theme-switch .n-radio-button {
+  color: var(--muted-foreground) !important;
+}
+
+.ww-theme-switch .n-radio-button:hover:not(.n-radio-button--checked) {
+  color: var(--foreground) !important;
+}
+
+.ww-theme-switch .n-radio-button--checked {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+/* NRadioButton 的原生 input 透明；把键盘焦点环提升到可感知的整段按钮上 */
+.ww-theme-switch .n-radio-button:has(.n-radio-input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* 表单控件统一使用 12px 控件字号，触发器与下拉选项保持一致 */
+.ww-control-text {
+  --n-font-size: 12px !important;
+  font-size: 12px;
+}
+
+.ww-control-text .n-radio-button,
+.ww-control-text .n-base-selection,
+.ww-control-text .n-base-selection-label,
+.ww-control-text .n-base-selection-input,
+.ww-control-text .n-base-selection-placeholder,
+.ww-control-text .n-input,
+.ww-control-text .n-input__input-el,
+.ww-select-menu .n-base-select-option,
+.ww-select-menu .n-base-select-group-header {
+  font-size: 12px !important;
+}
+
 /* Monaco 查找高亮 */
 .ww-find-match {
   background: color-mix(in oklab, #f59e0b 30%, transparent);
@@ -223,4 +321,15 @@
 }
 .ww-toast {
   animation: ww-toast-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

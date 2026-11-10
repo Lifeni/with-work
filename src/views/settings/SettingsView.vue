@@ -13,7 +13,7 @@ import {
   Trash,
   Upload,
 } from "@vicons/tabler";
-import { NInputNumber } from "naive-ui";
+import { NInputNumber, NRadioButton, NRadioGroup } from "naive-ui";
 import Button from "@/components/ui/button.vue";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
 import Input from "@/components/ui/input.vue";
@@ -102,16 +102,17 @@ const onRulesFile = (e: Event) => {
           <div class="space-y-3">
             <div class="flex items-center gap-2">
               <span class="w-24 shrink-0 text-xs text-muted-foreground">主题</span>
-              <div class="flex gap-1.5">
-                <Toggle
-                  v-for="opt in THEME_OPTIONS"
-                  :key="opt.value"
-                  :active="settingsStore.theme === opt.value"
-                  @click="settingsStore.setTheme(opt.value)"
-                >
+              <NRadioGroup
+                class="ww-theme-switch ww-control-text"
+                aria-label="主题"
+                :value="settingsStore.theme"
+                size="small"
+                @update:value="(value) => settingsStore.setTheme(value as ThemeMode)"
+              >
+                <NRadioButton v-for="opt in THEME_OPTIONS" :key="opt.value" :value="opt.value">
                   {{ opt.label }}
-                </Toggle>
-              </div>
+                </NRadioButton>
+              </NRadioGroup>
             </div>
             <div class="flex items-center gap-2">
               <span class="w-24 shrink-0 text-xs text-muted-foreground">编辑器字号</span>
@@ -119,8 +120,10 @@ const onRulesFile = (e: Event) => {
                 :value="settingsStore.fontSize"
                 :min="10"
                 :max="24"
+                :show-button="false"
+                :input-props="{ 'aria-label': '编辑器字号' }"
                 size="small"
-                class="w-24"
+                class="w-24 ww-control-text"
                 @update:value="(v: number | null) => settingsStore.setFontSize(v ?? 14)"
               />
               <span class="text-xs text-muted-foreground">10 – 24 px</span>
@@ -129,6 +132,7 @@ const onRulesFile = (e: Event) => {
               <span class="w-24 shrink-0 text-xs text-muted-foreground">自动换行</span>
               <Toggle
                 :active="settingsStore.wordWrap"
+                title="自动换行"
                 @click="settingsStore.setWordWrap(!settingsStore.wordWrap)"
               >
                 {{ settingsStore.wordWrap ? "开启" : "关闭" }}
@@ -138,6 +142,7 @@ const onRulesFile = (e: Event) => {
               <span class="w-24 shrink-0 text-xs text-muted-foreground">编辑器字体</span>
               <Input
                 :value="settingsStore.editorFontFamily"
+                aria-label="编辑器字体"
                 @input="
                   settingsStore.setEditorFontFamily(($event.target as HTMLInputElement).value)
                 "

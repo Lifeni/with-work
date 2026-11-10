@@ -34,6 +34,20 @@ function normalizeTheme(v: unknown): ThemeMode {
   return v === "light" || v === "dark" || v === "system" ? v : "system";
 }
 
+/** 工具栏 id 列表：只保留去重后的非空字符串；非法来源视为配置缺失 */
+function normalizeStringList(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const ids = [
+    ...new Set(
+      v
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+  return ids;
+}
+
 /** 把任意来源的设置对象归一化为可安全写入 store 的完整 AppSettings */
 export function normalizeSettings(raw: unknown): AppSettings {
   const r = (raw && typeof raw === "object" ? raw : {}) as Partial<AppSettings>;
@@ -42,6 +56,8 @@ export function normalizeSettings(raw: unknown): AppSettings {
   const stagingWidth = finiteOr(r.stagingWidth, undefined);
   const editorSplit = finiteOr(r.editorSplit, undefined);
   const stagingTemplateHeight = finiteOr(r.stagingTemplateHeight, undefined);
+  const hiddenEditorToolbarItems = normalizeStringList(r.hiddenEditorToolbarItems);
+  const hiddenTextToolIds = normalizeStringList(r.hiddenTextToolIds);
 
   return {
     theme: normalizeTheme(r.theme),
@@ -60,5 +76,7 @@ export function normalizeSettings(raw: unknown): AppSettings {
     ...(stagingTemplateHeight === undefined
       ? {}
       : { stagingTemplateHeight: Math.max(MIN_TEMPLATE_HEIGHT, stagingTemplateHeight) }),
+    ...(hiddenEditorToolbarItems === undefined ? {} : { hiddenEditorToolbarItems }),
+    ...(hiddenTextToolIds === undefined ? {} : { hiddenTextToolIds }),
   };
 }

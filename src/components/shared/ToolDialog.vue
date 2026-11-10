@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { NSelect, type SelectNodeProps } from "naive-ui";
 import AppDialog from "@/components/ui/dialog.vue";
 import Button from "@/components/ui/button.vue";
 import Input from "@/components/ui/input.vue";
@@ -21,6 +22,32 @@ const toast = useToastStore().push;
 const rulesStore = useRulesStore();
 
 const DEFAULT_CONFIG: ToolConfig = { delimiter: "newline", dedupe: false, ignoreEmpty: true };
+const SELECT_MENU_PROPS = { class: "ww-select-menu" };
+const DELIMITER_MENU_PROPS = {
+  ...SELECT_MENU_PROPS,
+  id: "ww-tool-delimiter-options",
+  role: "listbox",
+  "aria-label": "分隔符",
+};
+const DELIMITER_INPUT_PROPS = {
+  role: "combobox" as const,
+  "aria-label": "分隔符",
+  "aria-autocomplete": "list" as const,
+  "aria-haspopup": "listbox" as const,
+  "aria-controls": "ww-tool-delimiter-options",
+};
+const delimiterSelectOpen = ref(false);
+const DELIMITER_OPTIONS = [
+  { value: "auto", label: "自动检测（出现最多的符号）" },
+  { value: "newline", label: "换行" },
+  { value: "comma", label: "英文逗号" },
+  { value: "cn-comma", label: "中文逗号" },
+  { value: "semicolon", label: "英文分号" },
+  { value: "cn-semicolon", label: "中文分号" },
+  { value: "cn-dunhao", label: "顿号" },
+  { value: "space", label: "空格 / Tab" },
+  { value: "custom", label: "自定义正则" },
+];
 
 const input = ref("");
 const config = ref<ToolConfig>({ ...DEFAULT_CONFIG });
@@ -38,6 +65,18 @@ watch(
 );
 
 const output = computed(() => (props.tool ? props.tool.run(input.value, config.value) : ""));
+const delimiterInputProps = computed(() => ({
+  ...DELIMITER_INPUT_PROPS,
+  "aria-expanded": delimiterSelectOpen.value,
+}));
+const delimiterNodeProps: SelectNodeProps = (option) => ({
+  role: "option",
+  "aria-selected":
+    String((option as { value?: string | number }).value ?? "") ===
+    String(config.value.delimiter ?? "")
+      ? "true"
+      : "false",
+});
 
 function execute() {
   const tool = props.tool;
@@ -59,7 +98,7 @@ function execute() {
     <div class="space-y-3">
       <div v-if="props.tool?.id === 'apply-rule'">
         <p class="mb-1.5 text-[10px] text-muted-foreground">选择要应用的替换规则：</p>
-        <div class="max-h-44 space-y-1 overflow-y-auto">
+        <div role="group" aria-label="替换规则" class="max-h-44 space-y-1 overflow-y-auto">
           <p
             v-if="rulesStore.rules.length === 0"
             class="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground"
@@ -70,6 +109,7 @@ function execute() {
             v-for="r in rulesStore.rules"
             :key="r.id"
             type="button"
+            :aria-pressed="config.ruleId === r.id"
             @click="config = { ...config, ruleId: r.id }"
             :class="
               cn(
@@ -91,30 +131,31 @@ function execute() {
       <template v-else>
         <div class="flex items-center gap-2">
           <span class="shrink-0 text-xs text-muted-foreground">分隔符</span>
-          <select
+          <NSelect
+            size="small"
+            filterable
             :value="config.delimiter"
-            @change="
-              config = {
-                ...config,
-                delimiter: ($event.target as HTMLSelectElement).value as SplitDelimiter,
-              }
+            :options="DELIMITER_OPTIONS"
+            :consistent-menu-width="false"
+            :menu-props="DELIMITER_MENU_PROPS"
+            :node-props="delimiterNodeProps"
+            :input-props="delimiterInputProps"
+            class="ww-control-text"
+            style="width: 13rem"
+            @update:show="(show: boolean) => (delimiterSelectOpen = show)"
+            @update:value="
+              (value: string | number | null) =>
+                (config = {
+                  ...config,
+                  delimiter: (value ?? 'newline') as SplitDelimiter,
+                })
             "
-            class="h-7 rounded-md border border-border bg-transparent px-2 text-xs outline-none hover:bg-accent"
-          >
-            <option value="auto">自动检测（出现最多的符号）</option>
-            <option value="newline">换行</option>
-            <option value="comma">英文逗号</option>
-            <option value="cn-comma">中文逗号</option>
-            <option value="semicolon">英文分号</option>
-            <option value="cn-semicolon">中文分号</option>
-            <option value="cn-dunhao">顿号</option>
-            <option value="space">空格 / Tab</option>
-            <option value="custom">自定义正则</option>
-          </select>
+          />
           <Input
             v-if="config.delimiter === 'custom'"
             :value="config.customRegex ?? ''"
             @input="config = { ...config, customRegex: ($event.target as HTMLInputElement).value }"
+            aria-label="自定义分隔符正则"
             placeholder="如 [，,、;；]"
             class="min-w-0 flex-1 font-mono"
           />

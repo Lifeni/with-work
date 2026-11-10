@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { nextTick, onMounted, onUnmounted, ref } from "vue";
 import {
   ArrowsLeftRight,
   ClipboardCheck,
@@ -10,6 +10,7 @@ import {
   ListNumbers,
   Pencil,
   Plus,
+  Replace,
   Settings,
   Trash,
 } from "@vicons/tabler";
@@ -19,9 +20,11 @@ import RulesDialog from "@/components/shared/RulesDialog.vue";
 import TemplatesDialog from "@/components/shared/TemplatesDialog.vue";
 import TextTemplatesDialog from "@/components/shared/TextTemplatesDialog.vue";
 import Textarea from "@/components/ui/textarea.vue";
+import TooltipIconButton from "@/components/ui/tooltip-icon-button.vue";
 import { cn, formatTime, uid } from "@/lib/utils";
 import { getToolInput } from "@/lib/applyTool";
 import { getActiveEditor } from "@/lib/editorBridge";
+import { applyReplacements } from "@/lib/replace";
 import { splitLines } from "@/lib/split";
 import { sortByReference } from "@/lib/sort";
 import { importText } from "@/lib/transfer";
@@ -72,6 +75,34 @@ const editSortTemplateId = ref<string | null>(null);
 const editRuleId = ref<string | null>(null);
 const tplTab = ref<"text" | "sort" | "rules">("text");
 const dragOver = ref<"staging" | "templates" | null>(null);
+const TEMPLATE_TABS = [
+  { value: "text", label: "文本模板" },
+  { value: "sort", label: "排序模板" },
+  { value: "rules", label: "替换规则" },
+] as const;
+
+function handleTemplateTabKeydown(event: KeyboardEvent, index: number) {
+  const tabs = Array.from(
+    (event.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>(
+      '[role="tab"]',
+    ) ?? [],
+  );
+  if (tabs.length === 0) return;
+
+  let nextIndex: number | null = null;
+  if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+  else if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+  else if (event.key === "Home") nextIndex = 0;
+  else if (event.key === "End") nextIndex = tabs.length - 1;
+  if (nextIndex === null) return;
+
+  event.preventDefault();
+  const nextTab = tabs[nextIndex];
+  const nextValue = TEMPLATE_TABS[nextIndex]?.value;
+  if (!nextTab || !nextValue) return;
+  tplTab.value = nextValue;
+  void nextTick(() => nextTab.focus());
+}
 
 // 面板内部手柄命中数据标记：宽度 = 暂存区↔编辑器，高度 = 暂存区↔模板区
 const RESIZE_WIDTH_MARK = "data-resize-width";
@@ -94,55 +125,84 @@ function onDocResizeDown(e: Event) {
 // 窄屏判定：宽度不足时自动折叠暂存区（抽屉模式下标题栏内也有折叠按钮）
 const NARROW_QUERY = "(max-width: 1023px)";
 const narrowQuery = window.matchMedia(NARROW_QUERY);
+const isNarrow = ref(narrowQuery.matches);
+function closeStagingPanel() {
+  uiStore.setStagingOpen(false);
+  void nextTick(() => {
+    document.querySelector<HTMLElement>('button[aria-controls="ww-staging-panel"]')?.focus();
+  });
+}
 const onNarrowChange = (e: MediaQueryListEvent) => {
+  isNarrow.value = e.matches;
   if (e.matches) uiStore.setStagingOpen(false);
+};
+const onGlobalKeydown = (event: KeyboardEvent) => {
+  if (event.defaultPrevented || event.key !== "Escape" || !isNarrow.value || !uiStore.stagingOpen) {
+    return;
+  }
+  const target = event.target as HTMLElement | null;
+  if (target?.closest('[role="dialog"], [role="menu"], .n-popover')) return;
+  event.preventDefault();
+  closeStagingPanel();
 };
 
 onMounted(() => {
   document.addEventListener("pointerdown", onDocResizeDown, { capture: true });
   document.addEventListener("mousedown", onDocResizeDown, { capture: true });
+  document.addEventListener("keydown", onGlobalKeydown);
   if (narrowQuery.matches) uiStore.setStagingOpen(false);
   narrowQuery.addEventListener("change", onNarrowChange);
 });
 onUnmounted(() => {
   document.removeEventListener("pointerdown", onDocResizeDown, { capture: true });
   document.removeEventListener("mousedown", onDocResizeDown, { capture: true });
+  document.removeEventListener("keydown", onGlobalKeydown);
   narrowQuery.removeEventListener("change", onNarrowChange);
 });
 
 /** 拖动调节面板宽度（增量式，按下时记录起点避免突跳；记忆在设置中）
  *  手柄位于面板右缘：向右拖变宽。拖动过程中同时写入 ref、store 与 DOM 元素样式 */
+function applyStagingWidth(w: number) {
+  const next = Math.min(MAX_STAGING_WIDTH, Math.max(MIN_STAGING_WIDTH, Math.round(w)));
+  stagingWidth.value = next;
+  settingsStore.setStagingWidth(next);
+  if (outerRef.value) {
+    outerRef.value.style.width = `${next}px`;
+    outerRef.value.style.minWidth = `${next}px`;
+    outerRef.value.style.maxWidth = `${next}px`;
+    outerRef.value.style.flexBasis = `${next}px`;
+  }
+}
+
+function handleStagingWidthKeydown(event: KeyboardEvent) {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  const step = event.shiftKey ? 64 : 16;
+  applyStagingWidth(stagingWidth.value + (event.key === "ArrowRight" ? step : -step));
+}
+
 function startResize(e: MouseEvent) {
   if (resizing) return;
   resizing = true;
   e.preventDefault();
   const startX = e.clientX;
   const startWidth = stagingWidth.value;
-  const apply = (w: number) => {
-    const next = Math.min(MAX_STAGING_WIDTH, Math.max(MIN_STAGING_WIDTH, w));
-    stagingWidth.value = next;
-    settingsStore.setStagingWidth(next);
-    if (outerRef.value) {
-      outerRef.value.style.width = `${next}px`;
-      outerRef.value.style.minWidth = `${next}px`;
-      outerRef.value.style.maxWidth = `${next}px`;
-      outerRef.value.style.flexBasis = `${next}px`;
-    }
-  };
   const onMove = (ev: MouseEvent) => {
-    apply(startWidth + (ev.clientX - startX));
+    applyStagingWidth(startWidth + (ev.clientX - startX));
   };
-  const onUp = () => {
+  const finish = () => {
     resizing = false;
     window.removeEventListener("pointermove", onMove);
-    window.removeEventListener("pointerup", onUp);
-    window.removeEventListener("pointercancel", onUp);
+    window.removeEventListener("pointerup", finish);
+    window.removeEventListener("pointercancel", finish);
+    window.removeEventListener("blur", finish);
     document.body.style.userSelect = "";
   };
   document.body.style.userSelect = "none";
   window.addEventListener("pointermove", onMove);
-  window.addEventListener("pointerup", onUp);
-  window.addEventListener("pointercancel", onUp);
+  window.addEventListener("pointerup", finish);
+  window.addEventListener("pointercancel", finish);
+  window.addEventListener("blur", finish);
 }
 
 /** 从剪贴板读取文本并添加到暂存区 */
@@ -185,6 +245,34 @@ function applyTemplate(t: SortTemplate) {
     `已按模板「${t.name}」排序` +
       (r.unmatched.length > 0 ? `，${r.unmatched.length} 项未匹配已保留在末尾` : ""),
   );
+}
+
+/** 替换规则：优先作用于聚焦编辑器选区，否则处理全文；无编辑器时回退当前工作区左侧。 */
+function applyRuleToEditor(rule: ReplaceRule) {
+  const editor = getActiveEditor();
+  const model = editor?.getModel();
+  if (editor && model) {
+    const selection = editor.getSelection();
+    const range = selection && !selection.isEmpty() ? selection : model.getFullModelRange();
+    const source = model.getValueInRange(range);
+    const result = applyReplacements(source, rule.find, rule.replace, rule.isRegex, rule.matchCase);
+    editor.executeEdits("ww-rule", [{ range, text: result }]);
+    editor.focus();
+    toast(`已按规则「${rule.name}」替换`);
+    return;
+  }
+
+  const wsStore = useWorkspaceStore();
+  const active = wsStore.workspaces.find((item) => item.id === wsStore.activeId);
+  if (!active) {
+    toast("没有可应用规则的工作区");
+    return;
+  }
+  wsStore.setLeft(
+    active.id,
+    applyReplacements(active.left ?? "", rule.find, rule.replace, rule.isRegex, rule.matchCase),
+  );
+  toast(`已按规则「${rule.name}」替换`);
 }
 
 /** 把文本模板插入到当前聚焦的编辑器（选区优先） */
@@ -281,35 +369,46 @@ function handleDrop(e: DragEvent, zone: "staging" | "templates") {
 
 /** 拖动调节模板区高度（增量式：记录起点避免突跳；优先用面板高度限制上限，缺失时回落）
  *  拖动过程中同时写入 ref、store 与 DOM 元素样式 */
+function applyTemplateHeight(h: number) {
+  const max = panelRef.value?.getBoundingClientRect().height;
+  const upper = Math.max(MIN_TEMPLATE_HEIGHT, max ? max * 0.7 : 640);
+  const next = Math.min(upper, Math.max(MIN_TEMPLATE_HEIGHT, Math.round(h)));
+  templateHeight.value = next;
+  settingsStore.setStagingTemplateHeight(next);
+  if (templateZoneRef.value) {
+    templateZoneRef.value.style.height = `${next}px`;
+  }
+}
+
+function handleTemplateHeightKeydown(event: KeyboardEvent) {
+  if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+  event.preventDefault();
+  const step = event.shiftKey ? 64 : 16;
+  applyTemplateHeight(templateHeight.value + (event.key === "ArrowUp" ? step : -step));
+}
+
 function startTemplateResize(e: MouseEvent) {
   if (resizing) return;
   resizing = true;
   e.preventDefault();
   const startY = e.clientY;
   const startHeight = templateHeight.value;
-  const apply = (h: number) => {
-    const max = panelRef.value?.getBoundingClientRect().height;
-    const next = Math.min(max ? max * 0.7 : 640, Math.max(MIN_TEMPLATE_HEIGHT, h));
-    templateHeight.value = next;
-    settingsStore.setStagingTemplateHeight(next);
-    if (templateZoneRef.value) {
-      templateZoneRef.value.style.height = `${next}px`;
-    }
-  };
   const onMove = (ev: MouseEvent) => {
-    apply(startHeight + (startY - ev.clientY));
+    applyTemplateHeight(startHeight + (startY - ev.clientY));
   };
-  const onUp = () => {
+  const finish = () => {
     resizing = false;
     window.removeEventListener("pointermove", onMove);
-    window.removeEventListener("pointerup", onUp);
-    window.removeEventListener("pointercancel", onUp);
+    window.removeEventListener("pointerup", finish);
+    window.removeEventListener("pointercancel", finish);
+    window.removeEventListener("blur", finish);
     document.body.style.userSelect = "";
   };
   document.body.style.userSelect = "none";
   window.addEventListener("pointermove", onMove);
-  window.addEventListener("pointerup", onUp);
-  window.addEventListener("pointercancel", onUp);
+  window.addEventListener("pointerup", finish);
+  window.addEventListener("pointercancel", finish);
+  window.addEventListener("blur", finish);
 }
 
 /** 自绘拖拽载荷（卡片 → 编辑器；绕开原生 draggable 启动判定不稳定问题） */
@@ -401,7 +500,10 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
 <template>
   <!-- 宽屏停靠式面板（编辑器左侧）；窄屏降级为左侧悬浮抽屉（默认收起，右下角按钮打开） -->
   <div
+    id="ww-staging-panel"
     ref="outerRef"
+    role="complementary"
+    aria-label="全局暂存区"
     :class="
       cn(
         'relative min-w-0 bg-card',
@@ -427,7 +529,7 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
           size="icon-sm"
           title="折叠暂存区"
           class="lg:hidden!"
-          @click="uiStore.setStagingOpen(false)"
+          @click="closeStagingPanel"
         >
           <LayoutSidebarLeftCollapse />
         </Button>
@@ -440,7 +542,12 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
       </div>
 
       <div class="space-y-1.5 border-b border-border p-3">
-        <Textarea v-model="draft" :rows="2" placeholder="粘贴或输入文本，暂存后供各工具取用…" />
+        <Textarea
+          v-model="draft"
+          :rows="2"
+          aria-label="暂存区输入"
+          placeholder="粘贴或输入文本，暂存后供各工具取用…"
+        />
         <div class="flex gap-1.5">
           <Button
             size="sm"
@@ -496,6 +603,7 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                 v-model="editDraft"
                 autofocus
                 rows="3"
+                aria-label="编辑暂存区条目"
                 @keydown.enter.exact.prevent="saveItemEdit"
                 @keydown.esc="cancelItemEdit"
                 class="w-full resize-none rounded border border-border bg-background p-1.5 text-xs outline-none focus:ring-1 focus:ring-ring"
@@ -505,7 +613,7 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                   type="button"
                   title="保存"
                   @click="saveItemEdit"
-                  class="rounded bg-primary px-2 py-0.5 text-[10px] text-primary-foreground hover:opacity-90"
+                  class="min-h-6 rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:opacity-90"
                 >
                   保存
                 </button>
@@ -513,7 +621,7 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                   type="button"
                   title="取消"
                   @click="cancelItemEdit"
-                  class="rounded px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-accent"
+                  class="min-h-6 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
                 >
                   取消
                 </button>
@@ -535,40 +643,35 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                   <span>·</span>
                   <span>{{ formatTime(item.createdAt) }}</span>
                   <div class="flex-1" />
-                  <button
-                    type="button"
+                  <TooltipIconButton
                     title="编辑"
                     @click="startItemEdit(item.id)"
                     class="rounded p-0.5 hover:bg-accent hover:text-accent-foreground"
                   >
                     <Pencil class="size-3" />
-                  </button>
-                  <button
-                    type="button"
+                  </TooltipIconButton>
+                  <TooltipIconButton
                     title="复制"
                     @click="copyItem(item.text)"
                     class="rounded p-0.5 hover:bg-accent hover:text-accent-foreground"
                   >
                     <Copy class="size-3" />
-                  </button>
-                  <button
-                    type="button"
+                  </TooltipIconButton>
+                  <TooltipIconButton
                     title="导入到对比·左侧"
                     @click="importText('diff-left', item.text)"
                     class="rounded p-0.5 hover:bg-accent hover:text-accent-foreground"
                   >
                     <FileDiff class="size-3" />
-                  </button>
-                  <button
-                    type="button"
+                  </TooltipIconButton>
+                  <TooltipIconButton
                     title="导入到对比·右侧"
                     @click="importText('diff-right', item.text)"
                     class="rounded p-0.5 hover:bg-accent hover:text-accent-foreground"
                   >
                     <FileDiff class="size-3" />
-                  </button>
-                  <button
-                    type="button"
+                  </TooltipIconButton>
+                  <TooltipIconButton
                     title="删除此条目"
                     @click="
                       pendingDelete = {
@@ -580,7 +683,7 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                     class="rounded p-0.5 text-destructive hover:bg-accent"
                   >
                     <Trash class="size-3" />
-                  </button>
+                  </TooltipIconButton>
                 </div>
               </div>
             </template>
@@ -598,6 +701,19 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
       <!-- 上下分栏分隔条：拖动调节模板区高度（热区加大，命中由 document 捕获代理接管；
            hover 指示位于顶部边框线上；容器高度收紧消除 tab 行上方空白） -->
       <div
+        role="separator"
+        tabindex="0"
+        aria-orientation="horizontal"
+        aria-label="调节模板区高度"
+        :aria-valuemin="MIN_TEMPLATE_HEIGHT"
+        :aria-valuemax="
+          Math.max(
+            MIN_TEMPLATE_HEIGHT,
+            Math.round((panelRef?.getBoundingClientRect().height || 640) * 0.7),
+          )
+        "
+        :aria-valuenow="Math.round(templateHeight)"
+        @keydown="handleTemplateHeightKeydown"
         class="relative h-2 shrink-0 cursor-row-resize touch-none select-none border-t border-border"
         :data-resize-height="true"
         title="拖动调节模板区高度"
@@ -621,48 +737,32 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
       >
         <div class="flex h-full flex-col">
           <div class="flex flex-nowrap items-center gap-1.5 overflow-hidden px-3 py-2">
-            <div class="flex shrink-0 items-center gap-0.5 rounded-md bg-muted p-0.5">
+            <div
+              role="tablist"
+              aria-label="模板类型"
+              class="flex shrink-0 items-center gap-0.5 rounded-md bg-muted p-0.5"
+            >
               <button
+                v-for="(tab, index) in TEMPLATE_TABS"
+                :id="`ww-staging-tab-${tab.value}`"
+                :key="tab.value"
                 type="button"
-                @click="tplTab = 'text'"
+                role="tab"
+                :aria-selected="tplTab === tab.value"
+                :aria-controls="'ww-staging-template-panel'"
+                :tabindex="tplTab === tab.value ? 0 : -1"
+                @click="tplTab = tab.value"
+                @keydown="handleTemplateTabKeydown($event, index)"
                 :class="
                   cn(
-                    'whitespace-nowrap rounded px-2 py-0.5 text-[11px] transition-colors',
-                    tplTab === 'text'
+                    'min-h-6 whitespace-nowrap rounded px-2 py-1 text-xs transition-colors',
+                    tplTab === tab.value
                       ? 'bg-background font-medium shadow-sm'
                       : 'text-muted-foreground hover:text-foreground',
                   )
                 "
               >
-                文本模板
-              </button>
-              <button
-                type="button"
-                @click="tplTab = 'sort'"
-                :class="
-                  cn(
-                    'whitespace-nowrap rounded px-2 py-0.5 text-[11px] transition-colors',
-                    tplTab === 'sort'
-                      ? 'bg-background font-medium shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )
-                "
-              >
-                排序模板
-              </button>
-              <button
-                type="button"
-                @click="tplTab = 'rules'"
-                :class="
-                  cn(
-                    'whitespace-nowrap rounded px-2 py-0.5 text-[11px] transition-colors',
-                    tplTab === 'rules'
-                      ? 'bg-background font-medium shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )
-                "
-              >
-                替换规则
+                {{ tab.label }}
               </button>
             </div>
             <div class="flex-1" />
@@ -695,7 +795,12 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
             </Button>
           </div>
 
-          <div class="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3">
+          <div
+            id="ww-staging-template-panel"
+            role="tabpanel"
+            :aria-labelledby="`ww-staging-tab-${tplTab}`"
+            class="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3"
+          >
             <!-- 文本模板 -->
             <template v-if="tplTab === 'text'">
               <p
@@ -731,30 +836,27 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                       <span class="shrink-0 text-[10px] text-muted-foreground">
                         {{ t.text.length }} 字符
                       </span>
-                      <button
-                        type="button"
+                      <TooltipIconButton
                         title="插入到编辑器"
                         @click="insertTextTemplate(t)"
                         class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         <FileText class="size-3" />
-                      </button>
-                      <button
-                        type="button"
+                      </TooltipIconButton>
+                      <TooltipIconButton
                         title="编辑模板"
                         @click="editTextTemplate(t.id)"
                         class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         <Pencil class="size-3" />
-                      </button>
-                      <button
-                        type="button"
+                      </TooltipIconButton>
+                      <TooltipIconButton
                         title="删除模板"
                         @click="pendingDelete = { kind: 'text-template', id: t.id, name: t.name }"
                         class="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                       >
                         <Trash class="size-3" />
-                      </button>
+                      </TooltipIconButton>
                     </div>
                     <p
                       class="mt-0.5 line-clamp-2 whitespace-pre-wrap break-all text-[10px] text-muted-foreground"
@@ -805,30 +907,27 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                       <span class="shrink-0 text-[10px] text-muted-foreground">
                         {{ t.items.length }} 条
                       </span>
-                      <button
-                        type="button"
+                      <TooltipIconButton
                         title="按此模板排序编辑器文本"
                         @click="applyTemplate(t)"
                         class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         <ListNumbers class="size-3" />
-                      </button>
-                      <button
-                        type="button"
+                      </TooltipIconButton>
+                      <TooltipIconButton
                         title="编辑模板"
                         @click="editSortTemplate(t.id)"
                         class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         <Pencil class="size-3" />
-                      </button>
-                      <button
-                        type="button"
+                      </TooltipIconButton>
+                      <TooltipIconButton
                         title="删除模板"
                         @click="pendingDelete = { kind: 'sort-template', id: t.id, name: t.name }"
                         class="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                       >
                         <Trash class="size-3" />
-                      </button>
+                      </TooltipIconButton>
                     </div>
                     <p class="mt-0.5 truncate text-[10px] text-muted-foreground">
                       {{ t.items.slice(0, 3).join("、") }}{{ t.items.length > 3 ? "…" : "" }}
@@ -868,22 +967,27 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
                   <span v-if="r.isRegex" class="shrink-0 text-[10px] text-muted-foreground"
                     >正则</span
                   >
-                  <button
-                    type="button"
+                  <TooltipIconButton
+                    title="应用规则到编辑器"
+                    @click.stop="applyRuleToEditor(r)"
+                    class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <Replace class="size-3" />
+                  </TooltipIconButton>
+                  <TooltipIconButton
                     title="编辑规则"
                     @click.stop="editRule(r.id)"
                     class="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   >
                     <Pencil class="size-3" />
-                  </button>
-                  <button
-                    type="button"
+                  </TooltipIconButton>
+                  <TooltipIconButton
                     title="删除规则"
                     @click.stop="pendingDelete = { kind: 'rule', id: r.id, name: r.name }"
                     class="shrink-0 rounded p-0.5 text-destructive hover:bg-accent"
                   >
                     <Trash class="size-3" />
-                  </button>
+                  </TooltipIconButton>
                 </div>
                 <p
                   class="mt-0.5 truncate font-mono text-[10px] text-muted-foreground"
@@ -975,6 +1079,14 @@ function startCardDrag(e: PointerEvent, payload: CardDragPayload) {
       <!-- 面板右缘宽度手柄：面板根内 absolute 层（静时透明，hover 提示；命中由 document 捕获代理接管） -->
       <div
         v-if="uiStore.stagingOpen"
+        role="separator"
+        tabindex="0"
+        aria-orientation="vertical"
+        aria-label="调节暂存区宽度"
+        :aria-valuemin="MIN_STAGING_WIDTH"
+        :aria-valuemax="MAX_STAGING_WIDTH"
+        :aria-valuenow="Math.round(stagingWidth)"
+        @keydown="handleStagingWidthKeydown"
         class="absolute inset-y-0 -right-2 z-10 w-4 cursor-ew-resize touch-none select-none bg-transparent hover:bg-primary/25"
         :data-resize-width="true"
         title="拖动调节面板宽度"
