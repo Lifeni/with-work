@@ -44,3 +44,24 @@ describe("Button tooltip", () => {
     expect(button.classes()).not.toContain("ww-icon-btn");
   });
 });
+
+describe("Button 边框语义", () => {
+  it.each(["default", "secondary", "outline", "destructive"] as const)(
+    "%s 按钮显式保留 Naive 边框",
+    (variant) => {
+      const wrapper = mount(Button, {
+        props: { variant, size: "sm" },
+        slots: { default: "操作" },
+      });
+      expect(wrapper.find("button .n-button__border").exists()).toBe(true);
+    },
+  );
+
+  it("ghost 按钮显式无边框", () => {
+    const wrapper = mount(Button, {
+      props: { variant: "ghost", size: "sm" },
+      slots: { default: "操作" },
+    });
+    expect(wrapper.get("button").find(".n-button__border").exists()).toBe(false);
+  });
+});

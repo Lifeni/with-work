@@ -84,17 +84,17 @@ describe("FindReplacePanel 查找", () => {
       "aria-selected": "false",
     });
 
-    const sortSelect = selectForPlaceholder(wrapper, "排序规则");
+    const sortSelect = selectForPlaceholder(wrapper, "排序模板");
     expect(sortSelect.props("inputProps")).toMatchObject({
       role: "combobox",
-      "aria-label": "排序规则",
+      "aria-label": "排序模板",
       "aria-autocomplete": "list",
       "aria-expanded": false,
     });
     expect(sortSelect.props("filterable")).toBe(true);
     expect(sortSelect.props("menuProps")).toMatchObject({
       role: "listbox",
-      "aria-label": "排序规则",
+      "aria-label": "排序模板",
     });
 
     ruleSelect.vm.$emit("update:show", true);
@@ -419,6 +419,23 @@ describe("FindReplacePanel 工具栏分组", () => {
     wrapper.unmount();
   });
 
+  it("排序模板管理入口与自定义菜单使用同一名称", () => {
+    const { wrapper } = mountPanel();
+    expect(wrapper.find('[aria-label="管理排序模板"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-label="管理排序规则"]').exists()).toBe(false);
+    const visibilityMenu = wrapper.findComponent(ToolbarVisibilityMenu);
+    const labels = (
+      visibilityMenu.props("groups") as Array<{
+        items: Array<{ id: string; label: string }>;
+      }>
+    )
+      .flatMap((group) => group.items)
+      .filter((item) => item.id.startsWith("sort"))
+      .map((item) => item.label);
+    expect(labels).toEqual(expect.arrayContaining(["排序模板", "管理排序模板"]));
+    wrapper.unmount();
+  });
+
   it("工具栏显示菜单的选择结果写入设置", async () => {
     const { wrapper } = mountPanel();
     const settings = useSettingsStore();
@@ -451,18 +468,23 @@ describe("FindReplacePanel 工具栏分组", () => {
     expect(findGroup.classes()).toContain("flex-nowrap");
     expect(findGroup.get("[data-ww-item=find-options]").classes()).toContain("relative");
     expect(findGroup.get("[data-ww-item=find-navigation]").classes()).toContain("relative");
+    expect(findGroup.classes()).toContain("min-w-min");
+    expect(wrapper.get("[data-ww-group=replace]").classes()).toContain("min-w-min");
     wrapper.unmount();
   });
 
   it("下拉框触发器和选项菜单使用统一控件字号", () => {
     const { wrapper } = mountPanel();
     const ruleSelect = selectForPlaceholder(wrapper, "替换规则");
-    const sortSelect = selectForPlaceholder(wrapper, "排序规则");
+    const sortSelect = selectForPlaceholder(wrapper, "排序模板");
 
     for (const select of [ruleSelect, sortSelect]) {
       expect(select.classes()).toContain("ww-control-text");
+      expect(select.props("bordered")).toBe(true);
+      expect(select.props("menuSize")).toBe("small");
       expect(select.props("menuProps")).toMatchObject({ class: "ww-select-menu" });
     }
+    expect(wrapper.get('[aria-label="选择分隔符"]').find(".font-mono").exists()).toBe(false);
     wrapper.unmount();
   });
 
@@ -476,6 +498,10 @@ describe("FindReplacePanel 工具栏分组", () => {
     expect(buttonByTitle("替换当前匹配").classes()).toContain("n-button--default-type");
     for (const title of ["全部替换", "分割", "组合", "排序"]) {
       expect(buttonByTitle(title).classes()).toContain("n-button--primary-type");
+    }
+    expect(buttonByTitle("选择分隔符").classes()).toContain("n-button--tertiary-type");
+    for (const title of ["替换当前匹配", "全部替换", "分割", "组合", "排序", "选择分隔符"]) {
+      expect(buttonByTitle(title).classes()).not.toContain("text-[11px]");
     }
     expect(wrapper.get("[data-ww-group=replace-actions]").classes()).toContain("gap-2");
     expect(wrapper.get("[data-ww-group=split-join]").classes()).toContain("gap-2");
@@ -505,7 +531,7 @@ describe("FindReplacePanel 排序", () => {
       prefixMatch: false,
     });
     const { wrapper, focused } = mountPanel("青岛\n北京\n济南");
-    selectForPlaceholder(wrapper, "排序规则").vm.$emit("update:value", "t1");
+    selectForPlaceholder(wrapper, "排序模板").vm.$emit("update:value", "t1");
     await wrapper.vm.$nextTick();
     const btn = wrapper.findAll("button").find((b) => b.text() === "排序");
     await btn!.trigger("click");
@@ -518,7 +544,7 @@ describe("FindReplacePanel 排序", () => {
     const store = useTemplatesStore();
     store.addTemplate({ id: "t1", name: "城市", items: ["济南"] });
     const { wrapper, focused } = mountPanel("苹果\n香蕉");
-    selectForPlaceholder(wrapper, "排序规则").vm.$emit("update:value", "t1");
+    selectForPlaceholder(wrapper, "排序模板").vm.$emit("update:value", "t1");
     await wrapper.vm.$nextTick();
     const btn = wrapper.findAll("button").find((b) => b.text() === "排序");
     await btn!.trigger("click");

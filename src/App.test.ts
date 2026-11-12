@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
+import { NConfigProvider } from "naive-ui";
 import App from "@/App.vue";
 import { resetStores } from "@/test/resetStores";
 import { useWorkspaceStore } from "@/stores/workspace";
@@ -79,6 +80,45 @@ describe("App 整体布局", () => {
     expect(wrapper.find('[aria-label="复制左编辑器到右编辑器"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label="复制右编辑器到左编辑器"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label="复制到另一侧"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("统一输入、选择和下拉菜单的控件字号与弹层样式", async () => {
+    const wrapper = mount(App, { attachTo: document.body });
+    await nextTick();
+
+    expect(wrapper.findComponent(NConfigProvider).props("themeOverrides")).toMatchObject({
+      Input: {
+        fontSizeSmall: "12px",
+      },
+      Dropdown: {
+        fontSizeSmall: "12px",
+        optionHeightSmall: "28px",
+      },
+      Select: {
+        peers: {
+          InternalSelection: {
+            fontSizeSmall: "12px",
+          },
+          InternalSelectMenu: {
+            optionFontSizeSmall: "12px",
+            optionHeightSmall: "28px",
+          },
+        },
+      },
+      Radio: {
+        fontSizeSmall: "12px",
+      },
+    });
+    const overrides = wrapper.findComponent(NConfigProvider).props("themeOverrides") as {
+      Dropdown: Record<string, unknown>;
+      Select: {
+        peers: { InternalSelectMenu: Record<string, unknown> };
+      };
+    };
+    expect(overrides.Dropdown).not.toHaveProperty("borderRadius");
+    expect(overrides.Select).not.toHaveProperty("menuBoxShadow");
+    expect(overrides.Select.peers.InternalSelectMenu).not.toHaveProperty("borderRadius");
     wrapper.unmount();
   });
 });

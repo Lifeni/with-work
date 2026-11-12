@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
-import { NInputNumber } from "naive-ui";
+import { NInputNumber, NRadioGroup } from "naive-ui";
 import SettingsView from "@/views/settings/SettingsView.vue";
 import { resetStores } from "@/test/resetStores";
 import { useSettingsStore } from "@/stores/settings";
@@ -48,12 +48,15 @@ describe("SettingsView 关于板块", () => {
     const themeGroup = document.querySelector(".n-radio-group");
     expect(themeGroup).not.toBeNull();
     expect(themeGroup?.classList.contains("ww-theme-switch")).toBe(true);
-    expect(themeGroup?.classList.contains("ww-control-text")).toBe(true);
+    expect(themeGroup?.classList.contains("ww-control-text")).toBe(false);
     expect(themeGroup?.getAttribute("aria-label")).toBe("主题");
+    const themeRadioGroup = wrapper.findComponent(NRadioGroup);
+    expect(themeRadioGroup.props("size")).toBe("small");
     expect(document.querySelector(".n-input-number")?.classList.contains("ww-control-text")).toBe(
       true,
     );
     const fontSizeInput = wrapper.findComponent(NInputNumber);
+    expect(fontSizeInput.props("bordered")).toBe(true);
     expect(fontSizeInput.props("showButton")).toBe(false);
     expect(fontSizeInput.props("inputProps")).toMatchObject({ "aria-label": "编辑器字号" });
     const darkBtn = [...document.querySelectorAll<HTMLElement>(".n-radio-button")].find(

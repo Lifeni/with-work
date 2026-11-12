@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
-import { NTooltip } from "naive-ui";
+import { NSelect, NTooltip } from "naive-ui";
 import AppDialog from "@/components/ui/dialog.vue";
 import RulesDialog from "@/components/shared/RulesDialog.vue";
 import TemplatesDialog from "@/components/shared/TemplatesDialog.vue";
 import TextTemplatesDialog from "@/components/shared/TextTemplatesDialog.vue";
+import ToolDialog from "@/components/shared/ToolDialog.vue";
 import { resetStores } from "@/test/resetStores";
 import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
+import { tools } from "@/tools/registry";
 
 beforeEach(() => {
   resetStores();
@@ -42,6 +44,21 @@ describe("AppDialog 关闭按钮", () => {
     expect(dialog?.getAttribute("role")).toBe("dialog");
     expect(dialog?.getAttribute("aria-modal")).toBe("true");
     expect(dialog?.getAttribute("aria-label")).toBe("测试弹窗");
+    wrapper.unmount();
+  });
+});
+
+describe("ToolDialog 控件样式", () => {
+  it("配置型工具的紧凑选择器使用统一 small 弹层", async () => {
+    const tool = tools.find((candidate) => candidate.id === "split-list");
+    if (!tool) throw new Error("找不到分割工具");
+    const wrapper = mount(ToolDialog, { props: { tool } });
+    await tick();
+
+    const select = wrapper.findComponent(NSelect);
+    expect(select.props("bordered")).toBe(true);
+    expect(select.props("menuSize")).toBe("small");
+    expect(select.classes()).toContain("ww-control-text");
     wrapper.unmount();
   });
 });

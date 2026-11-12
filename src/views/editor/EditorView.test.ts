@@ -196,6 +196,25 @@ describe("EditorView 设置联动", () => {
     wrapper.unmount();
   });
 
+  it("左右编辑器保留编码字体并追加项目中文回退", async () => {
+    const { useSettingsStore } = await import("@/stores/settings");
+    const settings = useSettingsStore();
+    settings.setEditorFontFamily('"JetBrains Mono", monospace');
+    useWorkspaceStore().createWorkspace();
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+
+    const editors = wrapper.findAllComponents({ name: "MonacoEditorStub" });
+    expect(editors).toHaveLength(2);
+    for (const editor of editors) {
+      expect((editor.props("options") as Record<string, unknown>).fontFamily).toBe(
+        '"JetBrains Mono", MiSans, "HarmonyOS Sans SC", "Source Han Sans SC", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", monospace, sans-serif',
+      );
+    }
+    expect(settings.editorFontFamily).toBe('"JetBrains Mono", monospace');
+    wrapper.unmount();
+  });
+
   it("左右宽度分隔条可用方向键调节并播报当前比例", async () => {
     const { useSettingsStore } = await import("@/stores/settings");
     const settings = useSettingsStore();
@@ -267,7 +286,9 @@ describe("EditorView 提取差异", () => {
     await wrapper.get('button[aria-label="提取差异"]').trigger("click");
     await nextTick();
 
-    expect(useToastStore().toasts.map((item) => item.message)).toContain("两侧已无重复项");
+    expect(useToastStore().toasts.map((item) => item.message)).toContain(
+      "两侧已是各自独有内容，无需提取",
+    );
     expect(store.workspaces[0]).toMatchObject({ left: "甲\n", right: "乙\r\n" });
 
     wrapper.unmount();

@@ -59,6 +59,7 @@ describe("DropdownMenu", () => {
     const menu = document.body.querySelector<HTMLElement>('[role="menu"]');
     const items = [...document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')];
     expect(menu?.getAttribute("aria-label")).toBe("测试操作菜单");
+    expect(menu?.classList.contains("ww-menu-text")).toBe(true);
     expect(items).toHaveLength(2);
     expect(document.activeElement).toBe(items[0]);
 

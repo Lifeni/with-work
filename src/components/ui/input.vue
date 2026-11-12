@@ -46,6 +46,7 @@ function onUpdate(value: string) {
     :class="cn(attrs.class as string)"
     :input-props="inputProps"
     v-bind="rootAttrs"
+    bordered
     size="small"
     @update:value="onUpdate"
   />

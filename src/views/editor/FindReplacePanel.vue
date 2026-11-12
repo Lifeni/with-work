@@ -100,7 +100,7 @@ const EDITOR_TOOLBAR_GROUPS: ToolbarVisibilityGroup[] = [
     label: "文本处理",
     items: [
       { id: "split-join", label: "分割与组合", icon: Scissors },
-      { id: "sort-rules", label: "排序规则", icon: ListNumbers },
+      { id: "sort-rules", label: "排序模板", icon: ListNumbers },
       { id: "sort-manage", label: "管理排序模板", icon: Settings },
     ],
   },
@@ -147,7 +147,7 @@ const TEMPLATE_SELECT_MENU_PROPS = {
   ...SELECT_MENU_PROPS,
   id: "ww-sort-template-options",
   role: "listbox",
-  "aria-label": "排序规则",
+  "aria-label": "排序模板",
 };
 const RULE_SELECT_INPUT_PROPS = {
   role: "combobox" as const,
@@ -158,7 +158,7 @@ const RULE_SELECT_INPUT_PROPS = {
 };
 const TEMPLATE_SELECT_INPUT_PROPS = {
   role: "combobox" as const,
-  "aria-label": "排序规则",
+  "aria-label": "排序模板",
   "aria-autocomplete": "list" as const,
   "aria-haspopup": "listbox" as const,
   "aria-controls": "ww-sort-template-options",
@@ -598,7 +598,7 @@ defineExpose({ open });
       >
         <div
           data-ww-group="find"
-          class="flex min-w-[17rem] flex-[1_1_24rem] flex-nowrap items-center gap-2"
+          class="flex min-w-min flex-[1_1_24rem] flex-nowrap items-center gap-2"
         >
           <div data-ww-input-box class="relative min-w-[7rem] flex-1 basis-0">
             <Input
@@ -694,10 +694,7 @@ defineExpose({ open });
           </div>
         </div>
 
-        <div
-          data-ww-group="replace"
-          class="flex min-w-[14.75rem] flex-[1_1_22rem] items-center gap-2"
-        >
+        <div data-ww-group="replace" class="flex min-w-min flex-[1_1_22rem] items-center gap-2">
           <div data-ww-input-box class="relative min-w-[7rem] flex-1 basis-0">
             <Input
               v-model="replace"
@@ -711,6 +708,8 @@ defineExpose({ open });
             v-if="editorToolbarVisible('replace-rules')"
             data-ww-item="replace-rules"
             size="small"
+            menu-size="small"
+            bordered
             clearable
             filterable
             placeholder="替换规则"
@@ -736,7 +735,7 @@ defineExpose({ open });
           <Button
             size="sm"
             variant="secondary"
-            class="h-6.5 shrink-0 px-2 text-[11px]"
+            class="h-6.5 shrink-0 px-2"
             title="替换当前匹配"
             tooltip
             @click="replaceOne"
@@ -746,7 +745,7 @@ defineExpose({ open });
           </Button>
           <Button
             size="sm"
-            class="h-6.5 shrink-0 px-2 text-[11px]"
+            class="h-6.5 shrink-0 px-2"
             title="全部替换"
             tooltip
             @click="replaceAll"
@@ -792,34 +791,22 @@ defineExpose({ open });
               <Button
                 variant="outline"
                 size="sm"
-                class="h-6.5 gap-1 px-2 text-[11px]"
+                class="h-6.5 gap-1 px-2"
                 aria-label="选择分隔符"
                 aria-haspopup="menu"
                 :aria-expanded="delimiterMenuOpen"
                 :title="`分隔符：${delimiterOption.label}`"
               >
-                <span class="font-mono">{{ delimiterOption.shortLabel }}</span>
+                <span>{{ delimiterOption.shortLabel }}</span>
                 <ChevronDown class="size-3" />
               </Button>
             </span>
           </NDropdown>
-          <Button
-            size="sm"
-            class="h-6.5 shrink-0 px-2 text-[11px]"
-            title="分割"
-            tooltip
-            @click="runSplit"
-          >
+          <Button size="sm" class="h-6.5 shrink-0 px-2" title="分割" tooltip @click="runSplit">
             <Scissors class="size-3" />
             <span class="max-[1700px]:sr-only">分割</span>
           </Button>
-          <Button
-            size="sm"
-            class="h-6.5 shrink-0 px-2 text-[11px]"
-            title="组合"
-            tooltip
-            @click="runJoin"
-          >
+          <Button size="sm" class="h-6.5 shrink-0 px-2" title="组合" tooltip @click="runJoin">
             <ArrowsJoin class="size-3" />
             <span class="max-[1700px]:sr-only">组合</span>
           </Button>
@@ -839,9 +826,11 @@ defineExpose({ open });
         >
           <NSelect
             size="small"
+            menu-size="small"
+            bordered
             clearable
             filterable
-            placeholder="排序规则"
+            placeholder="排序模板"
             :value="templateSelect"
             :options="templateSelectOptions"
             :consistent-menu-width="false"
@@ -861,13 +850,7 @@ defineExpose({ open });
           >
             <ArrowBigUpLine class="size-3.5" />
           </Toggle>
-          <Button
-            size="sm"
-            class="h-6.5 shrink-0 px-2 text-[11px]"
-            title="排序"
-            tooltip
-            @click="runSort"
-          >
+          <Button size="sm" class="h-6.5 shrink-0 px-2" title="排序" tooltip @click="runSort">
             <ListNumbers class="size-3" />
             <span class="max-[1700px]:sr-only">排序</span>
           </Button>
@@ -880,7 +863,7 @@ defineExpose({ open });
           variant="outline"
           size="icon-sm"
           class="shrink-0"
-          title="管理排序规则"
+          title="管理排序模板"
           @click="templatesOpen = true"
         >
           <Settings />

@@ -191,6 +191,8 @@
   padding: 5px 12px;
   border-radius: 6px;
   font-size: 12px;
+  /* !important：Naive 复选框根样式会注入 1.6 倍行高 */
+  line-height: 18px !important;
 }
 
 .ww-toolbar-visibility-checkbox:hover {
@@ -206,6 +208,7 @@
   order: 1;
   min-width: 0;
   width: 100%;
+  line-height: 18px;
 }
 
 .ww-toolbar-visibility-checkbox .n-checkbox-box-wrapper {
@@ -235,21 +238,37 @@
   outline-offset: -2px;
 }
 
-/* 表单控件统一使用 12px 控件字号，触发器与下拉选项保持一致 */
-.ww-control-text {
+/* 表单与菜单统一使用 12px 控件字号，触发器与下拉选项保持一致 */
+.ww-control-text,
+.ww-menu-text,
+.ww-select-menu {
   --n-font-size: 12px !important;
+  font-family: var(--font-sans);
   font-size: 12px;
 }
 
-.ww-control-text .n-radio-button,
+.ww-menu-text,
+.ww-select-menu {
+  /* !important：Naive 浮层内容会注入 1.6 倍行高，统一压回菜单行高令牌 */
+  line-height: 1.5 !important;
+}
+
 .ww-control-text .n-base-selection,
 .ww-control-text .n-base-selection-label,
 .ww-control-text .n-base-selection-input,
 .ww-control-text .n-base-selection-placeholder,
 .ww-control-text .n-input,
-.ww-control-text .n-input__input-el,
+.ww-control-text .n-input__input-el {
+  font-family: var(--font-sans) !important;
+  font-size: 12px !important;
+}
+
+.ww-menu-text .n-dropdown-option,
+.ww-menu-text .n-dropdown-option-body__label,
 .ww-select-menu .n-base-select-option,
+.ww-select-menu .n-base-select-option__label,
 .ww-select-menu .n-base-select-group-header {
+  font-family: var(--font-sans) !important;
   font-size: 12px !important;
 }
 

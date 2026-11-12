@@ -154,6 +154,19 @@ describe("ToolbarVisibilityMenu", () => {
         .findAllComponents(NPopover)
         .find((component) => component.props("trigger") === "manual")
         ?.props("contentClass"),
-    ).toBe("ww-toolbar-visibility-menu");
+    ).toBe("ww-toolbar-visibility-menu ww-menu-text");
+  });
+
+  it("自定义菜单沿用 Naive 默认圆角与阴影", () => {
+    const wrapper = mount(ToolbarVisibilityMenu, {
+      props: { groups, hiddenIds: [] },
+    });
+    const themeOverrides = wrapper
+      .findAllComponents(NPopover)
+      .find((component) => component.props("trigger") === "manual")
+      ?.props("themeOverrides") as Record<string, unknown>;
+
+    expect(themeOverrides).not.toHaveProperty("borderRadius");
+    expect(themeOverrides).not.toHaveProperty("boxShadow");
   });
 });

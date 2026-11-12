@@ -64,6 +64,7 @@ with-work/
 - **暂存区**（`StagingPanel.vue`）：编辑器左侧面板，多工作区共用；包含全局暂存区（文本条目）、文本模板、排序模板、替换规则四个模块，条目可拖到编辑器（规则拖入 = 按规则替换全文），双击编辑，支持分组与导入/导出。宽度可拖动调节（记忆于设置）；开关在标题栏左侧（宽窄屏均可用），窄屏抽屉模式下面板标题前另有折叠按钮，窄屏自动收起。
 - **图标**：界面图标用 @vicons/tabler（无 Icon 前缀命名）；品牌 Logo 用 `src/assets/favicon.svg`（模块导入，两种构建都内联；PWA 图标由 `pnpm run icons` 生成到 `public/`）。
 - **图标按钮提示**：含义不直观的纯图标按钮统一使用 Naive UI `NTooltip`；`Button` 的 icon 尺寸自动启用，原生 `<button>` 图标按钮通过 `TooltipIconButton` 包装，同时保留 `aria-label`。tooltip 字号统一为 12px。弹窗关闭、标签关闭等标准 X 按钮只保留 `aria-label`，不显示 tooltip。
+- **控件排版与边框**：输入框、按钮、选择触发器和菜单项统一使用 12px 控件字号；输入、文本域、选择器、数字输入显式 `bordered`，普通按钮显式有边框，仅 ghost/text 型按钮无边框。控件与菜单行高沿用 Naive 自身尺寸令牌，菜单圆角与阴影使用框架默认值。`NSelect` 同时设置 `size="small"` 与 `menu-size="small"`，普通下拉及自定义菜单使用 `ww-menu-text` / `ww-select-menu` 统一字体。Monaco 编辑器在用户编码字体之后自动追加项目中文回退（MiSans / HarmonyOS / 思源 / Noto），但不改写持久化的字体设置。10px / 11px 仅用于非交互元数据。
 - **无障碍与键盘交互**：页面提供 h1 与「跳到编辑器」链接；全局提供 `:focus-visible` 焦点环与 reduced-motion 降级。工作区标签与暂存区模板类型使用 roving tabindex + 左右方向键；对话框使用 `role=dialog` / `aria-modal` 并由 `NModal` 管理焦点陷阱和 Esc。toast、查找错误、自动保存状态分别使用 live region / alert。`input.vue` / `textarea.vue` 把 `aria-*` 传到原生控件；NSelect 需要同时设置 combobox、listbox 与 option 语义。`components/ui/dropdown.ts` 为 NDropdown 补齐 menu/menuitem 角色、方向键、Enter 与 Esc 焦点恢复；工具栏显隐使用 `NPopover + NCheckboxGroup`。尺寸分隔条使用 `role=separator` 并提供方向键调节。
 - **主题**：CSS 变量（oklch）+ `.dark` 类切换（Tailwind 语义色），Naive 主题在 `App.vue` 通过 `n-config-provider` 跟随同一设置（themeOverrides 主色对齐品牌色）；Monaco 主题跟随同一设置（`lib/theme.ts`）。
 - **路径别名**：`@/` 指向 `src/`。

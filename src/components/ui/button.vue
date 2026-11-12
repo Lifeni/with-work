@@ -46,10 +46,8 @@ const naiveType = computed(() => {
   }
 });
 
-// ghost 无边框（tertiary 默认带浅描边，去掉以贴近原视觉效果）
-const bordered = computed(
-  () => (props.variant === "ghost" ? false : undefined) as boolean | undefined,
-);
+// 除 ghost（框架中的 text 型操作）外，按钮都显式采用 Naive 有边框形态。
+const bordered = computed(() => props.variant !== "ghost");
 
 const naiveSize = computed(() => {
   switch (props.size) {

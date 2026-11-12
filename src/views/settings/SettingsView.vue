@@ -103,7 +103,7 @@ const onRulesFile = (e: Event) => {
             <div class="flex items-center gap-2">
               <span class="w-24 shrink-0 text-xs text-muted-foreground">主题</span>
               <NRadioGroup
-                class="ww-theme-switch ww-control-text"
+                class="ww-theme-switch"
                 aria-label="主题"
                 :value="settingsStore.theme"
                 size="small"
@@ -122,6 +122,7 @@ const onRulesFile = (e: Event) => {
                 :max="24"
                 :show-button="false"
                 :input-props="{ 'aria-label': '编辑器字号' }"
+                bordered
                 size="small"
                 class="w-24 ww-control-text"
                 @update:value="(v: number | null) => settingsStore.setFontSize(v ?? 14)"

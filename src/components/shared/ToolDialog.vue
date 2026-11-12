@@ -133,6 +133,8 @@ function execute() {
           <span class="shrink-0 text-xs text-muted-foreground">分隔符</span>
           <NSelect
             size="small"
+            menu-size="small"
+            bordered
             filterable
             :value="config.delimiter"
             :options="DELIMITER_OPTIONS"

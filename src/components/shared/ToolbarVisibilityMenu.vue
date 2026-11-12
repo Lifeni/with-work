@@ -9,8 +9,6 @@ const MENU_THEME_OVERRIDES = {
   color: "var(--popover)",
   textColor: "var(--popover-foreground)",
   dividerColor: "var(--border)",
-  borderRadius: "8px",
-  boxShadow: "0 8px 24px rgb(0 0 0 / 0.16)",
   padding: "0",
   fontSize: "12px",
 } as const;
@@ -124,7 +122,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", handleDocument
     :y="menuY"
     :show-arrow="false"
     :width="260"
-    content-class="ww-toolbar-visibility-menu"
+    content-class="ww-toolbar-visibility-menu ww-menu-text"
     :theme-overrides="MENU_THEME_OVERRIDES"
     @update:show="handleShowChange"
   >

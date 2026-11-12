@@ -25,6 +25,7 @@ import Button from "@/components/ui/button.vue";
 import FindReplacePanel from "@/views/editor/FindReplacePanel.vue";
 import { detectLanguage } from "@/lib/detect";
 import { getActiveEditor, setActiveEditor } from "@/lib/editorBridge";
+import { resolveEditorFontFamily } from "@/lib/editorFontFamily";
 import { extractUniqueDifferences } from "@/lib/extractDifferences";
 import { applyReplacements } from "@/lib/replace";
 import { splitLines } from "@/lib/split";
@@ -165,7 +166,7 @@ const theme = computed<string>(() =>
 const editorOptions = computed<monaco.editor.IStandaloneEditorConstructionOptions>(() => ({
   minimap: { enabled: true, scale: 1 },
   fontSize: settingsStore.fontSize,
-  fontFamily: settingsStore.editorFontFamily,
+  fontFamily: resolveEditorFontFamily(settingsStore.editorFontFamily),
   wordWrap: settingsStore.wordWrap ? "on" : "off",
   automaticLayout: true,
   scrollBeyondLastLine: false,
@@ -315,7 +316,7 @@ function extractEditorDifferences() {
     return;
   }
   if (!result.hasDuplicates) {
-    toast("两侧已无重复项");
+    toast("两侧已是各自独有内容，无需提取");
     return;
   }
   wsStore.setLeft(current.id, result.left);

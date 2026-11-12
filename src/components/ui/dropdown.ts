@@ -137,6 +137,7 @@ export function dropdownMenuProps(label: string) {
   // 导致合法的事件处理器被索引签名拒绝；运行时 menuProps 会正常 merge 到菜单根节点。
   return (() => ({
     role: "menu",
+    class: "ww-menu-text",
     "aria-label": label,
     "aria-orientation": "vertical",
     onKeydown: handleDropdownMenuKeydown,

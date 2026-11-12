@@ -87,13 +87,13 @@ async function update() {
             <Button
               size="sm"
               variant="ghost"
-              class="h-7 px-2.5 text-[11px]"
+              class="h-7 px-2.5"
               :disabled="updating"
               @click="dismiss"
             >
               稍后
             </Button>
-            <Button size="sm" class="h-7 px-2.5 text-[11px]" :disabled="updating" @click="update">
+            <Button size="sm" class="h-7 px-2.5" :disabled="updating" @click="update">
               <Refresh class="size-3" />
               {{ updating ? "正在更新" : "立即更新" }}
             </Button>
