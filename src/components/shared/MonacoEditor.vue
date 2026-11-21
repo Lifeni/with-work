@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import "@/lib/monaco";
 import { markRaw, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as monaco from "monaco-editor";
 

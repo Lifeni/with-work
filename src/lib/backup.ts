@@ -5,8 +5,8 @@ import { useRulesStore } from "@/stores/rules";
 import { useTemplatesStore } from "@/stores/templates";
 import { useTextTemplatesStore } from "@/stores/textTemplates";
 import { useSettingsStore } from "@/stores/settings";
-import { disablePersist } from "@/stores/persist";
-import { ALL_STORAGE_KEYS } from "./storageKeys";
+import { clearPersistedState } from "@/stores/persist";
+import { clearRecentFileHistory, clearWorkspaceFileBindings } from "@/lib/recentFiles";
 import { normalizeWorkspaces } from "./workspaceMigration";
 import { normalizeSettings } from "./settingsMigration";
 import { downloadText, sanitizeFileName } from "./utils";
@@ -216,16 +216,17 @@ export function exportCurrentWorkspace() {
 
 /**
  * 清除本地保存的全部数据（含内置数据标记，使内置规则/模板在下次启动时重新注入）。
- * 同时停写（`disablePersist`），避免内存中的旧状态被写回——因此调用方必须在清空后
+ * 同时停写并清空 IndexedDB，避免内存中的旧状态被写回——因此调用方必须在清空后
  * 立即刷新页面（`clearAllData` 即如此）；页面重载单独拆出只是为了便于测试验证清理结果。
  */
-export function clearAllStoredData() {
-  // 先停写：否则防抖窗口内的旧内容会在关页 flush，或后续任何 store 变更时被重新写回
-  disablePersist();
-  ALL_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
+export async function clearAllStoredData() {
+  // 先停写并等待已在途的 IndexedDB 事务结束，再统一清除，避免旧内容在清空后落盘
+  await clearPersistedState();
+  await clearRecentFileHistory();
+  await clearWorkspaceFileBindings();
 }
 
-export function clearAllData() {
-  clearAllStoredData();
+export async function clearAllData() {
+  await clearAllStoredData();
   location.reload();
 }

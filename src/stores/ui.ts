@@ -4,6 +4,7 @@ import { defineStore } from "pinia";
 export const useUiStore = defineStore("ui", () => {
   const stagingOpen = ref(true);
   const settingsOpen = ref(false);
+  const commandPaletteOpen = ref(false);
 
   function toggleStaging() {
     stagingOpen.value = !stagingOpen.value;
@@ -17,5 +18,17 @@ export const useUiStore = defineStore("ui", () => {
     settingsOpen.value = v;
   }
 
-  return { stagingOpen, settingsOpen, toggleStaging, setStagingOpen, setSettingsOpen };
+  function setCommandPaletteOpen(v: boolean) {
+    commandPaletteOpen.value = v;
+  }
+
+  return {
+    stagingOpen,
+    settingsOpen,
+    commandPaletteOpen,
+    toggleStaging,
+    setStagingOpen,
+    setSettingsOpen,
+    setCommandPaletteOpen,
+  };
 });

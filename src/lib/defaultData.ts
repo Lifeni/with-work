@@ -151,5 +151,10 @@ export function seedDefaultData() {
   for (const id of DEPRECATED_BUILTIN_IDS) {
     seeded.delete(id);
   }
-  localStorage.setItem(SEEDED_KEY, JSON.stringify([...seeded]));
+  try {
+    localStorage.setItem(SEEDED_KEY, JSON.stringify([...seeded]));
+  } catch (error) {
+    // 存储被禁用时仍允许应用启动；本次注入的内存数据继续可用。
+    console.warn("[seed] 无法保存内置数据标记", error);
+  }
 }

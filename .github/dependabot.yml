@@ -17,7 +17,7 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     ignore:
-      # monaco 0.53+ 的 worker 加载方式无法内联进单文件构建，项目刻意锁在 0.52.x
+      # Monaco 0.53+ 的 worker / 语言服务需要单独迁移与验证，不允许依赖机器人自动升级
       - dependency-name: monaco-editor
         update-types:
           - version-update:semver-minor

@@ -17,6 +17,11 @@ export const KeyCode = {
 };
 
 export const editor = {
+  setTheme: () => {},
+  createDiffEditor: () => ({
+    setModel: () => {},
+    dispose: () => {},
+  }),
   TrackedRangeStickiness: {
     NeverGrowsWhenTypingAtEdges: 1,
   },

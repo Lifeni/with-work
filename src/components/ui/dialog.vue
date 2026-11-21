@@ -37,7 +37,7 @@ const descriptionId = useId();
       :aria-describedby="props.description ? descriptionId : undefined"
       :class="
         cn(
-          'ww-dialog-content relative flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-card p-5 text-card-foreground shadow-xl',
+          'ww-dialog-content relative flex max-h-[85vh] w-[calc(100vw-2rem)] max-w-lg flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-card p-5 text-card-foreground shadow-xl',
           props.contentClass,
         )
       "

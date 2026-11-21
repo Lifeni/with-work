@@ -44,6 +44,7 @@ describe("AppDialog 关闭按钮", () => {
     expect(dialog?.getAttribute("role")).toBe("dialog");
     expect(dialog?.getAttribute("aria-modal")).toBe("true");
     expect(dialog?.getAttribute("aria-label")).toBe("测试弹窗");
+    expect(dialog?.classList.contains("w-[calc(100vw-2rem)]")).toBe(true);
     wrapper.unmount();
   });
 });
@@ -221,6 +222,24 @@ describe("TextTemplatesDialog 文本模板管理", () => {
     await tick();
     expect(dialogInputs()[0].value).toBe("模板1");
     expect(dialogButton("更新模板")).toBeDefined();
+    wrapper.unmount();
+  });
+
+  it("关闭后再次以同一个 editId 打开会重新载入最新内容", async () => {
+    const store = useTextTemplatesStore();
+    store.addTemplate({ id: "tt1", name: "模板1", text: "内容1" });
+    const wrapper = mount(TextTemplatesDialog, {
+      props: { open: true, editId: "tt1" },
+    });
+    await tick();
+
+    await wrapper.setProps({ open: false });
+    await tick();
+    store.updateTemplate({ id: "tt1", name: "更新后的模板", text: "内容2" });
+    await wrapper.setProps({ open: true });
+    await tick();
+
+    expect(dialogInputs()[0].value).toBe("更新后的模板");
     wrapper.unmount();
   });
 });

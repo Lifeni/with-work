@@ -4,58 +4,62 @@
 
 ## 技术选型
 
-| 领域     | 选择                                   | 理由                                                                                      |
-| -------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 前端框架 | Vue 3 + Vite 8                         | SPA 纯静态，Vercel 与单文件模式两相宜                                                     |
-| 语言     | TypeScript（strict）                   | 类型安全，适合长期维护与开源协作                                                          |
-| 样式     | Tailwind CSS v4（CSS-first）           | 原子类 + 主题变量（oklch），深色模式通过 `.dark` 类切换                                   |
-| UI 组件  | Naive UI（n-config-provider 主题联动） | 组件齐全、内置暗色主题；主色 themeOverrides 对齐品牌色；布局继续使用 Tailwind             |
-| 图标     | @vicons/tabler（xicons）               | tabler 线性图标集，按需 tree-shaking，与 Naive 同作者                                     |
-| 编辑器   | Monaco Editor（锁 0.52.x）             | VS Code 内核：查找/替换（正则、计数、跳转）、minimap、内置 Diff 编辑器                    |
-| 状态管理 | Pinia + 自定义持久化插件               | 全部 store 自动持久化到 localStorage（key 前缀 `ww:`，兼容旧 Zustand 格式）；写盘防抖合并 |
-| 测试     | Vitest + @vue/test-utils               | jsdom 环境；测试模式将 `monaco-editor` alias 为 `src/test/mockMonaco.ts`                  |
-| 包管理   | pnpm                                   | 确定性依赖树（pnpm-lock.yaml），安装快速、节省磁盘                                        |
-| 字体     | Inter（@fontsource 自托管）            | 中文字体走系统回退栈（MiSans / HarmonyOS Sans SC / Noto Sans SC），不打包                 |
-| 部署     | Vercel                                 | `vercel.json` 配置 framework/build/outputDirectory                                        |
+| 领域     | 选择                                   | 理由                                                                                          |
+| -------- | -------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 前端框架 | Vue 3 + Vite 8                         | SPA 纯静态，Vercel 部署与 PWA 离线                                                            |
+| 语言     | TypeScript（strict）                   | 类型安全，适合长期维护与开源协作                                                              |
+| 样式     | Tailwind CSS v4（CSS-first）           | 原子类 + 主题变量（oklch），深色模式通过 `.dark` 类切换                                       |
+| UI 组件  | Naive UI（n-config-provider 主题联动） | 组件齐全、内置暗色主题；主色 themeOverrides 对齐品牌色；布局继续使用 Tailwind                 |
+| 图标     | @vicons/tabler（xicons）               | tabler 线性图标集，按需 tree-shaking，与 Naive 同作者                                         |
+| 编辑器   | Monaco Editor（锁 0.52.x）             | VS Code 内核：查找/替换（正则、计数、跳转）、minimap、内置 Diff 编辑器                        |
+| 状态管理 | Pinia + 自定义持久化插件               | IndexedDB 主存储 + localStorage 同步镜像（key 前缀 `ww:`，兼容旧 Zustand 格式）；写盘防抖合并 |
+| 测试     | Vitest + @vue/test-utils + Playwright  | jsdom 单测 + 真实 Chromium E2E；测试模式将 `monaco-editor` alias 为 mock                      |
+| 包管理   | pnpm 12（`packageManager` 固定）       | 确定性依赖树（pnpm-lock.yaml），安装快速、节省磁盘                                            |
+| 字体     | Inter（@fontsource 自托管）            | 中文字体走系统回退栈（MiSans / HarmonyOS Sans SC / Noto Sans SC），不打包                     |
+| 部署     | Vercel                                 | `vercel.json` 配置 framework/build/outputDirectory                                            |
 
-## 双构建模式
+## 构建与离线
 
-- **`pnpm build`**：Vercel 静态部署。输出 `dist/`（index.html + assets/），启用 PWA（vite-plugin-pwa，离线可用）；
-  构建时额外执行单文件构建并复制为 `dist/with-work-single.html`——设置页「关于」在**部署版**提供
-  「下载单文件版」入口；**单文件版**则不提供下载并标注「单文件版」。
+- **`pnpm build`**：类型检查 + 生产构建，输出 `dist/`（index.html + assets/），供 Vercel 静态部署；
+  启用 PWA（vite-plugin-pwa）提供离线访问与安装能力。
 - **PWA 更新**：部署版使用 `registerType: "prompt"` 并由 `PwaUpdatePrompt` 手动注册 Service Worker；
   启动、每小时、页面重新可见与网络恢复时检查更新。新版本就绪后右下角提示「稍后 / 立即更新」，
-  确认更新时先执行 `flushPersist()` 保存编辑，再让新 worker 接管并刷新页面。
-- **`pnpm build:single`**：`vite build --mode single` 触发 `vite-plugin-singlefile`，
-  输出 `dist-single/index.html`。JS / CSS / 字体 / Monaco worker（`?worker&inline`）/ 品牌图标
-  （模块导入）全部内嵌为 data URI，PWA 在单文件模式不启用；
-  经 `scripts/ship-single.mjs` 将 favicon（svg/ico）进一步内联为 data URI，单文件彻底自包含（图标亦可用）。
+  确认更新时先执行 `flushPersist()` 保存编辑，再让新 worker 接管并刷新页面。设置页「关于」提供
+  手动检查；即使用户点过「稍后」，手动检查也会重新唤起提示。`pnpm verify:pwa-update` 连续构建两次，
+  用 Chromium 验证启动提示、设置页手动检查、关闭后召回与“立即更新”接管。
+- **PWA 安装与离线**：`lib/pwaInstall.ts` 捕获 `beforeinstallprompt`，设置页提供「安装应用」；
+  状态栏监听在线状态并显示离线提示。
+- **多标签页提示**：`lib/multiTab.ts` 通过 BroadcastChannel 发送 hello/heartbeat/leave，状态栏提示
+  其他活动标签页数量；仅提醒，不做跨标签状态合并。
+- **Monaco worker**：以独立 worker 资源输出，由 Vite 处理哈希与缓存；主界面通过异步组件加载编辑器，
+  避免 Monaco 阻塞应用壳首屏。
 - **图标**：`pnpm icons` 从 `src/assets/favicon.svg` 生成 `public/` 下的 PWA 图标
   （192/512、maskable）与 `favicon.ico`（scripts/icons.mjs，png-to-ico + sharp）。
 
 ## 构建注入
 
-- `vite.config.ts` 通过 `define` 注入两个编译期常量（类型声明见 `src/vite-env.d.ts`）：
+- `vite.config.ts` 通过 `define` 注入编译期常量（类型声明见 `src/vite-env.d.ts`）：
   - `__BUILD_TIME__`：构建时刻（设置页「关于 → 构建时间」）；
-  - `__BUILD_MODE__`：`"single"`（单文件版）或 `"deploy"`（部署版 / 测试）。
+  - `__APP_VERSION__`：应用版本号（取自 `package.json`）。
 
 ## 目录职责
 
-| 目录                     | 职责                 | 说明                                                                                                                                                                                                                                                                                                                                                  |
-| ------------------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/App.vue`            | 应用布局壳           | 左侧品牌栏 / 暂存区（编辑器左侧）/ 编辑器区 / 顶栏 / 状态栏 / 设置弹窗                                                                                                                                                                                                                                                                                |
-| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏/提取差异 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（查找/替换/分割/排序一体面板）、对比弹窗（`DiffEditor.vue`）                                                                                                                                                                                    |
-| `src/views/settings/`    | 设置内容             | `SettingsView.vue`，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                                                                                                                                                                                |
-| `src/components/ui/`     | 无业务语义的基础组件 | Button、TooltipIconButton、Dialog、DropdownMenu/NDropdown、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 基于 NButton；`dropdown.ts` 统一补齐菜单 ARIA 与键盘焦点                                                                                                                                                              |
-| `src/components/shared/` | 业务共享组件         | TitleBar（工作区标签与右键菜单）、StagingPanel（暂存区+模板+规则）、FloatingEditorToolbar（悬浮工具栏与自定义显隐）、ToolbarVisibilityMenu、PwaUpdatePrompt（PWA 更新提示）、SettingsDialog、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail（品牌栏+设置/导入/导出）、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor |
-| `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件（防抖写盘 + `flushPersist`）                                                                                                                                                                                     |
-| `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                                                                                                                                                                                        |
-| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`extractDifferences.ts`、`backup.ts`、`transfer.ts`、`workspaceModels.ts`、`detect.ts`、`theme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`pwaUpdate.ts`、`storageKeys.ts`、`utils.ts`                                                                                                                 |
-| `src/hooks/`             | 自定义 composables   | `useDebounce`                                                                                                                                                                                                                                                                                                                                         |
-| `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                                                                                                                                                                                  |
-| `src/types/`             | 全局类型定义         | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等                                                                                                                                                                                                                                                                          |
-| `src/assets/`            | 静态资源             | `favicon.svg`（品牌 Logo 源文件，模块导入 → 两种构建均内联）                                                                                                                                                                                                                                                                                          |
-| `scripts/`               | 构建辅助脚本         | `icons.mjs`（PWA 图标与 favicon.ico 生成）、`ship-single.mjs`（单文件图标内联与产物分发）                                                                                                                                                                                                                                                             |
+| 目录                     | 职责                 | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/App.vue`            | 应用布局壳           | 左侧品牌栏 / 暂存区（编辑器左侧）/ 编辑器区 / 顶栏 / 状态栏 / 设置弹窗                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `src/views/editor/`      | 编辑器视图           | `EditorView.vue`（双栏 + 中间操作栏/提取差异 + 底部悬浮工具栏，窄屏纵向堆叠）、`FindReplacePanel.vue`（工具栏壳）、`FindReplaceBar.vue` / `ListToolsControls.vue`（查找替换与列表工具）、`editorToolbarGroups.ts`、`useFileActions.ts`（保存/另存为）、对比弹窗（`DiffEditor.vue`）                                                                                                                                                                                                                                              |
+| `src/views/settings/`    | 设置内容             | `SettingsView.vue` 壳与 `AppearanceSettings` / `AboutSettings` / `DataManagementSettings` / `StorageInfoSettings` 四张卡片，由 `SettingsDialog` 以弹窗形式承载                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/components/ui/`     | 无业务语义的基础组件 | Button、TooltipIconButton、Dialog、DropdownMenu/NDropdown、Badge（Naive UI 薄封装）；Input、Textarea 封装 Naive n-input；Toggle 基于 NButton；SectionCard 统一设置页卡片结构；`dropdown.ts` 统一补齐菜单 ARIA 与键盘焦点                                                                                                                                                                                                                                                                                                         |
+| `src/components/shared/` | 业务共享组件         | TitleBar（工作区标签与右键菜单）、StagingPanel（暂存区壳）、`staging/`（条目与模板面板）、FloatingEditorToolbar、ToolbarVisibilityMenu、CommandPalette、FileMenu、RecentFilesDialog、PwaUpdatePrompt、SettingsDialog、ManagerDialogFrame（规则/模板管理公共框架）、RulesDialog、TemplatesDialog、TextTemplatesDialog、StatusBar、ToolsRail、ToastViewport、ConfirmDialog、MonacoEditor、DiffEditor                                                                                                                               |
+| `src/stores/`            | Pinia stores         | workspace / staging / rules / templates / textTemplates / settings（持久化），ui / status / toast（瞬时）；`persist.ts` 为持久化插件（防抖写盘 + `flushPersist`）                                                                                                                                                                                                                                                                                                                                                                |
+| `src/tools/`             | 全局工具注册表       | `registry.ts` + 悬浮工具栏入口；工具为纯函数，新增只需追加一条                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `src/lib/`               | 纯函数与桥接         | `split.ts`、`sort.ts`、`replace.ts`、`extractDifferences.ts`、`backup.ts`、`defaultData.ts`、`transfer.ts`、`fileImport.ts`、`fileAccess.ts`、`fileWorkspace.ts`、`recentFiles.ts`、`persistenceDb.ts`、`storageInfo.ts`、`multiTab.ts`、`pwaUpdateService.ts`、`workspaceModels.ts`、`workspaceMigration.ts`、`settingsMigration.ts`、`detect.ts`、`editorFontFamily.ts`、`theme.ts`、`naiveTheme.ts`、`monaco.ts`、`applyTool.ts`、`editorBridge.ts`、`pwaUpdate.ts`、`pwaInstall.ts`、`storageKeys.ts`、`drag.ts`、`utils.ts` |
+| `e2e/`                   | 真实浏览器测试       | Playwright：Ctrl+K 命令面板、Ctrl+F 查找聚焦、文件拖入、剪贴板粘贴、右栏写回、刷新恢复、设置页窄屏边距与按钮间距                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/hooks/`             | 自定义 composables   | `useDebounce`、`useCardDrag`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/test/`              | 测试基础设施         | `mockMonaco.ts`（monaco-editor 替身）、`mockEditor.ts`、`stubs.ts`（MonacoEditor/DiffEditor 组件替身）、`resetStores.ts`、`setup.ts`                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/types/`             | 全局类型定义         | Workspace、ReplaceRule、SortTemplate、TextTemplate、BackupData、ThemeMode 等                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/assets/`            | 静态资源             | `favicon.svg`（品牌 Logo 源文件，模块导入；构建时交给 Vite 处理哈希与缓存）                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `scripts/`               | 构建辅助脚本         | `icons.mjs`（PWA 图标与 favicon.ico 生成）、`find-chromium.mjs`（Playwright 浏览器发现）、`verify-pwa-update.mjs`（双版本更新验证）                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ## 关键机制
 
@@ -74,7 +78,7 @@
 - 五个功能一体：**查找**（正则/大小写/计数/高亮）、**替换**（全部替换 + 规则下拉 + 规则管理）、
   **分割**（按分隔符把一行拆成多行）、**组合**（把多行按同一分隔符拼成一行，即 `lib/join.ts`）、
   **排序**（升序/降序/按排序模板）。
-- 命令栏始终单行且 `flex-nowrap`，宽度不足时整条横向滚动；中等宽度收起动作文字并保留图标与 tooltip，
+- 宽屏命令栏保持单行，窄屏自动换行避免功能被横向裁切；中等宽度收起动作文字并保留图标与 tooltip，
   宽屏恢复文字。查找/替换输入框可伸缩，不再使用固定大宽度。
 - 分隔符选择按钮与分割/组合按钮保持同一紧凑分组，但各自是独立按钮并保留间距：下拉按钮展示当前分隔符，
   分割和组合保持为直接动作；替换规则和排序模板使用可筛选 `NSelect`，并补齐 combobox/listbox/option 语义。
@@ -107,6 +111,8 @@
 
 - 编辑器左侧面板，宽度可拖动调节（记忆于设置）；窄屏自动收起，通过顶栏左侧按钮开关，
   折叠入口在顶栏左侧（宽屏）与面板标题前（窄屏抽屉模式）。
+- 壳组件负责尺寸拖拽与布局；`components/shared/staging/StagingEntries.vue` 管暂存条目，
+  `StagingTemplatePanel.vue` 管文本模板、排序模板和替换规则，公共 pointer 拖拽在 `hooks/useCardDrag.ts`。
 - 四个模块：全局暂存区（文本条目）、文本模板、排序模板、替换规则，均支持双击编辑、分组、导入/导出。
 - 拖拽交互为自绘 pointer 拖拽（绕开原生 draggable 的启动判定不稳定问题）：
   卡片按住拖动，拖到编辑器上方高亮落点，松开后文本条目/模板插入落点纯文本、替换规则按规则替换全文（可撤销）；
@@ -127,11 +133,21 @@
 
 - 存储键集中在 `lib/storageKeys.ts`（`PERSIST_KEYS` / `SEEDED_KEY` / `ALL_STORAGE_KEYS`），
   持久化插件与「清空数据」共用同一份清单，避免漏删某个键。
-- 编辑器内容 → `workspaceStore.setLeft/Right` → 持久化插件 → localStorage。
-  写盘经 250ms 防抖合并（编辑大文档时不至于每次按键都序列化全部工作区），
-  页面隐藏 / 关闭时用 `flushPersist()` 立即落盘；`clearAllStoredData()` 会先取消待写任务，
-  防止旧内容被 flush 写回。
+- 编辑器内容 → `workspaceStore.setLeft/Right` → 持久化插件 → IndexedDB 主存储 + localStorage 镜像。
+  启动时 `hydratePersistence()` 先比较 IndexedDB 的 `updatedAt` 与 `ww:persist-meta` 镜像时间，
+  将较新数据回填 localStorage，并顺带完成旧 localStorage 数据到 IndexedDB 的首次迁移。
+  写盘经 250ms 防抖合并（编辑大文档时不至于每次按键都序列化全部工作区）；工作区 JSON 超过 512KB
+  时镜像自动压缩，状态栏展示真实写盘状态；两层至少一层成功即视为已保存。
+  页面隐藏 / 关闭时用 `flushPersist()` 立即写镜像并等待 IndexedDB；`clearAllStoredData()`
+  会先取消待写任务、等待在途事务结束，再清空两层存储，防止旧内容被 flush 写回。
 - 暂存区 → `stagingStore` → 拖拽或按钮（`lib/transfer.ts`）分发到编辑器左右侧。
+- 本地文本文件 → `lib/fileImport.ts` 读取（上限 20MB）→ 左栏按钮创建同名工作区，或拖入编辑器在落点插入。
+  Chromium 系浏览器优先用 `lib/fileAccess.ts` 的系统选择器并保留可写回句柄。IndexedDB 中最近历史
+  只保留 8 条，工作区绑定单独存储，因此历史淘汰不会丢失 `Ctrl+S` 的写回目标（`lib/recentFiles.ts`）。
+  `FileMenu` 可打开 `RecentFilesDialog` 单条移除历史，移除历史不会解除当前工作区绑定。
+  `Ctrl/Cmd+S` 按绑定的栏位写回原文件（焦点在另一栏也不会误覆盖），`Ctrl/Cmd+Shift+S`
+  另存为并把当前聚焦栏绑定到新句柄；命令面板可解除当前绑定；状态栏显示绑定文件名；工作区删除后清理失联绑定；
+  不支持 File System Access 时回退隐藏 input 与下载。
 - 备份 → `lib/backup.ts` 收集全部 store 为 JSON（`app: "with-work"`，`version: 5`）导出/导入；
   `parseBackup` 兼容 1~5 版本并保留源版本号（迁移判断需要）：补齐缺失字段
   （templates、textTemplates、工具栏显隐设置），工作区经 `lib/workspaceMigration.ts` 归一化——
@@ -140,6 +156,8 @@
   `diff` 回填激活工作区的双栏内容；v3+ 的工作区自带 left/right，回填反而会串内容。
 - 清空所有数据会连同内置数据标记 `ww:seeded` 一起清除，因此内置规则与排序模板
   会在下次启动时重新注入；工作区导出（`.txt`）取左栏，双栏时以分隔线拼接。
+- 多标签页通过 `lib/multiTab.ts` 的 BroadcastChannel 心跳互相发现，状态栏只提示数量与覆盖风险，
+  不自动合并不同标签页的编辑状态。
 
 ### 差异去重
 
@@ -149,14 +167,18 @@
 
 ## 测试体系
 
-- Vitest + @vue/test-utils（jsdom），测试文件与被测代码同目录（`*.test.ts`）。
+- Vitest + @vue/test-utils（jsdom），测试文件与被测代码同目录（`*.test.ts`）；
+  Playwright 用例位于 `e2e/`，使用独立 Vite server（4173）与 Chromium。
 - 测试模式通过 vite alias 将 `monaco-editor` 替换为 `src/test/mockMonaco.ts`（构建不受影响）；
   需要编辑器实例时用 `src/test/mockEditor.ts` 的 `createMockEditor`；渲染含
   `MonacoEditor.vue` / `DiffEditor.vue` 的组件时用 `src/test/stubs.ts` 的替身
   （`vi.mock` 写法参考 `src/App.test.ts`）。
-- 新增功能建议配套测试；改动后运行 `pnpm test`、`pnpm lint`、`pnpm build`。
+- 新增功能建议配套测试；改动后运行 `pnpm format:check`、`pnpm lint`、`pnpm test`、`pnpm build`；
+  涉及编辑器/剪贴板/拖拽/刷新恢复时运行 `pnpm test:e2e`（首次先安装 Chromium）。
+- 修改 PWA 注册、更新提示或缓存策略后运行 `pnpm verify:pwa-update`；脚本会连续构建两次，
+  自动寻找本机 Playwright Chromium，验证等待版本、右下角提示与“立即更新”后的接管状态。
 - CI（`.github/workflows/ci.yml`）仅在 push tag 时依次执行 `format:check`、`lint`、
-  `test`、`build`；本地提交前仍建议跑同样四项。
+  `test`、`build`；E2E 不进入 CI，本地涉及浏览器交互时单独运行 `pnpm test:e2e`。
 
 ## 内置数据
 

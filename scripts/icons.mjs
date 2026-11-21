@@ -14,14 +14,17 @@ const publicDir = path.join(root, "..", "public");
 
 async function renderPng(size, { pad = 0 } = {}) {
   const svg = await readFile(srcSvg);
-  let img = sharp(svg, { density: 96 }).resize(size, size);
+  const innerSize = Math.max(1, Math.round(size * (1 - pad * 2)));
+  let img = sharp(svg, { density: 96 }).resize(innerSize, innerSize);
   if (pad > 0) {
-    // maskable 安全区：四周留白
+    // maskable 安全区：缩小内容后补边，最终尺寸仍严格等于 size
+    const inset = Math.floor((size - innerSize) / 2);
+    const remaining = size - innerSize - inset;
     img = img.extend({
-      top: Math.round(size * pad),
-      bottom: Math.round(size * pad),
-      left: Math.round(size * pad),
-      right: Math.round(size * pad),
+      top: inset,
+      bottom: remaining,
+      left: inset,
+      right: remaining,
       background: { r: 255, g: 255, b: 255, alpha: 0 },
     });
   }

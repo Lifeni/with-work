@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, useAttrs } from "vue";
+import { computed, ref, useAttrs } from "vue";
 import { NInput } from "naive-ui";
 import { cn } from "@/lib/utils";
 
 /** Input：Naive n-input 封装（默认 small 尺寸，紧凑工具栏排版） */
+defineOptions({ inheritAttrs: false });
+
 const props = withDefaults(defineProps<{ modelValue?: string }>(), { modelValue: "" });
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 const attrs = useAttrs();
+const nInputRef = ref<InstanceType<typeof NInput> | null>(null);
 
 const NATIVE_INPUT_ATTRS = new Set([
   "id",
@@ -37,10 +40,17 @@ const rootAttrs = computed(() => {
 function onUpdate(value: string) {
   emit("update:modelValue", value);
 }
+
+function focus() {
+  nInputRef.value?.focus();
+}
+
+defineExpose({ focus });
 </script>
 
 <template>
   <NInput
+    ref="nInputRef"
     :value="props.modelValue"
     :style="{ '--n-font-size': '12px' }"
     :class="cn(attrs.class as string)"

@@ -9,7 +9,7 @@ const toastStore = useToastStore();
     role="status"
     aria-live="polite"
     aria-atomic="false"
-    class="pointer-events-none fixed bottom-10 left-1/2 z-[200] flex -translate-x-1/2 flex-col items-center gap-2"
+    class="pointer-events-none fixed bottom-10 left-1/2 z-[2100] flex -translate-x-1/2 flex-col items-center gap-2"
   >
     <div
       v-for="t in toastStore.toasts"

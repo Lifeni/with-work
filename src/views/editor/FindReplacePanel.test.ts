@@ -22,6 +22,7 @@ function mountPanel(content = "hello world\nhello vue") {
   const focused = createMockEditor(content);
   const wrapper = mount(FindReplacePanel, {
     props: { focusedEditor: focused.editor },
+    attachTo: document.body,
   });
   return { wrapper, focused };
 }
@@ -58,6 +59,17 @@ function selectForPlaceholder(
 }
 
 describe("FindReplacePanel 查找", () => {
+  it("open 后聚焦查找输入框", async () => {
+    const { wrapper } = mountPanel();
+    const open = (wrapper.vm as unknown as { open: () => void }).open;
+
+    open();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(document.activeElement).toBe(wrapper.get('input[placeholder="查找"]').element);
+    wrapper.unmount();
+  });
+
   it("查找、替换和筛选控件具有可访问名称", async () => {
     const { wrapper } = mountPanel();
 
@@ -378,12 +390,12 @@ describe("FindReplacePanel 组合提示", () => {
 });
 
 describe("FindReplacePanel 工具栏分组", () => {
-  it("桌面工具栏始终单行，空间不足时横向滚动", () => {
+  it("宽屏单行、窄屏自动换行，避免功能被横向裁切", () => {
     const { wrapper } = mountPanel();
     const toolbar = wrapper.get("[data-ww-toolbar]");
-    expect(toolbar.classes()).toContain("flex-nowrap");
-    expect(toolbar.classes()).toContain("overflow-x-auto");
-    expect(toolbar.classes()).not.toContain("flex-wrap");
+    expect(toolbar.classes()).toContain("flex-wrap");
+    expect(toolbar.classes()).toContain("2xl:flex-nowrap");
+    expect(toolbar.classes()).not.toContain("overflow-x-auto");
     wrapper.unmount();
   });
 
@@ -453,7 +465,7 @@ describe("FindReplacePanel 工具栏分组", () => {
     const boxes = wrapper.findAll("[data-ww-input-box]");
     expect(boxes).toHaveLength(2);
     expect(boxes[0].classes()).toEqual(boxes[1].classes());
-    expect(boxes[0].classes()).toContain("min-w-[7rem]");
+    expect(boxes[0].classes()).toContain("min-w-[6rem]");
     expect(boxes[0].classes()).not.toContain("min-w-0");
     expect(boxes[0].classes()).toContain("flex-1");
     expect(boxes[0].classes()).toContain("basis-0");
@@ -463,7 +475,7 @@ describe("FindReplacePanel 工具栏分组", () => {
       wrapper.find('[data-ww-input="replace"]').classes(),
     );
     expect(wrapper.find('[data-ww-input="find"]').classes()).toContain("min-w-0");
-    expect(wrapper.find('[data-ww-input="find"]').classes()).not.toContain("min-w-[7rem]");
+    expect(wrapper.find('[data-ww-input="find"]').classes()).not.toContain("min-w-[6rem]");
     const findGroup = wrapper.get("[data-ww-group=find]");
     expect(findGroup.classes()).toContain("flex-nowrap");
     expect(findGroup.get("[data-ww-item=find-options]").classes()).toContain("relative");
@@ -496,15 +508,16 @@ describe("FindReplacePanel 工具栏分组", () => {
       expect(buttonByTitle(title).classes()).toContain("n-button--tertiary-type");
     }
     expect(buttonByTitle("替换当前匹配").classes()).toContain("n-button--default-type");
-    for (const title of ["全部替换", "分割", "组合", "排序"]) {
-      expect(buttonByTitle(title).classes()).toContain("n-button--primary-type");
+    expect(buttonByTitle("全部替换").classes()).toContain("n-button--primary-type");
+    for (const title of ["分割", "组合", "排序"]) {
+      expect(buttonByTitle(title).classes()).toContain("n-button--default-type");
     }
     expect(buttonByTitle("选择分隔符").classes()).toContain("n-button--tertiary-type");
     for (const title of ["替换当前匹配", "全部替换", "分割", "组合", "排序", "选择分隔符"]) {
       expect(buttonByTitle(title).classes()).not.toContain("text-[11px]");
     }
-    expect(wrapper.get("[data-ww-group=replace-actions]").classes()).toContain("gap-2");
-    expect(wrapper.get("[data-ww-group=split-join]").classes()).toContain("gap-2");
+    expect(wrapper.get("[data-ww-group=replace-actions]").classes()).toContain("gap-1.5");
+    expect(wrapper.get("[data-ww-group=split-join]").classes()).toContain("gap-1.5");
     expect(wrapper.get("[data-ww-group=split-join]").find(".n-button-group").exists()).toBe(false);
     wrapper.unmount();
   });

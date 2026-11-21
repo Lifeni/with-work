@@ -162,6 +162,11 @@
   height: 18px;
 }
 
+/* 设置页操作按钮：图标与文字之间保留稳定间距 */
+.ww-settings-actions .n-button__content {
+  gap: 6px;
+}
+
 /* 图标按钮：内容强制水平/垂直居中并去除内边距（Naive 非 circle 按钮存在布局偏移） */
 .n-button.ww-icon-btn {
   padding: 0 !important;

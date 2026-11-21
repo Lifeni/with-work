@@ -4,7 +4,7 @@ import pluginVue from "eslint-plugin-vue";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "dist-single"] },
+  { ignores: ["dist", "test-results", "playwright-report", "blob-report"] },
   ...pluginVue.configs["flat/essential"],
   {
     files: ["**/*.vue"],

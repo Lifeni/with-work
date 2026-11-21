@@ -4,13 +4,15 @@
 
 ## 开发环境
 
-- Node.js ≥ 22.22.2，pnpm 10+
+- Node.js 22.22.2+、24.15+ 或 26+（推荐 24），pnpm 12.21.0
 
 ## 快速开始
 
 ```bash
 pnpm install    # 安装依赖
 pnpm dev        # 启动开发服务器 → http://localhost:5173
+pnpm exec playwright install chromium  # 首次运行 E2E 前安装浏览器
+pnpm verify:pwa-update  # 改动 PWA 注册/更新逻辑后验证双版本更新链路
 ```
 
 ## 代码规范
@@ -34,6 +36,7 @@ docs: 更新部署指南
 ## PR 流程
 
 1. Fork 本仓库并创建功能分支（如 `feat/user-profile`）。
-2. 本地完成开发与验证（`pnpm format:check`、`pnpm lint`、`pnpm test`、`pnpm build`）。
+2. 本地完成开发与验证（`pnpm format:check`、`pnpm lint`、`pnpm test`、`pnpm build`；
+   涉及浏览器交互时再跑 `pnpm test:e2e`）。
 3. 提交 PR，在描述中说明改动内容与动机。
-4. 等待 CI（lint / test / build）变绿，通过 Review 后合并。
+4. 通过 Review 后合并。CI 只在推送 tag 时运行，日常改动以本地四项校验为准。

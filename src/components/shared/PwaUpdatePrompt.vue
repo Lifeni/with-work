@@ -4,15 +4,17 @@ import { Refresh } from "@vicons/tabler";
 import Button from "@/components/ui/button.vue";
 import { flushPersist } from "@/stores/persist";
 import { startPwaUpdate, type PwaUpdateController } from "@/lib/pwaUpdate";
+import { registerPwaUpdateController, unregisterPwaUpdateController } from "@/lib/pwaUpdateService";
 
-const props = defineProps<{
-  /** 部署版生产构建默认启用；测试与单文件版可显式关闭 */
-  enabled?: boolean;
-}>();
-
-const enabled = computed(
-  () => props.enabled ?? (__BUILD_MODE__ === "deploy" && import.meta.env.PROD),
+const props = withDefaults(
+  defineProps<{
+    /** 由 App 根据构建环境传入；未传时保持启用，便于组件测试与复用 */
+    enabled?: boolean;
+  }>(),
+  { enabled: true },
 );
+
+const enabled = computed(() => props.enabled);
 const visible = ref(false);
 const updating = ref(false);
 let controller: PwaUpdateController | null = null;
@@ -30,6 +32,7 @@ onMounted(() => {
       console.warn("[PWA] Service Worker 更新检查失败", error);
     },
   });
+  registerPwaUpdateController(controller);
   void controller.ready.catch((error) => {
     console.warn("[PWA] Service Worker 初始化失败", error);
   });
@@ -37,6 +40,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   controller?.dispose();
+  if (controller) unregisterPwaUpdateController(controller);
   controller = null;
 });
 
@@ -70,7 +74,7 @@ async function update() {
       v-if="visible"
       role="status"
       aria-live="polite"
-      class="fixed right-3 bottom-10 z-[190] w-[min(360px,calc(100vw-24px))] rounded-lg border border-border bg-card p-3 text-card-foreground shadow-xl"
+      class="fixed right-3 bottom-10 z-[2100] w-[min(360px,calc(100vw-24px))] rounded-lg border border-border bg-card p-3 text-card-foreground shadow-xl"
     >
       <div class="flex gap-2.5">
         <span

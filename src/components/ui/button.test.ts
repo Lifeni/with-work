@@ -64,4 +64,32 @@ describe("Button 边框语义", () => {
     });
     expect(wrapper.get("button").find(".n-button__border").exists()).toBe(false);
   });
+
+  it("可通过 tag 渲染为外链按钮并保留 href", () => {
+    const wrapper = mount(Button, {
+      props: { tag: "a", variant: "outline", size: "sm" },
+      attrs: {
+        href: "https://github.com/Lifeni/with-work",
+        target: "_blank",
+        rel: "noreferrer",
+      },
+      slots: { default: "GitHub 仓库" },
+    });
+
+    const link = wrapper.get("a");
+    expect(link.attributes("href")).toBe("https://github.com/Lifeni/with-work");
+    expect(link.attributes("target")).toBe("_blank");
+    expect(link.classes()).toContain("n-button");
+  });
+
+  it("描边危险操作使用 destructive 文本色而不是 muted 默认值", () => {
+    const wrapper = mount(Button, {
+      props: { variant: "outline", size: "sm", tone: "destructive" },
+      slots: { default: "清空" },
+    });
+
+    expect(wrapper.get("button").attributes("style")).toContain(
+      "--n-text-color: var(--destructive)",
+    );
+  });
 });

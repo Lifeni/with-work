@@ -370,13 +370,13 @@ describe("规则 / 模板解析", () => {
 });
 
 describe("clearAllStoredData", () => {
-  it("连同内置数据标记一起清除，使内置规则与模板可以重新注入", () => {
+  it("连同内置数据标记一起清除，使内置规则与模板可以重新注入", async () => {
     localStorage.setItem(SEEDED_KEY, JSON.stringify(["builtin-rule-angle-bracket"]));
     localStorage.setItem("ww:staging", JSON.stringify({ items: [{ id: "s1", text: "x" }] }));
     useRulesStore().replaceAll([]);
     useTemplatesStore().replaceAll([]);
 
-    clearAllStoredData();
+    await clearAllStoredData();
 
     expect(localStorage.getItem(SEEDED_KEY)).toBeNull();
     expect(localStorage.getItem("ww:staging")).toBeNull();

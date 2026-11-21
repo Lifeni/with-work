@@ -9,11 +9,11 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   const workspaces = ref<Workspace[]>([]);
   const activeId = ref<string | null>(null);
 
-  function createWorkspace(): string {
+  function createWorkspace(name?: string): string {
     const id = nextId();
     const ws: Workspace = {
       id,
-      name: `工作区 ${workspaces.value.length + 1}`,
+      name: name?.trim() || `工作区 ${workspaces.value.length + 1}`,
       left: "",
       right: "",
     };

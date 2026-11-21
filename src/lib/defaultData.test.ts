@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEPRECATED_BUILTIN_IDS,
   DEFAULT_RULES,
@@ -94,6 +94,19 @@ describe("内置模板与规则", () => {
     seedDefaultData();
 
     expect(useRulesStore().rules.some((r) => r.id === first.id)).toBe(false);
+  });
+
+  it("存储被禁用时仍能完成种子注入", () => {
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new Error("storage disabled");
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(() => seedDefaultData()).not.toThrow();
+
+    expect(useRulesStore().rules.some((rule) => rule.id === DEFAULT_RULES[0].id)).toBe(true);
+    setItem.mockRestore();
+    warn.mockRestore();
   });
 
   it("历史版本注入过的旧内置项会从用户数据中自动移除", () => {

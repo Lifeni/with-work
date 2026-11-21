@@ -224,6 +224,23 @@ describe("StagingPanel 模板区", () => {
     wrapper.unmount();
   });
 
+  it("编辑器尚未挂载时插入文本模板不会覆盖现有内容", async () => {
+    const workspace = useWorkspaceStore();
+    const id = workspace.createWorkspace();
+    workspace.setLeft(id, "原文");
+    useTextTemplatesStore().addTemplate({
+      id: "tt1",
+      name: "问候",
+      text: "模板内容",
+    });
+    const wrapper = mountPanel();
+
+    await wrapper.get('[aria-label="插入到编辑器"]').trigger("click");
+
+    expect(workspace.workspaces.find((item) => item.id === id)?.left).toBe("原文\n模板内容");
+    wrapper.unmount();
+  });
+
   it("拖入文本保存为文本模板（来源标记相同不重复添加）", async () => {
     const textTpl = useTextTemplatesStore();
     const wrapper = mountPanel();

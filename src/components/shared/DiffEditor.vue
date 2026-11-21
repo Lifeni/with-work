@@ -41,6 +41,10 @@ watch(
   () => props.modified,
   (v) => modifiedModel?.setValue(v),
 );
+watch(
+  () => props.theme,
+  (theme) => monaco.editor.setTheme(theme ?? "light"),
+);
 
 onBeforeUnmount(() => {
   diff?.dispose();

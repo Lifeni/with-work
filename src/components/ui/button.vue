@@ -15,14 +15,26 @@ defineOptions({ inheritAttrs: false });
 const props = withDefaults(
   defineProps<{
     type?: "button" | "submit" | "reset";
+    /** 渲染标签；外链按钮使用 a，视觉与普通按钮保持一致 */
+    tag?: keyof HTMLElementTagNameMap;
     variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
     size?: "default" | "sm" | "lg" | "icon" | "icon-sm";
+    /** 文本色语义；destructive 用于描边/幽灵形态的危险操作 */
+    tone?: "default" | "destructive";
     /** 激活态：通过内联 CSS 变量覆盖按钮底色（Naive 按钮样式是内联变量，CSS 类无法覆盖） */
     active?: boolean;
     /** 非 icon 尺寸但在某些断点只显示图标时，可强制启用 tooltip */
     tooltip?: boolean;
   }>(),
-  { type: "button", variant: "default", size: "default", active: false, tooltip: false },
+  {
+    type: "button",
+    tag: "button",
+    variant: "default",
+    size: "default",
+    tone: "default",
+    active: false,
+    tooltip: false,
+  },
 );
 
 const attrs = useAttrs();
@@ -80,6 +92,14 @@ const sizeStyle = computed(() => {
 const mutedStyle = computed(() => {
   if (props.variant === "default" || props.variant === "destructive" || props.active)
     return undefined;
+  if (props.tone === "destructive") {
+    return {
+      "--n-text-color": "var(--destructive)",
+      "--n-text-color-hover": "var(--destructive)",
+      "--n-text-color-pressed": "var(--destructive)",
+      "--n-text-color-focus": "var(--destructive)",
+    };
+  }
   return {
     "--n-text-color": "var(--muted-foreground)",
     "--n-text-color-hover": "var(--accent-foreground)",
@@ -136,7 +156,8 @@ const forwarding = computed(() => {
     <NTooltip v-if="useTooltip" placement="top" :delay="250">
       <template #trigger>
         <NButton
-          :attr-type="props.type"
+          :tag="props.tag"
+          :attr-type="props.tag === 'button' ? props.type : undefined"
           :type="naiveType"
           :size="naiveSize"
           :bordered="bordered"
@@ -155,7 +176,8 @@ const forwarding = computed(() => {
     </NTooltip>
     <NButton
       v-else
-      :attr-type="props.type"
+      :tag="props.tag"
+      :attr-type="props.tag === 'button' ? props.type : undefined"
       :type="naiveType"
       :size="naiveSize"
       :bordered="bordered"

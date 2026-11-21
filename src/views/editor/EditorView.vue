@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import * as monaco from "monaco-editor";
 import {
   ArrowsLeftRight,
@@ -23,15 +23,18 @@ import FloatingEditorToolbar from "@/components/shared/FloatingEditorToolbar.vue
 import AppDialog from "@/components/ui/dialog.vue";
 import Button from "@/components/ui/button.vue";
 import FindReplacePanel from "@/views/editor/FindReplacePanel.vue";
+import { useFileActions } from "@/views/editor/useFileActions";
 import { detectLanguage } from "@/lib/detect";
-import { getActiveEditor, setActiveEditor } from "@/lib/editorBridge";
+import { setActiveEditor } from "@/lib/editorBridge";
 import { resolveEditorFontFamily } from "@/lib/editorFontFamily";
+import { hasDragType } from "@/lib/drag";
+import { readTextFile } from "@/lib/fileImport";
 import { extractUniqueDifferences } from "@/lib/extractDifferences";
 import { applyReplacements } from "@/lib/replace";
 import { splitLines } from "@/lib/split";
 import { resolveTheme } from "@/lib/theme";
 import { MAX_EDITOR_SPLIT, MIN_EDITOR_SPLIT } from "@/lib/settingsMigration";
-import { cn, downloadText, uid } from "@/lib/utils";
+import { cn, uid } from "@/lib/utils";
 import {
   cleanupWorkspaceModels,
   findWorkspaceIdByModel,
@@ -56,16 +59,6 @@ type CardDropDetail = {
   clientX?: number;
   clientY?: number;
 };
-
-/**
- * DataTransfer.types 在部分浏览器（Chrome/Edge）为 DOMStringList（无 includes 方法）。
- * 统一按可迭代/contains 兼容判断，避免 dragover 处理抛错导致 drop 被浏览器拒绝。
- */
-function hasDragType(types: readonly string[] | DOMStringList | undefined, type: string): boolean {
-  if (!types) return false;
-  if (Array.isArray(types)) return types.includes(type);
-  return (types as DOMStringList).contains?.(type) ?? false;
-}
 
 /**
  * 额外快捷键（仅注册 Monaco standalone 未内置的键位；
@@ -112,31 +105,11 @@ const EXTRA_KEYBINDINGS: Array<{
   },
 ];
 
-/** 文件名时间戳：2026-08-15-221530 */
-function fileTimestamp(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-}
-
-/** Ctrl+S：把聚焦编辑器的全部文本保存为 txt 文件；无文本时提示 */
-function saveFocused() {
-  const ed = getActiveEditor();
-  const text = ed?.getModel()?.getValue() ?? "";
-  if (!text.trim()) {
-    useToastStore().push("没有文本");
-    return;
-  }
-  const wsStore = useWorkspaceStore();
-  const name = wsStore.workspaces.find((w) => w.id === wsStore.activeId)?.name ?? "工作区";
-  downloadText(`${name}-${fileTimestamp()}.txt`, text);
-  useToastStore().push("已保存到下载");
-}
-
 const wsStore = useWorkspaceStore();
 const settingsStore = useSettingsStore();
 const statusStore = useStatusStore();
 const toast = useToastStore().push;
+const { saveFocused, saveFocusedAs } = useFileActions();
 
 const ws = computed(() => wsStore.workspaces.find((w) => w.id === wsStore.activeId));
 const left = computed(() => ws.value?.left ?? "");
@@ -187,7 +160,8 @@ const editorOptions = computed<monaco.editor.IStandaloneEditorConstructionOption
 function mountEditor(ed: monaco.editor.IStandaloneCodeEditor, side: Side) {
   if (side === "left") leftEditor.value = ed;
   else rightEditor.value = ed;
-  setActiveEditor(ed);
+  // 初次挂载时只登记与当前高亮侧一致的编辑器；焦点事件随后会正常切换。
+  if (side === focused.value) setActiveEditor(ed);
   ed.onDidFocusEditorText(() => {
     focused.value = side;
     setActiveEditor(ed);
@@ -197,8 +171,12 @@ function mountEditor(ed: monaco.editor.IStandaloneCodeEditor, side: Side) {
   );
   ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => panelRef.value?.open());
   ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyH, () => panelRef.value?.open());
-  // Ctrl+S：保存聚焦编辑器文本（下载 txt 文件）
-  ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveFocused);
+  // Ctrl+S：绑定原文件时直接写回，否则下载；Ctrl+Shift+S 走系统“另存为”
+  ed.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => void saveFocused());
+  ed.addCommand(
+    monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS,
+    () => void saveFocusedAs(focused.value),
+  );
   // 额外快捷键（不覆盖 Monaco 原生绑定）
   for (const { id, label, keybinding, command } of EXTRA_KEYBINDINGS) {
     ed.addAction({
@@ -210,8 +188,20 @@ function mountEditor(ed: monaco.editor.IStandaloneCodeEditor, side: Side) {
   }
 }
 
+const handleSaveRequest = () => void saveFocused();
+const handleSaveAsRequest = () => void saveFocusedAs(focused.value);
+
+onMounted(() => {
+  window.addEventListener("ww-save-text-file", handleSaveRequest);
+  window.addEventListener("ww-save-text-file-as", handleSaveAsRequest);
+});
+
 // 卸载时注销全局编辑器引用（全局工具会回退到直接读写工作区内容）
-onUnmounted(() => setActiveEditor(null));
+onUnmounted(() => {
+  window.removeEventListener("ww-save-text-file", handleSaveRequest);
+  window.removeEventListener("ww-save-text-file-as", handleSaveAsRequest);
+  setActiveEditor(null);
+});
 
 // 无工作区时（全部删除）：清空编辑器引用，避免对已释放实例调用 setModel 崩溃
 watch(
@@ -282,7 +272,7 @@ async function pasteToFocused() {
       return;
     }
     const sel = ed.getSelection();
-    const range = sel && !sel.isEmpty() ? sel : model.getFullModelRange();
+    const range = sel && !sel.isEmpty() ? sel : getInsertRangeAtCursor(ed);
     ed.executeEdits("ww-paste", [{ range, text }]);
     ed.focus();
     toast("已粘贴到聚焦编辑器（Ctrl+Z 可撤销）");
@@ -327,7 +317,13 @@ function extractEditorDifferences() {
 /** 拖拽悬停（捕获阶段，先于 Monaco 内部处理）：允许规则/文本拖入 */
 function handleEditorDragOver(e: DragEvent) {
   const dt = e.dataTransfer;
-  if (!dt || hasDragType(dt.types, "Files")) return;
+  if (!dt) return;
+  if (hasDragType(dt.types, "Files")) {
+    e.preventDefault();
+    e.stopPropagation();
+    dt.dropEffect = "copy";
+    return;
+  }
   if (
     hasDragType(dt.types, "application/x-with-work-rule") ||
     hasDragType(dt.types, "text/plain")
@@ -336,6 +332,17 @@ function handleEditorDragOver(e: DragEvent) {
     e.stopPropagation();
     dt.dropEffect = "copy";
   }
+}
+
+/** 光标处的零长度范围；没有光标时退化到文首，避免误把全文当成插入范围 */
+function getInsertRangeAtCursor(ed: monaco.editor.IStandaloneCodeEditor) {
+  const pos = ed.getPosition() ?? { lineNumber: 1, column: 1 };
+  return {
+    startLineNumber: pos.lineNumber,
+    startColumn: pos.column,
+    endLineNumber: pos.lineNumber,
+    endColumn: pos.column,
+  };
 }
 
 /** 规则拖入：按规则对编辑器全文执行替换（可撤销） */
@@ -381,13 +388,37 @@ function applyTextDrop(
 }
 
 /** 拖拽放下：规则拖入 → 按规则替换；普通文本拖入 → 落点插入纯文本 */
-function handleEditorDrop(e: DragEvent, side: Side) {
+async function handleEditorDrop(e: DragEvent, side: Side) {
   const dt = e.dataTransfer;
   if (!dt) return;
   e.preventDefault();
   e.stopPropagation();
   const ed = side === "left" ? leftEditor.value : rightEditor.value;
   if (!ed) return;
+  const dropModel = ed.getModel();
+  if (!dropModel) return;
+
+  if (hasDragType(dt.types, "Files")) {
+    const file = dt.files?.[0];
+    if (!file) return;
+    const result = await readTextFile(file);
+    if (!result.ok) {
+      toast(result.error);
+      return;
+    }
+    if (!result.text.trim()) {
+      toast(`文件「${file.name}」为空`);
+      return;
+    }
+    // 文件读取期间用户可能已切换工作区；不要把内容插到新的 Model。
+    if (ed.getModel() !== dropModel) {
+      toast("工作区已切换，已取消插入文件");
+      return;
+    }
+    applyTextDrop(ed, result.text, e.clientX, e.clientY);
+    toast(`已插入文件「${file.name}」`);
+    return;
+  }
 
   // 替换规则拖入：按规则对编辑器全部内容执行替换（可撤销）
   if (hasDragType(dt.types, "application/x-with-work-rule")) {
@@ -538,7 +569,9 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
 
       <!-- 中间操作区：交换 / 复制 / 导出等（按钮组整体居中对齐） -->
       <div
-        class="relative flex shrink-0 items-center justify-center gap-2 px-1 max-lg:flex-wrap lg:w-9 lg:flex-col lg:justify-center lg:px-0"
+        role="toolbar"
+        aria-label="编辑器操作"
+        class="relative flex shrink-0 flex-wrap items-center justify-center gap-1.5 self-center rounded-lg border border-border bg-card p-1 lg:w-10 lg:flex-col"
       >
         <div
           role="separator"
@@ -645,7 +678,7 @@ function handleModelChange(side: Side, value: string, model: monaco.editor.IText
           variant="ghost"
           size="icon-sm"
           title="清空聚焦编辑器"
-          class="text-destructive hover:text-destructive"
+          tone="destructive"
           @click="clearFocusedContent"
         >
           <Trash />

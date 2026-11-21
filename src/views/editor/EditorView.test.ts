@@ -3,6 +3,7 @@ import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import EditorView from "@/views/editor/EditorView.vue";
 import { resetStores } from "@/test/resetStores";
+import { getActiveEditor } from "@/lib/editorBridge";
 import { useWorkspaceStore } from "@/stores/workspace";
 
 vi.mock("@/components/shared/MonacoEditor.vue", async () => {
@@ -37,6 +38,59 @@ function fireDrop(el: Element, text: string, source = "staging") {
 }
 
 describe("EditorView 拖入", () => {
+  it("初始活动编辑器与左侧高亮保持一致", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setLeft(id, "左侧内容");
+    store.setRight(id, "右侧内容");
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+
+    expect(getActiveEditor()?.getModel()?.getValue()).toBe("左侧内容");
+    wrapper.unmount();
+  });
+
+  it("拖入文本文件会插入文件内容", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setLeft(id, "原始内容");
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+    const stub = wrapper.get(".monaco-editor-stub");
+    const zone = stub.element.parentElement!;
+    const file = {
+      name: "笔记.txt",
+      size: 8,
+      text: async () => "文件内容",
+    };
+    const dt = { types: ["Files"], files: [file], getData: () => "" };
+    const ev = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, "dataTransfer", { value: dt });
+    zone.dispatchEvent(ev);
+
+    await vi.waitFor(() => {
+      expect(store.workspaces[0].left).toBe("文件内容原始内容");
+    });
+    wrapper.unmount();
+  });
+
+  it("无选区时从剪贴板粘贴会插入光标处而不是替换全文", async () => {
+    const store = useWorkspaceStore();
+    const id = store.createWorkspace();
+    store.setLeft(id, "原始内容");
+
+    const wrapper = mount(EditorView, { attachTo: document.body });
+    await nextTick();
+    await wrapper.get('button[aria-label="从剪贴板粘贴到聚焦编辑器"]').trigger("click");
+    await nextTick();
+    await nextTick();
+
+    expect(store.workspaces[0].left).toBe("mock-clipboard原始内容");
+    wrapper.unmount();
+  });
+
   it("普通文本拖入左编辑器并插入（落点坐标系不可用时退化到光标处）", async () => {
     const store = useWorkspaceStore();
     const id = store.createWorkspace();

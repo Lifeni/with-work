@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { FileText, Folder, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
+import { computed, ref, watch } from "vue";
+import { FileText, Pencil, Plus, Trash } from "@vicons/tabler";
 import Badge from "@/components/ui/badge.vue";
-import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
-import AppDialog from "@/components/ui/dialog.vue";
+import ManagerDialogFrame from "@/components/shared/ManagerDialogFrame.vue";
 import Button from "@/components/ui/button.vue";
 import Input from "@/components/ui/input.vue";
 import Textarea from "@/components/ui/textarea.vue";
@@ -30,13 +29,27 @@ const content = ref("");
 const group = ref("");
 const editingId = ref<string | null>(null);
 const pendingDeleteId = ref<string | null>(null);
-const fileRef = ref<HTMLInputElement | null>(null);
 const appliedEditId = ref<string | null>(null);
+
+const pendingDeleteName = computed(() => {
+  if (!pendingDeleteId.value) return null;
+  return (
+    templatesStore.templates.find((template) => template.id === pendingDeleteId.value)?.name ?? ""
+  );
+});
+const pendingDeleteDescription = computed(() =>
+  pendingDeleteName.value === null
+    ? undefined
+    : `确定删除文本模板「${pendingDeleteName.value}」吗？`,
+);
 
 watch(
   () => props.open,
   (open) => {
-    if (!open) return;
+    if (!open) {
+      appliedEditId.value = null;
+      return;
+    }
     if (props.editId && props.editId !== appliedEditId.value) {
       appliedEditId.value = props.editId;
       const t = templatesStore.templates.find((x) => x.id === props.editId);
@@ -84,11 +97,7 @@ const save = () => {
   toast("模板已保存");
 };
 
-const onImportFile = (e: Event) => {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
+const onImportFile = (file: File) => {
   void file.text().then((raw) => {
     const res = parseTextTemplates(raw);
     if (!res.ok) {
@@ -99,15 +108,28 @@ const onImportFile = (e: Event) => {
     toast(`已导入 ${res.templates.length} 个模板`);
   });
 };
+
+function confirmDelete() {
+  if (pendingDeleteId.value) templatesStore.removeTemplate(pendingDeleteId.value);
+  pendingDeleteId.value = null;
+}
 </script>
 
 <template>
-  <AppDialog
+  <ManagerDialogFrame
     :open="props.open"
     title="自定义文本模板"
     description="一段可复用的文本，可拖拽或点击插入到编辑器；模板支持导入 / 导出。"
-    content-class="max-w-2xl"
+    import-label="导入模板"
+    export-label="导出模板"
+    :pending-delete-name="pendingDeleteName"
+    delete-title="删除模板"
+    :delete-description="pendingDeleteDescription"
     @update:open="(v: boolean) => emit('update:open', v)"
+    @import-file="onImportFile"
+    @export="exportTextTemplates"
+    @confirm-delete="confirmDelete"
+    @cancel-delete="pendingDeleteId = null"
   >
     <div class="space-y-2 rounded-md border border-border p-2.5">
       <div class="grid grid-cols-[1fr_180px] gap-2">
@@ -158,50 +180,12 @@ const onImportFile = (e: Event) => {
           variant="ghost"
           size="icon-sm"
           title="删除"
-          class="text-destructive hover:text-destructive"
+          tone="destructive"
           @click="pendingDeleteId = t.id"
         >
           <Trash class="size-3" />
         </Button>
       </div>
     </div>
-
-    <template #footer>
-      <Button variant="outline" size="sm" @click="fileRef?.click()">
-        <Upload class="size-3.5" />
-        导入模板
-      </Button>
-      <Button variant="outline" size="sm" @click="exportTextTemplates">
-        <Folder class="size-3.5" />
-        导出模板
-      </Button>
-    </template>
-
-    <input
-      ref="fileRef"
-      type="file"
-      accept=".json,application/json"
-      class="hidden"
-      @change="onImportFile"
-    />
-
-    <ConfirmDialog
-      :open="pendingDeleteId !== null"
-      title="删除模板"
-      :description="
-        pendingDeleteId
-          ? `确定删除文本模板「${templatesStore.templates.find((t) => t.id === pendingDeleteId)?.name ?? ''}」吗？`
-          : undefined
-      "
-      confirm-text="删除"
-      destructive
-      @confirm="
-        () => {
-          if (pendingDeleteId) templatesStore.removeTemplate(pendingDeleteId);
-          pendingDeleteId = null;
-        }
-      "
-      @cancel="pendingDeleteId = null"
-    />
-  </AppDialog>
+  </ManagerDialogFrame>
 </template>

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { NConfigProvider } from "naive-ui";
 import App from "@/App.vue";
@@ -26,11 +26,14 @@ describe("App 整体布局", () => {
   it("渲染导航栏、标题栏、编辑器与暂存区", async () => {
     const wrapper = mount(App, { attachTo: document.body });
     await nextTick();
+    await flushPromises();
 
     expect(wrapper.text()).toContain("一点微小的工作");
     expect(wrapper.text()).toContain("With Work");
     expect(wrapper.text()).toContain("全局暂存区");
-    expect(document.body.querySelectorAll(".monaco-editor-stub").length).toBe(2);
+    await vi.waitFor(() => {
+      expect(document.body.querySelectorAll(".monaco-editor-stub").length).toBe(2);
+    });
     expect(wrapper.text()).toContain("已自动保存");
     wrapper.unmount();
   });

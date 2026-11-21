@@ -32,7 +32,7 @@ const rest = (() => {
     :class="
       cn(
         'items-center justify-center text-xs font-medium [&_svg]:size-3.5',
-        props.iconOnly ? 'h-6.5 w-6.5 px-0' : 'h-7 gap-1 px-2',
+        props.iconOnly ? 'h-7 w-7 px-0' : 'h-7 gap-1 px-2',
         $attrs.class as string,
       )
     "

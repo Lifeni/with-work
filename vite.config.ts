@@ -3,7 +3,6 @@ import { defineConfig } from "vite";
 import { readFileSync } from "node:fs";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
-import { viteSingleFile } from "vite-plugin-singlefile";
 import { VitePWA } from "vite-plugin-pwa";
 import { fileURLToPath, URL } from "node:url";
 
@@ -12,25 +11,18 @@ const { version: APP_VERSION } = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf8"),
 ) as { version: string };
 
-// 双构建模式：
-//   pnpm build         → dist/（部署到 Vercel，启用 PWA 离线支持）
-//   pnpm build:single  → dist-single/（单文件 HTML，样式/脚本/图标全部内嵌）
 export default defineConfig(({ mode }) => {
-  const isSingle = mode === "single";
-  // PWA 仅用于 Vercel 部署版；单文件构建与测试模式不启用
-  const isPwa = !isSingle && mode !== "test";
+  // 仅生产构建启用 PWA；开发/测试模式不生成 Service Worker
+  const isPwa = mode === "production";
   return {
     // 构建时间注入：设置页“关于”展示动态构建时间（__BUILD_TIME__ 为 UTC ISO 字符串）
-    // 构建模式：single = 单文件版；其余（含测试）为 deploy = 部署版
     define: {
       __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-      __BUILD_MODE__: JSON.stringify(isSingle ? "single" : "deploy"),
       __APP_VERSION__: JSON.stringify(APP_VERSION),
     },
     plugins: [
       vue(),
       tailwindcss(),
-      ...(isSingle ? [viteSingleFile()] : []),
       ...(isPwa
         ? [
             VitePWA({
@@ -73,7 +65,8 @@ export default defineConfig(({ mode }) => {
                 ],
               },
               workbox: {
-                globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
+                // ttf 是 Monaco 的 codicon 字体；png 是 PWA 安装图标，离线时也应命中缓存
+                globPatterns: ["**/*.{js,css,html,svg,ico,woff2,ttf,png,webmanifest}"],
                 // monaco 主包约 4MB，默认 2MB 上限会跳过，调大以完整预缓存
                 maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
                 // 用户确认 SKIP_WAITING 后立即接管当前页面，触发 controllerchange 后再刷新
@@ -98,12 +91,10 @@ export default defineConfig(({ mode }) => {
     server: {
       // 构建产物就在项目根目录下：dev 期间忽略它们，否则跑一次 pnpm build
       // 会让 dev 服务器整页刷新，正好撞上 HMR 更新就可能留下坏模块
-      watch: { ignored: ["**/dist/**", "**/dist-single/**"] },
+      watch: { ignored: ["**/dist/**"] },
     },
     build: {
-      outDir: isSingle ? "dist-single" : "dist",
-      assetsInlineLimit: isSingle ? 100000000 : 4096,
-      chunkSizeWarningLimit: 10000,
+      chunkSizeWarningLimit: 6000,
     },
     test: {
       // jsdom 环境：自带 DOM/window，供持久化与组件测试使用

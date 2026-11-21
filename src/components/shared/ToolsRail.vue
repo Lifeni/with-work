@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { Download, Settings, Trash, Upload } from "@vicons/tabler";
+import { Download, Search, Settings, Trash, Upload } from "@vicons/tabler";
 import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
+import FileMenu from "@/components/shared/FileMenu.vue";
 import DropdownMenu from "@/components/ui/dropdown-menu.vue";
 import TooltipIconButton from "@/components/ui/tooltip-icon-button.vue";
 import favicon from "@/assets/favicon.svg";
@@ -163,8 +164,17 @@ const onTemplatesFile = (e: Event) => {
       </div>
     </div>
 
-    <!-- 底部全局入口：导入、导出、设置 -->
+    <!-- 底部全局入口：打开文件、导入、导出、设置 -->
     <div class="flex min-h-0 w-full flex-1 flex-col items-center justify-end gap-1 pb-1">
+      <TooltipIconButton
+        title="命令面板 (Ctrl+K)"
+        aria-label="打开命令面板"
+        @click="uiStore.setCommandPaletteOpen(true)"
+        class="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+      >
+        <Search class="size-[18px]" />
+      </TooltipIconButton>
+      <FileMenu />
       <DropdownMenu
         v-slot="{ open }"
         aria-label="导入数据"

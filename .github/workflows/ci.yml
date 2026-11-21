@@ -4,8 +4,8 @@ name: CI
 on:
   push:
     tags:
-      - "v*" # 例：v100.2.0
-      - "[0-9]*" # 例：100.1.0
+      - "v*" # 例：v100.3.0
+      - "[0-9]*" # 例：100.3.0
 
 # 同一个 ref 的重复推送只保留最新一次校验
 concurrency:
@@ -27,11 +27,12 @@ jobs:
       # 第三方 action 固定到 commit SHA（标签对应提交），避免标签被重定向后执行非预期代码
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
-          version: 10
+          # 与 package.json 的 packageManager 保持一致
+          version: 12.21.0
 
       - uses: actions/setup-node@v7
         with:
-          # jsdom 30 要求 Node ^22.22.2 || ^24.15.0 || >=26，Node 20 下 vitest 起不了 worker
+          # jsdom 30 要求 Node ^22.22.2 || ^24.15.0 || >=26；推荐版本见 .nvmrc
           node-version: 24
           cache: pnpm
 
@@ -47,6 +48,6 @@ jobs:
       - name: 单元测试
         run: pnpm test
 
-      # 含 vue-tsc 类型检查、部署版构建与单文件构建
+      # 含 vue-tsc 类型检查与生产构建
       - name: 构建
         run: pnpm build

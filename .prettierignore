@@ -2,7 +2,11 @@ node_modules
 .next
 out
 build
+dist
 .vercel
+test-results
+playwright-report
+blob-report
 package-lock.json
 pnpm-lock.yaml
 yarn.lock

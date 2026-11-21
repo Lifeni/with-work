@@ -1,6 +1,8 @@
 /** PWA Service Worker 检查节奏：运行期间每小时检查一次 */
 export const PWA_UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
+export type PwaUpdateCheckResult = "update" | "latest" | "error" | "busy" | "unavailable";
+
 export interface PwaUpdateOptions {
   /** 检测到新版本并等待激活时调用；同一个 worker 只提示一次 */
   onNeedRefresh: () => void;
@@ -17,6 +19,10 @@ export interface PwaUpdateOptions {
 export interface PwaUpdateController {
   /** Service Worker 注册与首次检查完成 */
   ready: Promise<void>;
+  /** 手动检查一次更新，供设置页等入口反馈结果 */
+  checkForUpdate: () => Promise<PwaUpdateCheckResult>;
+  /** 等待中的新版本存在时重新显示提示（用户点过“稍后”后仍可手动召回） */
+  showUpdatePrompt: () => boolean;
   /** 用户确认后激活等待中的 worker，并刷新页面 */
   updateServiceWorker: () => Promise<void>;
   /** 释放定时器与页面事件监听 */
@@ -72,19 +78,31 @@ export function startPwaUpdate(options: PwaUpdateOptions): PwaUpdateController {
     notifyIfWaiting(registration.waiting);
   };
 
-  async function checkForUpdate() {
-    if (disposed || !registration || checking) return;
+  async function checkForUpdate(): Promise<PwaUpdateCheckResult> {
+    if (disposed || !registration) return "unavailable";
+    if (checking) return "busy";
     checking = true;
     try {
       const latest = await registration.update();
-      if (disposed) return;
+      if (disposed) return "unavailable";
       watchInstallingWorker(latest.installing);
       notifyIfWaiting(latest.waiting);
+      return latest.installing || latest.waiting ? "update" : "latest";
     } catch (error) {
       reportError(error);
+      return "error";
     } finally {
       checking = false;
     }
+  }
+
+  function showUpdatePrompt(): boolean {
+    if (disposed) return false;
+    const worker = registration?.waiting ?? waitingWorker;
+    if (!worker) return false;
+    waitingWorker = worker;
+    options.onNeedRefresh();
+    return true;
   }
 
   const handleVisibilityChange = () => {
@@ -181,5 +199,5 @@ export function startPwaUpdate(options: PwaUpdateOptions): PwaUpdateController {
     }
   }
 
-  return { ready, updateServiceWorker, dispose };
+  return { ready, checkForUpdate, showUpdatePrompt, updateServiceWorker, dispose };
 }

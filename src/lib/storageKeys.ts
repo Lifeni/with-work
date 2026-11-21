@@ -17,6 +17,9 @@ export const PERSIST_KEYS: Record<string, string> = {
 /** 内置示例数据的注入标记（不属于任何 store，由 lib/defaultData.ts 维护） */
 export const SEEDED_KEY = "ww:seeded";
 
+/** localStorage 镜像的写入时间，用于启动时与 IndexedDB 主存储比较新旧 */
+export const PERSIST_META_KEY = "ww:persist-meta";
+
 /** 历史版本写入过、当前版本不再读写的键：清空数据时一并移除 */
 export const LEGACY_STORAGE_KEYS = ["ww:diff", "ww:list"];
 
@@ -24,5 +27,6 @@ export const LEGACY_STORAGE_KEYS = ["ww:diff", "ww:list"];
 export const ALL_STORAGE_KEYS = [
   ...Object.values(PERSIST_KEYS),
   SEEDED_KEY,
+  PERSIST_META_KEY,
   ...LEGACY_STORAGE_KEYS,
 ];

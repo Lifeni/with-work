@@ -4,6 +4,8 @@ import { NInput } from "naive-ui";
 import { cn } from "@/lib/utils";
 
 /** Textarea：Naive n-input type=textarea 封装 */
+defineOptions({ inheritAttrs: false });
+
 const props = withDefaults(defineProps<{ modelValue?: string; rows?: number }>(), {
   modelValue: "",
   rows: 3,

@@ -3,11 +3,13 @@ node_modules/
 
 # build output
 dist/
-dist-single/
 build/
 
 # testing
 coverage/
+test-results/
+playwright-report/
+blob-report/
 
 # env files
 .env*

@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
 import {
-  NConfigProvider,
-  dateZhCN,
-  darkTheme,
-  lightTheme,
-  zhCN,
-  type GlobalThemeOverrides,
-} from "naive-ui";
+  computed,
+  defineAsyncComponent,
+  defineComponent,
+  h,
+  onBeforeUnmount,
+  onMounted,
+  watch,
+} from "vue";
+import { NConfigProvider, dateZhCN, darkTheme, lightTheme, zhCN } from "naive-ui";
 import TitleBar from "@/components/shared/TitleBar.vue";
 import ToolsRail from "@/components/shared/ToolsRail.vue";
 import StatusBar from "@/components/shared/StatusBar.vue";
@@ -15,32 +16,44 @@ import StagingPanel from "@/components/shared/StagingPanel.vue";
 import SettingsDialog from "@/components/shared/SettingsDialog.vue";
 import ToastViewport from "@/components/shared/ToastViewport.vue";
 import PwaUpdatePrompt from "@/components/shared/PwaUpdatePrompt.vue";
-import EditorView from "@/views/editor/EditorView.vue";
+import CommandPalette from "@/components/shared/CommandPalette.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useSettingsStore } from "@/stores/settings";
 import { useUiStore } from "@/stores/ui";
+import { startMultiTabGuard } from "@/lib/multiTab";
+import { createNaiveThemeOverrides } from "@/lib/naiveTheme";
 import { initTheme, resolveTheme } from "@/lib/theme";
+
+const EditorLoading = defineComponent({
+  name: "EditorLoading",
+  setup: () => () =>
+    h(
+      "div",
+      { class: "flex h-full items-center justify-center text-xs text-muted-foreground" },
+      "正在加载编辑器…",
+    ),
+});
+
+const EditorView = defineAsyncComponent({
+  loader: () => import("@/views/editor/EditorView.vue"),
+  loadingComponent: EditorLoading,
+  delay: 0,
+});
 
 const wsStore = useWorkspaceStore();
 const uiStore = useUiStore();
 const settingsStore = useSettingsStore();
-
-const UI_FONT_FAMILY = [
-  "Inter",
-  "MiSans",
-  "HarmonyOS Sans SC",
-  "Source Han Sans SC",
-  "Noto Sans SC",
-  "system-ui",
-  "-apple-system",
-  "Segoe UI",
-  "sans-serif",
-].join(",");
-const CONTROL_FONT_SIZE = "12px";
-const MENU_OPTION_HEIGHT = "28px";
+const pwaUpdateEnabled = import.meta.env.PROD;
+let stopMultiTabGuard: (() => void) | null = null;
 
 onMounted(() => {
   initTheme(settingsStore.theme);
+  stopMultiTabGuard = startMultiTabGuard();
+});
+
+onBeforeUnmount(() => {
+  stopMultiTabGuard?.();
+  stopMultiTabGuard = null;
 });
 
 // 工作区全部关闭后自动新建一个，保证主区域始终有内容
@@ -53,67 +66,9 @@ watch(
 );
 
 // Naive UI 主题：与自身主题设置联动；主色对齐品牌图标（粉紫）色系
-const naiveTheme = computed(() =>
-  resolveTheme(settingsStore.theme) === "dark" ? darkTheme : lightTheme,
-);
-const themeOverrides = computed<GlobalThemeOverrides>(() => {
-  const dark = resolveTheme(settingsStore.theme) === "dark";
-  return {
-    common: {
-      // 覆盖 Naive 注入到 body 的默认字体，与项目 Inter 字体栈保持一致
-      fontFamily: UI_FONT_FAMILY,
-      primaryColor: dark ? "#a78bfa" : "#6d28d9",
-      primaryColorHover: dark ? "#c4b5fd" : "#7c3aed",
-      primaryColorPressed: dark ? "#a78bfa" : "#5b21b6",
-      primaryColorSuppl: dark ? "#a78bfa" : "#6d28d9",
-      borderRadius: "6px",
-    },
-    Tooltip: {
-      padding: "5px 8px",
-      peers: {
-        Popover: {
-          fontSize: "12px",
-        },
-      },
-    },
-    Input: {
-      fontSizeSmall: CONTROL_FONT_SIZE,
-    },
-    Dropdown: {
-      fontSizeSmall: CONTROL_FONT_SIZE,
-      optionHeightSmall: MENU_OPTION_HEIGHT,
-      color: "var(--popover)",
-      optionTextColor: "var(--popover-foreground)",
-      optionTextColorHover: "var(--popover-foreground)",
-      optionTextColorActive: "var(--primary)",
-      suffixColor: "var(--muted-foreground)",
-      prefixColor: "var(--muted-foreground)",
-      groupHeaderTextColor: "var(--muted-foreground)",
-      dividerColor: "var(--border)",
-    },
-    Select: {
-      peers: {
-        InternalSelection: {
-          fontSizeSmall: CONTROL_FONT_SIZE,
-          fontWeight: "400",
-        },
-        InternalSelectMenu: {
-          optionFontSizeSmall: CONTROL_FONT_SIZE,
-          optionHeightSmall: MENU_OPTION_HEIGHT,
-          color: "var(--popover)",
-          optionTextColor: "var(--popover-foreground)",
-          optionTextColorPressed: "var(--primary)",
-          optionTextColorActive: "var(--primary)",
-          groupHeaderTextColor: "var(--muted-foreground)",
-          actionTextColor: "var(--muted-foreground)",
-        },
-      },
-    },
-    Radio: {
-      fontSizeSmall: CONTROL_FONT_SIZE,
-    },
-  };
-});
+const resolvedTheme = computed(() => resolveTheme(settingsStore.theme));
+const naiveTheme = computed(() => (resolvedTheme.value === "dark" ? darkTheme : lightTheme));
+const themeOverrides = computed(() => createNaiveThemeOverrides(resolvedTheme.value === "dark"));
 </script>
 
 <template>
@@ -152,8 +107,9 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
       </div>
       <StatusBar />
       <SettingsDialog :open="uiStore.settingsOpen" @update:open="uiStore.setSettingsOpen($event)" />
-      <PwaUpdatePrompt />
+      <PwaUpdatePrompt :enabled="pwaUpdateEnabled" />
       <ToastViewport />
+      <CommandPalette />
     </div>
   </NConfigProvider>
 </template>

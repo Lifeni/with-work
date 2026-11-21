@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { Folder, Pencil, Plus, Trash, Upload } from "@vicons/tabler";
-import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
-import AppDialog from "@/components/ui/dialog.vue";
+import { computed, ref, watch } from "vue";
+import { Pencil, Plus, Trash } from "@vicons/tabler";
+import ManagerDialogFrame from "@/components/shared/ManagerDialogFrame.vue";
 import Button from "@/components/ui/button.vue";
 import Input from "@/components/ui/input.vue";
 import Toggle from "@/components/ui/toggle.vue";
@@ -36,15 +35,27 @@ const isRegex = ref(false);
 const matchCase = ref(false);
 const editingId = ref<string | null>(null);
 const pendingDeleteId = ref<string | null>(null);
-const fileRef = ref<HTMLInputElement | null>(null);
 // 已应用的 editId（避免重复应用）
 const appliedEditId = ref<string | null>(null);
+
+const pendingDeleteName = computed(() => {
+  if (!pendingDeleteId.value) return null;
+  return rulesStore.rules.find((rule) => rule.id === pendingDeleteId.value)?.name ?? "";
+});
+const pendingDeleteDescription = computed(() =>
+  pendingDeleteName.value === null
+    ? undefined
+    : `确定删除替换规则「${pendingDeleteName.value}」吗？`,
+);
 
 // 打开时带入 initialDraft / editId（父组件也可用 key 控制重挂载，此处兼容两者）
 watch(
   () => props.open,
   (open) => {
-    if (!open) return;
+    if (!open) {
+      appliedEditId.value = null;
+      return;
+    }
     if (props.editId && props.editId !== appliedEditId.value) {
       appliedEditId.value = props.editId;
       const rule = rulesStore.rules.find((r) => r.id === props.editId);
@@ -104,11 +115,7 @@ const save = () => {
   toast("规则已保存");
 };
 
-const onImportFile = (e: Event) => {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
+const onImportFile = (file: File) => {
   void file.text().then((raw) => {
     const res = parseRules(raw);
     if (!res.ok) {
@@ -119,15 +126,28 @@ const onImportFile = (e: Event) => {
     toast(`已导入 ${res.rules.length} 条替换规则`);
   });
 };
+
+function confirmDelete() {
+  if (pendingDeleteId.value) rulesStore.removeRule(pendingDeleteId.value);
+  pendingDeleteId.value = null;
+}
 </script>
 
 <template>
-  <AppDialog
+  <ManagerDialogFrame
     :open="props.open"
     title="替换规则"
     description="保存常用替换规则，在替换面板中一键调用；规则支持导入 / 导出。"
-    content-class="max-w-2xl"
+    import-label="导入规则"
+    export-label="导出规则"
+    :pending-delete-name="pendingDeleteName"
+    delete-title="删除规则"
+    :delete-description="pendingDeleteDescription"
     @update:open="(v: boolean) => emit('update:open', v)"
+    @import-file="onImportFile"
+    @export="exportRules"
+    @confirm-delete="confirmDelete"
+    @cancel-delete="pendingDeleteId = null"
   >
     <div class="space-y-2 rounded-md border border-border p-2.5">
       <div class="grid grid-cols-3 gap-2">
@@ -198,50 +218,12 @@ const onImportFile = (e: Event) => {
           variant="ghost"
           size="icon-sm"
           title="删除"
-          class="text-destructive hover:text-destructive"
+          tone="destructive"
           @click="pendingDeleteId = r.id"
         >
           <Trash class="size-3" />
         </Button>
       </div>
     </div>
-
-    <template #footer>
-      <Button variant="outline" size="sm" @click="fileRef?.click()">
-        <Upload class="size-3.5" />
-        导入规则
-      </Button>
-      <Button variant="outline" size="sm" @click="exportRules">
-        <Folder class="size-3.5" />
-        导出规则
-      </Button>
-    </template>
-
-    <input
-      ref="fileRef"
-      type="file"
-      accept=".json,application/json"
-      class="hidden"
-      @change="onImportFile"
-    />
-
-    <ConfirmDialog
-      :open="pendingDeleteId !== null"
-      title="删除规则"
-      :description="
-        pendingDeleteId
-          ? `确定删除替换规则「${rulesStore.rules.find((r) => r.id === pendingDeleteId)?.name ?? ''}」吗？`
-          : undefined
-      "
-      confirm-text="删除"
-      destructive
-      @confirm="
-        () => {
-          if (pendingDeleteId) rulesStore.removeRule(pendingDeleteId);
-          pendingDeleteId = null;
-        }
-      "
-      @cancel="pendingDeleteId = null"
-    />
-  </AppDialog>
+  </ManagerDialogFrame>
 </template>

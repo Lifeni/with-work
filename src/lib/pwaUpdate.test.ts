@@ -163,6 +163,53 @@ describe("PWA 更新检测", () => {
     expect(registration.registration.update).toHaveBeenCalledTimes(4);
   });
 
+  it("手动检查会返回是否发现新版本", async () => {
+    const registration = createRegistration();
+    const container = createContainer(registration.registration);
+    installServiceWorker(container.container);
+    runtime = startPwaUpdate({ onNeedRefresh: () => {} });
+    await runtime.ready;
+
+    await expect(runtime.checkForUpdate()).resolves.toBe("latest");
+
+    const worker = createWorker();
+    registration.setWaiting(worker.worker);
+    await expect(runtime.checkForUpdate()).resolves.toBe("update");
+  });
+
+  it("已经提示过的等待版本仍可手动召回提示", async () => {
+    const registration = createRegistration();
+    const container = createContainer(registration.registration);
+    installServiceWorker(container.container);
+    const worker = createWorker();
+    const onNeedRefresh = vi.fn();
+    runtime = startPwaUpdate({ onNeedRefresh });
+    await runtime.ready;
+
+    registration.setUpdating(worker.worker);
+    registration.emitUpdateFound();
+    registration.setWaiting(worker.worker);
+    worker.setState("installed");
+    expect(onNeedRefresh).toHaveBeenCalledTimes(1);
+
+    expect(runtime.showUpdatePrompt()).toBe(true);
+    expect(onNeedRefresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("手动检查失败时返回 error 并报告错误", async () => {
+    const registration = createRegistration();
+    const container = createContainer(registration.registration);
+    installServiceWorker(container.container);
+    const onRegisterError = vi.fn();
+    runtime = startPwaUpdate({ onNeedRefresh: () => {}, onRegisterError });
+    await runtime.ready;
+
+    const error = new Error("offline");
+    vi.mocked(registration.registration.update).mockRejectedValueOnce(error);
+    await expect(runtime.checkForUpdate()).resolves.toBe("error");
+    expect(onRegisterError).toHaveBeenCalledWith(error);
+  });
+
   it("新 Service Worker 安装完成后只提示一次", async () => {
     const registration = createRegistration();
     const container = createContainer(registration.registration);

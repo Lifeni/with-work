@@ -11,6 +11,7 @@ describe("表单控件可访问名称", () => {
     });
 
     expect(wrapper.get("input").attributes("aria-label")).toBe("查找文本");
+    expect(wrapper.get(".n-input").attributes("aria-label")).toBeUndefined();
   });
 
   it("Textarea 将 aria-label 传给原生文本域", () => {
@@ -19,6 +20,7 @@ describe("表单控件可访问名称", () => {
     });
 
     expect(wrapper.get("textarea").attributes("aria-label")).toBe("模板内容");
+    expect(wrapper.get(".n-input").attributes("aria-label")).toBeUndefined();
   });
 
   it("Input 和 Textarea 显式采用 Naive 有边框形态", () => {

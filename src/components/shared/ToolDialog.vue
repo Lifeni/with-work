@@ -155,8 +155,8 @@ function execute() {
           />
           <Input
             v-if="config.delimiter === 'custom'"
-            :value="config.customRegex ?? ''"
-            @input="config = { ...config, customRegex: ($event.target as HTMLInputElement).value }"
+            :model-value="config.customRegex ?? ''"
+            @update:model-value="(value: string) => (config = { ...config, customRegex: value })"
             aria-label="自定义分隔符正则"
             placeholder="如 [，,、;；]"
             class="min-w-0 flex-1 font-mono"
