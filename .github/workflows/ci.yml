@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v7
 
       # 第三方 action 固定到 commit SHA（标签对应提交），避免标签被重定向后执行非预期代码
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           # 与 package.json 的 packageManager 保持一致
           version: 12.21.0
